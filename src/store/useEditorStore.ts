@@ -808,8 +808,28 @@ export interface EditorState {
    loadFromStorage: () => Promise<boolean>;
 }
 
-// Initial default template
-const initialDoc: CollageDocument = TEMPLATES[0].createDocument();
+let saveStorageTimeout: ReturnType<typeof setTimeout> | null = null;
+export const debouncedSaveToStorage = () => {
+  if (saveStorageTimeout) {
+    clearTimeout(saveStorageTimeout);
+  }
+  saveStorageTimeout = setTimeout(() => {
+    saveStorageTimeout = null;
+    useEditorStore.getState().saveToStorage();
+  }, 600);
+};
+
+// Initial default template: standard Mijia 6-inch vertical (1181 x 1748)
+const rawInitialDoc = TEMPLATES[0].createDocument(1181, 1748);
+const initialDoc: CollageDocument = {
+  ...rawInitialDoc,
+  canvas: {
+    ...rawInitialDoc.canvas,
+    width: 1181,
+    height: 1748,
+    presetName: "米家 6 寸相纸 (竖版)",
+  },
+};
 const initialViewState = getInitialViewState();
 const initialActivePanel = getStoredActivePanel();
 
@@ -2863,7 +2883,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         },
         ...historyUpdate,
       });
-      getStore().saveToStorage();
+      debouncedSaveToStorage();
     },
 
     updateElements: (updatesList, pushToHistory = false) => {
@@ -2886,7 +2906,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         },
         ...historyUpdate,
       });
-      getStore().saveToStorage();
+      debouncedSaveToStorage();
     },
 
     deleteElements: (ids) => {
@@ -3186,41 +3206,88 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
     reflowContentToCanvas: (oldW, oldH, newW, newH) => {
       const state = getStore();
-      const scaleX = newW / oldW;
-      const scaleY = newH / oldH;
-      const uniformScale = Math.min(scaleX, scaleY);
+      const elements = state.document.elements;
+      if (!elements || elements.length === 0) return;
 
-      const updatedElements = state.document.elements.map((el) => {
-        if (el.x === 0 && el.y === 0 && el.width === oldW && el.height === oldH) {
-          return { ...el, width: newW, height: newH };
+      // Identify full-bleed background elements (elements covering entire old canvas)
+      const fullBleedIds = new Set<string>();
+      elements.forEach((el) => {
+        if (el.x === 0 && el.y === 0 && Math.abs(el.width - oldW) < 5 && Math.abs(el.height - oldH) < 5) {
+          fullBleedIds.add(el.id);
+        }
+      });
+
+      const contentElements = elements.filter((el) => !fullBleedIds.has(el.id));
+
+      let updatedElements: CollageElement[] = [];
+
+      if (contentElements.length === 0) {
+        updatedElements = elements.map((el) => ({
+          ...el,
+          width: newW,
+          height: newH,
+        }));
+      } else {
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        for (const el of contentElements) {
+          minX = Math.min(minX, el.x);
+          minY = Math.min(minY, el.y);
+          maxX = Math.max(maxX, el.x + el.width);
+          maxY = Math.max(maxY, el.y + el.height);
         }
 
-        const isFullWidth = el.x === 0 && el.width === oldW;
-        const newWidth = isFullWidth ? newW : Math.round(el.width * uniformScale);
-        const newHeight = Math.round(el.height * uniformScale);
-        const newX = isFullWidth ? 0 : Math.round(el.x * scaleX);
-        const newY = Math.round(el.y * scaleY);
+        const contentW = Math.max(10, maxX - minX);
+        const contentH = Math.max(10, maxY - minY);
 
-        if (el.type === "text") {
-          const textEl = el as TextElement;
+        // Fit nicely within 94% of the target canvas dimension
+        const maxTargetW = newW * 0.94;
+        const maxTargetH = newH * 0.94;
+
+        const scale = Math.min(maxTargetW / contentW, maxTargetH / contentH);
+        const scaledW = contentW * scale;
+        const scaledH = contentH * scale;
+
+        const targetMinX = Math.round((newW - scaledW) / 2);
+        const targetMinY = Math.round((newH - scaledH) / 2);
+
+        updatedElements = elements.map((el) => {
+          if (fullBleedIds.has(el.id)) {
+            return { ...el, width: newW, height: newH };
+          }
+
+          const relX = el.x - minX;
+          const relY = el.y - minY;
+
+          const newX = Math.round(targetMinX + relX * scale);
+          const newY = Math.round(targetMinY + relY * scale);
+          const newWidth = Math.max(10, Math.round(el.width * scale));
+          const newHeight = Math.max(10, Math.round(el.height * scale));
+
+          if (el.type === "text") {
+            const textEl = el as TextElement;
+            return {
+              ...textEl,
+              x: newX,
+              y: newY,
+              width: newWidth,
+              height: newHeight,
+              fontSize: Math.max(10, Math.round(textEl.fontSize * scale)),
+            };
+          }
+
           return {
-            ...textEl,
+            ...el,
             x: newX,
             y: newY,
             width: newWidth,
             height: newHeight,
-            fontSize: Math.max(10, Math.round(textEl.fontSize * uniformScale)),
           };
-        }
-
-        return {
-          ...el,
-          x: newX,
-          y: newY,
-          width: newWidth,
-          height: newHeight,
-        };
-      });
+        });
+      }
 
       setStore({
         document: {
@@ -3649,6 +3716,10 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     canRedo: () => getStore().future.length > 0,
 
         saveToStorage: async () => {
+      if (saveStorageTimeout) {
+        clearTimeout(saveStorageTimeout);
+        saveStorageTimeout = null;
+      }
       try {
         const { document, currentUser, savedProjects, customTemplates, mediaAssets, userAccounts } = getStore();
         
@@ -3803,9 +3874,17 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
           });
 
           if (userDoc && userDoc.canvas && Array.isArray(userDoc.elements)) {
+            // Upgrade old default 1200x1600 canvas to standard Mijia 6-inch vertical (1181x1748)
+            if (userDoc.canvas.width === 1200 && userDoc.canvas.height === 1600) {
+              userDoc.canvas.width = 1181;
+              userDoc.canvas.height = 1748;
+              if (!userDoc.canvas.presetName || userDoc.canvas.presetName === 'Quiet Journeys (Gallery)' || userDoc.canvas.presetName === '九宫格') {
+                userDoc.canvas.presetName = '米家 6 寸相纸 (竖版)';
+              }
+            }
             setStore({ document: userDoc, past: [], future: [] });
           } else {
-            setStore({ document: TEMPLATES[0].createDocument(), past: [], future: [] });
+            setStore({ document: initialDoc, past: [], future: [] });
           }
 
           // 立即同步拉取当前用户的生成历史，确保首屏打开立刻展示
@@ -3841,3 +3920,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     },
   };
 });
+
+if (typeof window !== "undefined") {
+  (window as any).__MAR_STORE__ = useEditorStore;
+}

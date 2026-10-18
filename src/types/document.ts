@@ -103,9 +103,17 @@ export interface ShapeElement extends BaseElement {
   shadowOpacity?: number;
 }
 
+export type WatermarkStyle = "leica" | "hasselblad" | "zeiss" | "iphone" | "fuji" | "film-date";
+
 export interface StickerElement extends BaseElement {
   type: "sticker";
-  stickerType: "washi-tape" | "date-stamp" | "barcode" | "archival-tag" | "film-strip" | "grid-cross" | "seal";
+  stickerType?: "camera-watermark" | "washi-tape" | "date-stamp" | "barcode" | "archival-tag" | "film-strip" | "grid-cross" | "seal" | string;
+  watermarkStyle?: WatermarkStyle;
+  device?: string;
+  dateTime?: string;
+  params?: string;
+  location?: string;
+  bgTheme?: "white" | "dark" | "transparent";
   label?: string;
   color?: string;
   accentColor?: string;

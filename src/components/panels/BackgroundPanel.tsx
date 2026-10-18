@@ -48,46 +48,37 @@ export const BackgroundPanel: React.FC = () => {
 
         {/* Quick Mijia Presets Shortcut Buttons */}
         <div className="grid grid-cols-2 gap-1.5 pt-1">
-          <button
-            onClick={() => {
-              const p = CANVAS_PRESETS.find((item) => item.id === 'mijia-6inch-vertical')!;
-              updateCanvas({ width: p.width, height: p.height, presetName: p.name }, true);
-            }}
-            className="py-2 px-2 rounded-lg bg-studio-panel hover:bg-studio-hover border border-studio-border text-[10px] font-mono text-studio-text flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5 text-studio-accent" />
-            <span>米家 6 寸 (竖版)</span>
-          </button>
-          <button
-            onClick={() => {
-              const p = CANVAS_PRESETS.find((item) => item.id === 'mijia-6inch-horizontal')!;
-              updateCanvas({ width: p.width, height: p.height, presetName: p.name }, true);
-            }}
-            className="py-2 px-2 rounded-lg bg-studio-panel hover:bg-studio-hover border border-studio-border text-[10px] font-mono text-studio-text flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5 text-studio-accent" />
-            <span>米家 6 寸 (横版)</span>
-          </button>
-          <button
-            onClick={() => {
-              const p = CANVAS_PRESETS.find((item) => item.id === 'mijia-3inch-pocket')!;
-              updateCanvas({ width: p.width, height: p.height, presetName: p.name }, true);
-            }}
-            className="py-2 px-2 rounded-lg bg-studio-panel hover:bg-studio-hover border border-studio-border text-[10px] font-mono text-studio-text flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5 text-studio-accent" />
-            <span>米家 3 寸 (口袋卡)</span>
-          </button>
-          <button
-            onClick={() => {
-              const p = CANVAS_PRESETS.find((item) => item.id === 'portrait-post')!;
-              updateCanvas({ width: p.width, height: p.height, presetName: p.name }, true);
-            }}
-            className="py-2 px-2 rounded-lg bg-studio-panel hover:bg-studio-hover border border-studio-border text-[10px] font-mono text-studio-text flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-studio-accent" />
-            <span>小红书 (3:4)</span>
-          </button>
+          {[
+            { id: 'mijia-6inch-vertical', label: '米家 6 寸 (竖版)', Icon: Printer, w: 1181, h: 1748 },
+            { id: 'mijia-6inch-horizontal', label: '米家 6 寸 (横版)', Icon: Printer, w: 1748, h: 1181 },
+            { id: 'mijia-3inch-pocket', label: '米家 3 寸 (口袋卡)', Icon: Printer, w: 591, h: 898 },
+            { id: 'portrait-post', label: '小红书 (3:4)', Icon: Smartphone, w: 900, h: 1200 },
+          ].map((item) => {
+            const isActive = canvas.width === item.w && canvas.height === item.h;
+            const Icon = item.Icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  const p = CANVAS_PRESETS.find((cp) => cp.id === item.id) || {
+                    name: item.label,
+                    width: item.w,
+                    height: item.h,
+                  };
+                  updateCanvas({ width: item.w, height: item.h, presetName: p.name }, true);
+                }}
+                className={`py-2 px-2 rounded-lg border text-[10px] font-mono flex items-center justify-center gap-1.5 transition-all ${
+                  isActive
+                    ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold ring-1 ring-studio-accent/30'
+                    : 'bg-studio-panel hover:bg-studio-hover border-studio-border text-studio-text'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-studio-accent' : 'text-studio-muted'}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

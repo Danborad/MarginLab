@@ -1,6 +1,10 @@
 import { CollageDocument, CollageElement } from '../types/document';
 import { generateId } from './utils';
 
+export const DEFAULT_CANVAS_WIDTH = 1181;
+export const DEFAULT_CANVAS_HEIGHT = 1748;
+export const DEFAULT_CANVAS_PRESET = '米家 6 寸相纸 (竖版)';
+
 export interface TemplateDefinition {
   id: string;
   name: string;
@@ -21,7 +25,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=600&auto=format&fit=crop&q=80',
     photoCount: 18,
     badge: '18图矩阵',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const bg = tbg === '#FFFFFF' || !tbg ? '#FFFFFF' : tbg;
       const padX = Math.round(44 * s);
@@ -176,7 +180,7 @@ export const TEMPLATES: TemplateDefinition[] = [
           unit: 'px',
           backgroundType: 'color',
           backgroundColor: bg,
-          presetName: 'Quiet Journeys (Gallery)',
+          presetName: DEFAULT_CANVAS_PRESET,
         },
         elements,
         createdAt: new Date().toISOString(),
@@ -192,7 +196,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&auto=format&fit=crop&q=80',
     photoCount: 3,
     badge: '胶片手帐',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const bg = tbg === '#FFFFFF' || !tbg ? '#FFFFFF' : tbg;
 
@@ -589,7 +593,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '全屏大字',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -733,7 +737,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '时尚大字',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -828,7 +832,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '先锋大字',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -923,7 +927,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '时装大秀',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -1016,7 +1020,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '电影胶卷',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const cinemaH = Math.round(tw / 2.39);
       const cinemaY = Math.round((th - cinemaH) / 2);
@@ -1110,7 +1114,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '前卫大字',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -1185,7 +1189,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1494526585095-c41746248156?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '极致留白',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const imgW = Math.round(tw * 0.72);
       const imgH = Math.round(th * 0.60);
@@ -1310,7 +1314,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80',
     photoCount: 2,
     badge: '慢调生活',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -1426,7 +1430,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '瑞士排版',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, tw) / 1200;
       return {
         id: generateId('doc'),
@@ -1513,7 +1517,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&auto=format&fit=crop&q=80',
     photoCount: 2,
     badge: '法式浪漫',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       return {
         id: generateId('doc'),
@@ -1607,7 +1611,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=600&auto=format&fit=crop&q=80',
     photoCount: 2,
     badge: '双联画册',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const gap = Math.round(tw * 0.02);
       const pad = Math.round(tw * 0.04);
       const cardW = Math.round((tw - pad * 2 - gap) / 2);
@@ -1695,7 +1699,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&auto=format&fit=crop&q=80',
     photoCount: 3,
     badge: '非对称三图',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.04);
       const gap = Math.round(tw * 0.02);
       const leftW = Math.round((tw - pad * 2 - gap) * 0.58);
@@ -1786,7 +1790,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&auto=format&fit=crop&q=80',
     photoCount: 3,
     badge: '纵向三联',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const gap = Math.round(tw * 0.015);
       const pad = Math.round(tw * 0.03);
       const colW = Math.round((tw - pad * 2 - gap * 2) / 3);
@@ -1875,7 +1879,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=80',
     photoCount: 4,
     badge: '四图画廊',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.06);
       const gap = Math.round(tw * 0.03);
       const colW = Math.round((tw - pad * 2 - gap) / 2);
@@ -1937,7 +1941,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=600&auto=format&fit=crop&q=80',
     photoCount: 4,
     badge: '四图满版',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const halfW = Math.round(tw / 2);
       const halfH = Math.round(th / 2);
 
@@ -1997,7 +2001,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=600&auto=format&fit=crop&q=80',
     photoCount: 5,
     badge: '电影五帧',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.04);
       const gap = Math.round(tw * 0.015);
       const topH = Math.round(th * 0.52);
@@ -2073,7 +2077,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=600&auto=format&fit=crop&q=80',
     photoCount: 6,
     badge: '六图矩阵',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.05);
       const gap = Math.round(tw * 0.025);
       const colW = Math.round((tw - pad * 2 - gap) / 2);
@@ -2137,7 +2141,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&auto=format&fit=crop&q=80',
     photoCount: 6,
     badge: '胶片印相',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.05);
       const gap = Math.round(tw * 0.02);
       const colW = Math.round((tw - pad * 2 - gap) / 2);
@@ -2202,7 +2206,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&auto=format&fit=crop&q=80',
     photoCount: 9,
     badge: '九宫格',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.04);
       const gap = Math.round(tw * 0.015);
       const cellW = Math.round((tw - pad * 2 - gap * 2) / 3);
@@ -2272,7 +2276,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '3寸口袋卡',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const frameW = Math.round(tw * 0.84);
       const frameH = Math.round(th * 0.86);
@@ -2370,7 +2374,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&auto=format&fit=crop&q=80',
     photoCount: 4,
     badge: '四联拍立得',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.04);
       const gap = Math.round(tw * 0.03);
       const cardW = Math.round((tw - pad * 2 - gap) / 2);
@@ -2484,7 +2488,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=600&auto=format&fit=crop&q=80',
     photoCount: 6,
     badge: '6联拍立得',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const pad = Math.round(tw * 0.03);
       const gap = Math.round(tw * 0.02);
       const cardW = Math.round((tw - pad * 2 - gap) / 2);
@@ -2603,7 +2607,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '东方侘寂',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       const s = Math.min(tw, th) / 1200;
       const imgW = Math.round(tw * 0.62);
       const imgH = Math.round(th * 0.52);
@@ -2695,7 +2699,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     preview: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=600&auto=format&fit=crop&q=80',
     photoCount: 1,
     badge: '纯粹无界',
-    createDocument: (tw = 1200, th = 1600, tbg = '#FFFFFF'): CollageDocument => {
+    createDocument: (tw = DEFAULT_CANVAS_WIDTH, th = DEFAULT_CANVAS_HEIGHT, tbg = '#FFFFFF'): CollageDocument => {
       return {
         id: generateId('doc'),
         version: 1,
@@ -2930,7 +2934,7 @@ const advancedTemplateDocument = (config: (typeof advancedTemplateConfigs)[numbe
 
 export const ADVANCED_TEMPLATES: TemplateDefinition[] = advancedTemplateConfigs.map((config) => ({
   ...config,
-  createDocument: (targetW = 1200, targetH = 1600, targetBg = '#FFFFFF') => advancedTemplateDocument(config, targetW, targetH, targetBg),
+  createDocument: (targetW = DEFAULT_CANVAS_WIDTH, targetH = DEFAULT_CANVAS_HEIGHT, targetBg = '#FFFFFF') => advancedTemplateDocument(config, targetW, targetH, targetBg),
 }));
 
 TEMPLATES.push(...ADVANCED_TEMPLATES);

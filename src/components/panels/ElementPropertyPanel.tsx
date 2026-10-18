@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
 import {
   ImageElement,
@@ -33,7 +33,51 @@ import {
   Italic,
   Sparkles,
   Image as ImageIcon,
+  Camera,
+  Clock,
 } from 'lucide-react';
+
+const TextContentEditor: React.FC<{
+  elementId: string;
+  text: string;
+  onCommit: (text: string) => void;
+}> = ({ elementId, text, onCommit }) => {
+  const [val, setVal] = useState(text || '');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setVal(text || '');
+  }, [elementId, text]);
+
+  const handleChange = (newVal: string) => {
+    setVal(newVal);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onCommit(newVal);
+    }, 80);
+  };
+
+  const handleBlur = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    onCommit(val);
+  };
+
+  return (
+    <div className="space-y-1">
+      <label className="text-[11px] font-mono text-studio-muted uppercase">文本内容</label>
+      <textarea
+        rows={3}
+        value={val}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        className="w-full px-2.5 py-1.5 bg-studio-card border border-studio-border rounded-md text-xs text-studio-text focus:outline-none focus:border-studio-accent resize-none font-sans"
+      />
+    </div>
+  );
+};
 
 export const ElementPropertyPanel: React.FC = () => {
   const selectedIds = useEditorStore((s) => s.selectedIds);
@@ -406,16 +450,12 @@ export const ElementPropertyPanel: React.FC = () => {
             排版与文字
           </span>
 
-          {/* Textarea */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-mono text-studio-muted uppercase">文本内容</label>
-            <textarea
-              rows={3}
-              value={element.text}
-              onChange={(e) => updateElement(element.id, { text: e.target.value })}
-              className="w-full px-2.5 py-1.5 bg-studio-card border border-studio-border rounded-md text-xs text-studio-text focus:outline-none focus:border-studio-accent resize-none font-sans"
-            />
-          </div>
+          {/* Textarea with instant zero-lag input */}
+          <TextContentEditor
+            elementId={element.id}
+            text={element.text}
+            onCommit={(newText) => updateElement(element.id, { text: newText })}
+          />
 
           {/* Font Family */}
           <Select
@@ -583,32 +623,134 @@ export const ElementPropertyPanel: React.FC = () => {
         </div>
       )}
 
-      {/* STICKER PROPS */}
+      {/* STICKER / WATERMARK PROPS */}
       {element.type === 'sticker' && (
         <div className="space-y-4 pt-2 border-t border-studio-border">
-          <span className="text-[11px] font-mono text-studio-muted uppercase tracking-wider block">
-            贴纸印章属性
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-studio-muted uppercase tracking-wider block">
+              相机与时间水印属性
+            </span>
+            <Camera className="w-3.5 h-3.5 text-studio-accent" />
+          </div>
 
-          {element.label !== undefined && (
+          {/* Watermark style selector */}
+          <Select
+            label="水印风格 (Watermark Style)"
+            value={element.watermarkStyle || 'leica'}
+            options={[
+              { label: '徕卡经典红标 (Leica Classic)', value: 'leica' },
+              { label: '哈苏影像橙标 (Hasselblad)', value: 'hasselblad' },
+              { label: '蔡司影像蓝标 (Zeiss Blue T*)', value: 'zeiss' },
+              { label: '苹果摄影极简条 (Shot on iPhone)', value: 'iphone' },
+              { label: '富士胶片模拟印 (Fujifilm Simulation)', value: 'fuji' },
+              { label: '复古胶片点阵日期戳 (Vintage Date)', value: 'film-date' },
+            ]}
+            onChange={(e) => updateElement(element.id, { watermarkStyle: e.target.value as any })}
+          />
+
+          {/* Background Theme */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-mono text-studio-muted uppercase">底色模式</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { id: 'white', label: '纯白卡纸' },
+                { id: 'dark', label: '沉稳曜黑' },
+                { id: 'transparent', label: '透明底色' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => updateElement(element.id, { bgTheme: t.id as any })}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-mono border transition-all ${
+                    (element.bgTheme || 'white') === t.id
+                      ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                      : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Device model */}
+          <div className="space-y-1.5">
             <Input
-              label="标签文字"
-              value={element.label}
-              onChange={(e) => updateElement(element.id, { label: e.target.value })}
+              label="拍摄设备型号 (Device)"
+              value={element.device || ''}
+              onChange={(e) => updateElement(element.id, { device: e.target.value })}
+              placeholder="如 iPhone 16 Pro, Xiaomi 14 Ultra"
+            />
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {['iPhone 16 Pro', 'Xiaomi 14 Ultra', 'OPPO Find X7', 'vivo X100 Ultra', 'FUJIFILM X-T5'].map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => updateElement(element.id, { device: name })}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-studio-card hover:bg-studio-hover border border-studio-border text-studio-muted hover:text-studio-text transition-colors"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Shooting parameters */}
+          {element.watermarkStyle !== 'film-date' && (
+            <Input
+              label="镜头参数 (Lens & Exposure)"
+              value={element.params || ''}
+              onChange={(e) => updateElement(element.id, { params: e.target.value })}
+              placeholder="如 24mm f/1.78 1/120s ISO64"
             />
           )}
 
-          <ColorPicker
-            label="底色"
-            color={element.color || '#1A1918'}
-            onChange={(c) => updateElement(element.id, { color: c })}
-          />
+          {/* Date & Time */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-mono text-studio-muted uppercase">拍摄时间 (Timestamp)</label>
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  const y = now.getFullYear();
+                  const m = String(now.getMonth() + 1).padStart(2, '0');
+                  const d = String(now.getDate()).padStart(2, '0');
+                  const hh = String(now.getHours()).padStart(2, '0');
+                  const mm = String(now.getMinutes()).padStart(2, '0');
+                  const ss = String(now.getSeconds()).padStart(2, '0');
+                  const formatted = `${y}.${m}.${d} ${hh}:${mm}:${ss}`;
+                  updateElement(element.id, { dateTime: formatted });
+                }}
+                className="text-[10px] text-studio-accent hover:underline flex items-center gap-1 font-mono"
+              >
+                <Clock className="w-2.5 h-2.5" />
+                设为当前时间
+              </button>
+            </div>
+            <Input
+              value={element.dateTime || ''}
+              onChange={(e) => updateElement(element.id, { dateTime: e.target.value })}
+              placeholder="YYYY.MM.DD HH:mm:ss"
+            />
+          </div>
 
-          {element.accentColor && (
-            <ColorPicker
-              label="高亮强调色"
-              color={element.accentColor}
-              onChange={(c) => updateElement(element.id, { accentColor: c })}
+          {/* Location / Coordinates */}
+          {(element.watermarkStyle === 'leica' || element.watermarkStyle === 'fuji') && (
+            <Input
+              label="地点或坐标 (Location / GPS)"
+              value={element.location || ''}
+              onChange={(e) => updateElement(element.id, { location: e.target.value })}
+              placeholder="如 52°13′14″N 124°41′31″W 或 巴黎 / 上海"
+            />
+          )}
+
+          {/* Legacy label if present */}
+          {element.label !== undefined && (
+            <Input
+              label="备用附注文字"
+              value={element.label}
+              onChange={(e) => updateElement(element.id, { label: e.target.value })}
             />
           )}
         </div>

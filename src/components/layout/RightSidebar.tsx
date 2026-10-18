@@ -7,7 +7,7 @@ import { StickersPanel } from "../panels/StickersPanel";
 import { LayersPanel } from "../panels/LayersPanel";
 import { AccordionSection } from "../ui/AccordionSection";
 import { useEditorStore } from "../../store/useEditorStore";
-import { Sliders, Type, Palette, Shapes, Stamp, Layers } from "lucide-react";
+import { Sliders, Type, Palette, Shapes, Camera, Layers } from "lucide-react";
 
 type GroupId = "properties" | "text" | "background" | "shapes" | "stickers" | "layers";
 
@@ -22,7 +22,7 @@ const GROUPS: {
   { id: "text", label: "文字", subtitle: "标题预设与排版字体", icon: Type, Comp: TextPanel },
   { id: "background", label: "相纸", subtitle: "开本规格与底色材质", icon: Palette, Comp: BackgroundPanel },
   { id: "shapes", label: "形状", subtitle: "几何色块与装饰线条", icon: Shapes, Comp: ShapesPanel },
-  { id: "stickers", label: "贴纸", subtitle: "美学印章与胶带素材", icon: Stamp, Comp: StickersPanel },
+  { id: "stickers", label: "时间水印", subtitle: "手机厂商相机与时间水印", icon: Camera, Comp: StickersPanel },
   { id: "layers", label: "图层", subtitle: "元素层级与顺序管理", icon: Layers, Comp: LayersPanel },
 ];
 

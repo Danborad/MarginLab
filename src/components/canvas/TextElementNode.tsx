@@ -32,8 +32,8 @@ export const TextElementNode: React.FC<TextElementNodeProps> = ({
     displayText = displayText.toLowerCase();
   }
 
-  // Clean font family string (remove surrounding quotes so Konva parses correctly)
-  const cleanFont = (element.fontFamily || 'sans-serif').replace(/['"]/g, '').split(',')[0].trim();
+  // Clean font family string, keeping fallbacks for smooth rendering
+  const cleanFont = (element.fontFamily || 'sans-serif').replace(/['"]/g, '');
   
   const isBold =
     typeof element.fontWeight === 'number'
