@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATELIER · 纯白极简 3D 相册与 AI 修图工作台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #FFFFFF;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .slider-handle {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    }
+    
+    /* 3D Book Spreads Realistic Shadows */
+    .book-spread-shadow {
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.18), 0 0 1px 1px rgba(0, 0, 0, 0.06);
+    }
+    .book-spine-crease {
+      background: linear-gradient(to right, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.02) 25%, transparent 50%, rgba(0,0,0,0.02) 75%, rgba(0,0,0,0.12) 100%);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-white text-gray-900">
+
+  <!-- Top Global Header (Clean Pure White Style) -->
+  <header class="h-16 border-b border-gray-200 bg-white px-5 flex items-center justify-between z-30 shrink-0">
+    <!-- Left: Brand Logo + Upload Button -->
+    <div class="flex items-center gap-4">
+      <button class="p-2 rounded-lg hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer" title="主菜单">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+
+      <!-- Clean Bold Modern Brand Logo -->
+      <div class="flex items-center gap-2 pr-2">
+        <span class="font-black text-2xl tracking-tight text-gray-950 font-sans">atelier</span>
+        <span class="text-xs px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 font-mono font-extrabold">相册·AI</span>
+      </div>
+
+      <!-- Upload Button in Header -->
+      <label class="px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200/80 border border-gray-200 text-sm font-bold text-gray-900 flex items-center gap-2 cursor-pointer transition-colors">
+        <svg class="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 4v16m8-8H4"></path></svg>
+        <span>上传照片</span>
+        <svg class="w-3.5 h-3.5 text-gray-500 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 9l-7 7-7-7"></path></svg>
+        <input type="file" id="headerUploadInput" accept="image/*" class="hidden">
+      </label>
+
+      <!-- Cloud Sync & Search Icons -->
+      <div class="flex items-center gap-3.5 pl-2 text-gray-600">
+        <svg class="w-5 h-5 hover:text-gray-950 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+        <span class="text-xs text-gray-400 font-medium">已自动云端同步</span>
+      </div>
+    </div>
+
+    <!-- Right: Mode Switchers + Export Actions -->
+    <div class="flex items-center gap-3">
+      
+      <!-- Switch to Album / Switch to AI Retouch -->
+      <button onclick="switchTab('album')" id="quickSwitchAlbum" class="px-3.5 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs text-gray-800 font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
+        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        <span>3D 实体书</span>
+      </button>
+
+      <button onclick="switchTab('ai-stylize')" id="quickSwitchAi" class="px-3.5 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs text-gray-800 font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
+        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+        <span>AI 质感精修</span>
+      </button>
+
+      <button onclick="switchTab('templates')" class="px-3.5 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs text-gray-800 font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer">
+        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+        <span>47 款排版</span>
+      </button>
+
+      <!-- Download Button -->
+      <button onclick="exportBookOrImage()" class="px-5 py-2 rounded-lg bg-gray-900 hover:bg-black text-white font-bold text-sm flex items-center gap-2 shadow-xs transition-colors cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+        <span>导出画册 / 图片</span>
+      </button>
+
+      <!-- User Avatar -->
+      <div class="flex items-center gap-2.5 pl-2 border-l border-gray-200">
+        <div class="w-8 h-8 rounded-full bg-gray-900 text-white text-sm flex items-center justify-center font-bold">
+          A
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body: Slim Icon Rail (80px) + Secondary Panel (380px) + Center Stage -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- 1. Leftmost Slim Icon Rail (80px width, Replace with OUR ALBUM FUNCTIONS) -->
+    <div class="w-20 border-r border-gray-200 bg-white flex flex-col items-center py-3 shrink-0 z-20">
+      <div class="flex-1 space-y-2 w-full px-2">
+        
+        <!-- Tab 1: 相册 (Album - 3D 实体画册) -->
+        <button onclick="switchTab('album')" id="tab-album" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl bg-gray-100 text-gray-950 font-bold cursor-pointer relative transition-colors">
+          <span class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-amber-500"></span>
+          <svg class="w-6 h-6 text-gray-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+          <span class="text-[13px] font-bold mt-1.5 text-gray-950">相册</span>
+        </button>
+
+        <!-- Tab 2: AI修图 (AI Retouch & Stylize) -->
+        <button onclick="switchTab('ai-stylize')" id="tab-ai-stylize" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">AI修图</span>
+        </button>
+
+        <!-- Tab 3: 拼图模板 (Templates - 47 Collage Layouts) -->
+        <button onclick="switchTab('templates')" id="tab-templates" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">模板</span>
+        </button>
+
+        <!-- Tab 4: 照片素材 (Media - Upload & Assets) -->
+        <button onclick="switchTab('media')" id="tab-media" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">素材</span>
+        </button>
+
+        <!-- Tab 5: 文字排版 (Text Typography) -->
+        <button onclick="switchTab('text')" id="tab-text" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <span class="font-sans text-lg font-black text-gray-800 leading-none">T</span>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">文字</span>
+        </button>
+
+        <!-- Tab 6: 相纸底色 (Background & Papers) -->
+        <button onclick="switchTab('background')" id="tab-background" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">相纸</span>
+        </button>
+
+        <!-- Tab 7: 图层 (Layers) -->
+        <button onclick="switchTab('layers')" id="tab-layers" class="nav-tab w-full py-3 flex flex-col items-center justify-center rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-50 cursor-pointer transition-colors">
+          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          <span class="text-[13px] font-semibold mt-1.5 text-gray-700">图层</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- 2. Secondary Panel: 380px width (Shows matching panel based on active tab) -->
+    <div id="secondaryPanel" class="w-[380px] min-w-[380px] max-w-[380px] border-r border-gray-200 bg-white flex flex-col shrink-0 z-10 relative transition-all duration-300">
+      
+      <!-- Panel Collapse Handle on Border -->
+      <button onclick="toggleSecondaryPanel()" id="collapseHandle" class="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-16 rounded-r-xl bg-white border-y border-r border-gray-300 text-gray-600 hover:text-gray-950 flex items-center justify-center shadow-xs cursor-pointer z-30 transition-colors">
+        <svg id="collapseIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+      </button>
+
+      <!-- SUB-PANEL 1: 相册管理面板 (Active by Default) -->
+      <div id="panel-album" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <div>
+            <h3 class="text-[15px] font-extrabold text-gray-950">艺术画册 · 实体书</h3>
+            <p class="text-xs text-gray-500 font-medium">3D 对开折页 · 物理翻书</p>
+          </div>
+          <button onclick="alert('新建画册')" class="px-2.5 py-1 rounded-lg border border-gray-300 hover:bg-gray-100 text-xs font-bold text-gray-800 flex items-center gap-1 cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+            <span>新建相册</span>
+          </button>
+        </div>
+
+        <!-- Current Album Info -->
+        <div class="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-12 rounded-md overflow-hidden bg-white border border-gray-300 shadow-2xs shrink-0">
+              <img src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover">
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-sm font-extrabold text-gray-950 truncate">《九寨秘境 · 川西行记》</h4>
+              <p class="text-xs text-gray-500 font-semibold mt-0.5">共 7 页 · 3 个高定对开页</p>
+            </div>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">精装</span>
+        </div>
+
+        <!-- Quick Album Actions -->
+        <div class="p-4 border-b border-gray-100 grid grid-cols-2 gap-2.5 shrink-0">
+          <button onclick="switchTab('templates')" class="p-2.5 rounded-xl border border-gray-200 hover:border-gray-900 bg-white flex flex-col text-left transition-all cursor-pointer group">
+            <div class="flex items-center gap-1.5 text-blue-600 font-bold text-xs mb-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+              <span>套用拼图模板</span>
+            </div>
+            <span class="text-[11px] text-gray-500 font-medium">47款海报画报版式</span>
+          </button>
+
+          <button onclick="switchTab('media')" class="p-2.5 rounded-xl border border-gray-200 hover:border-gray-900 bg-white flex flex-col text-left transition-all cursor-pointer group">
+            <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-xs mb-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span>素材智能排版</span>
+            </div>
+            <span class="text-[11px] text-gray-500 font-medium">照片自动填充版面</span>
+          </button>
+        </div>
+
+        <!-- Scrollable Spreads List -->
+        <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3 no-scrollbar">
+          <div class="flex items-center justify-between text-xs font-bold text-gray-500">
+            <span>画册页面导航</span>
+            <span>点击立即对焦</span>
+          </div>
+
+          <!-- Cover Card -->
+          <div onclick="selectSpread(-1)" id="spread-card-cover" class="spread-card p-3 rounded-xl border-2 border-gray-900 bg-white shadow-xs cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-14 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                <img src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover">
+              </div>
+              <div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-black text-white font-extrabold">精装封面</span>
+                <h5 class="text-xs font-bold text-gray-900 mt-1">川西九寨 · 视觉纪行</h5>
+              </div>
+            </div>
+            <button onclick="event.stopPropagation(); alert('配置封面')" class="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-black">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </button>
+          </div>
+
+          <!-- Spread 1 (P.1 - P.2) -->
+          <div onclick="selectSpread(0)" id="spread-card-0" class="spread-card p-3 rounded-xl border border-gray-200 hover:border-gray-900 bg-white transition-all cursor-pointer space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-mono font-bold bg-gray-100 text-gray-800 px-2 py-0.5 rounded">P.1 - 2</span>
+                <h5 class="text-xs font-bold text-gray-900">第一对开 · 高山湖泊</h5>
+              </div>
+              <span class="text-[11px] text-gray-400 font-semibold">2张照片</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/06_eastern_ink_diptych_scenery.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">左页 · 全出血</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">五花海晨曦</p>
+                </div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/07_eastern_ink_diptych_arch.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">右页 · 极简画报</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">藏式经幡</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spread 2 (P.3 - P.4) -->
+          <div onclick="selectSpread(1)" id="spread-card-1" class="spread-card p-3 rounded-xl border border-gray-200 hover:border-gray-900 bg-white transition-all cursor-pointer space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-mono font-bold bg-gray-100 text-gray-800 px-2 py-0.5 rounded">P.3 - 4</span>
+                <h5 class="text-xs font-bold text-gray-900">第二对开 · 人文定格</h5>
+              </div>
+              <span class="text-[11px] text-gray-400 font-semibold">3张照片</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/02_fantasy_qiqiguaiguai.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">左页 · 拍立得拼贴</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">旅途碎影</p>
+                </div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/05_culture_fragment_poster.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">右页 · 杂志封面</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">人生是旷野</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Spread 3 (P.5 - P.6) -->
+          <div onclick="selectSpread(2)" id="spread-card-2" class="spread-card p-3 rounded-xl border border-gray-200 hover:border-gray-900 bg-white transition-all cursor-pointer space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-mono font-bold bg-gray-100 text-gray-800 px-2 py-0.5 rounded">P.5 - 6</span>
+                <h5 class="text-xs font-bold text-gray-900">第三对开 · 归途暮色</h5>
+              </div>
+              <span class="text-[11px] text-gray-400 font-semibold">2张照片</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/09_photo_abstract_diptych.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">左页 · 宽幅光影</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">暮色雪山</p>
+                </div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-gray-50 border border-gray-200 flex items-center gap-2">
+                <div class="w-8 h-10 rounded overflow-hidden bg-gray-200 shrink-0">
+                  <img src="/covers/03_street_photo_black_ink.webp" class="w-full h-full object-cover">
+                </div>
+                <div class="min-w-0">
+                  <span class="text-[9px] text-gray-500 font-bold block">右页 · 水墨留白</span>
+                  <p class="text-[11px] font-semibold text-gray-800 truncate">长空暮霭</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Back Cover -->
+          <div onclick="selectSpread(3)" id="spread-card-back" class="spread-card p-3 rounded-xl border border-gray-200 hover:border-gray-900 bg-white transition-all cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-14 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center text-gray-400 font-bold text-xs">
+                封底
+              </div>
+              <div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-800 font-bold">画册封底</span>
+                <h5 class="text-xs font-bold text-gray-800 mt-1">完结寄语与摄影署名</h5>
+              </div>
+            </div>
+            <button onclick="event.stopPropagation(); alert('配置封底')" class="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 text-gray-600 hover:text-black">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SUB-PANEL 2: AI 修图面板 (15款高定卡片) -->
+      <div id="panel-ai-stylize" class="hidden flex-1 overflow-y-auto px-5 py-5 space-y-6 no-scrollbar">
+        <!-- Section 1: 推荐风格 -->
+        <div>
+          <div class="flex items-center justify-between mb-3.5">
+            <h3 class="text-[15px] font-extrabold text-gray-950 tracking-tight">推荐风格</h3>
+            <span class="text-xs text-gray-500 font-semibold">一键重构</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3.5">
+            <button onclick="selectAiFeature('dreamy', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-y-0 left-1/2 w-[1px] bg-white/75 pointer-events-none"></div>
+                <span class="absolute bottom-1.5 right-1.5 text-[10px] bg-black/85 text-white px-1.5 py-0.5 rounded font-bold">电影</span>
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">梦幻电影</span>
+            </button>
+
+            <button onclick="selectAiFeature('fantasy', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/02_fantasy_qiqiguaiguai.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <span class="absolute top-1.5 right-1.5 text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-extrabold shadow-xs">HOT</span>
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">奇奇怪怪</span>
+            </button>
+
+            <button onclick="selectAiFeature('black_ink', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/03_street_photo_black_ink.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-y-0 left-1/2 w-[1px] bg-white/75 pointer-events-none"></div>
+                <span class="absolute bottom-1.5 right-1.5 text-[10px] bg-black/85 text-white px-1.5 py-0.5 rounded font-bold">墨韵</span>
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">实景水墨</span>
+            </button>
+
+            <button onclick="selectAiFeature('color_chibi', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/04_street_photo_color_chibi.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">彩色轻Q</span>
+            </button>
+
+            <button onclick="selectAiFeature('culture', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/05_culture_fragment_poster.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">文化海报</span>
+            </button>
+
+            <button onclick="selectAiFeature('eastern_scenery', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/06_eastern_ink_diptych_scenery.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">东方诗意</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 2: AI 精修工具 -->
+        <div class="pt-4 border-t border-gray-100">
+          <div class="flex items-center justify-between mb-3.5">
+            <h3 class="text-[15px] font-extrabold text-gray-950 tracking-tight">AI 精修工具</h3>
+            <span class="text-xs text-gray-500 font-semibold">智能细节</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3.5">
+            <button onclick="selectAiFeature('enhance', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/08_reality_restaged.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-y-0 left-1/2 w-[1px] bg-white/75 pointer-events-none"></div>
+                <span class="absolute top-1.5 right-1.5 text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-extrabold shadow-xs">NEW</span>
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">画质增强</span>
+            </button>
+
+            <button onclick="selectAiFeature('hdr', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/09_photo_abstract_diptych.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">电影打光</span>
+            </button>
+
+            <button onclick="selectAiFeature('ugly', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/11_funny_ugly_doodle.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <span class="absolute top-1.5 right-1.5 text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-extrabold shadow-xs">HOT</span>
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">趣味涂鸦</span>
+            </button>
+
+            <button onclick="selectAiFeature('arch_ink', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/07_eastern_ink_diptych_arch.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">建筑留白</span>
+            </button>
+
+            <button onclick="selectAiFeature('minimal_illust', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="/covers/10_minimal_editorial_illustration.webp" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">极简插画</span>
+            </button>
+
+            <button onclick="selectAiFeature('skin_retouch', this)" class="feature-card flex flex-col items-center text-center cursor-pointer transition-all active:scale-95 group">
+              <div class="thumb-box w-full aspect-square rounded-xl overflow-hidden bg-gray-100 relative border border-gray-200 group-hover:border-gray-900 shadow-2xs transition-all">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              </div>
+              <span class="text-[13px] font-bold text-gray-800 group-hover:text-black mt-2 truncate w-full">智能美肤</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-PANEL 3: 拼图模板面板 (47款高定版式) -->
+      <div id="panel-templates" class="hidden flex-1 overflow-y-auto px-5 py-5 space-y-4 no-scrollbar">
+        <div class="flex items-center justify-between">
+          <h3 class="text-[15px] font-extrabold text-gray-950">拼图排版模板 (47款)</h3>
+          <span class="text-xs text-gray-500 font-semibold">固定版式</span>
+        </div>
+
+        <!-- Filter tabs: 全部 / 1图 / 2图 / 3图 / 4图 / 6图 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <button class="px-3 py-1 rounded-full bg-gray-900 text-white text-xs font-bold shrink-0">全部</button>
+          <button class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold shrink-0">1图满版</button>
+          <button class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold shrink-0">2图对开</button>
+          <button class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold shrink-0">3-4图杂志</button>
+          <button class="px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold shrink-0">6图瀑布</button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3.5 pt-2">
+          <div onclick="applyTemplate(1)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">1图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">典雅全版</span>
+          </div>
+
+          <div onclick="applyTemplate(2)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/06_eastern_ink_diptych_scenery.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">2图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">对联留白</span>
+          </div>
+
+          <div onclick="applyTemplate(3)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/02_fantasy_qiqiguaiguai.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">3图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">画报故事</span>
+          </div>
+
+          <div onclick="applyTemplate(4)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/05_culture_fragment_poster.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">4图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">拍立得四格</span>
+          </div>
+
+          <div onclick="applyTemplate(5)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/09_photo_abstract_diptych.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">5图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">现代画册</span>
+          </div>
+
+          <div onclick="applyTemplate(6)" class="flex flex-col items-center cursor-pointer group">
+            <div class="w-full aspect-[3/4] rounded-xl bg-gray-100 border border-gray-200 group-hover:border-gray-900 overflow-hidden relative shadow-2xs">
+              <img src="/covers/11_funny_ugly_doodle.webp" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 text-[9px] bg-black/80 text-white px-1 rounded">6图</span>
+            </div>
+            <span class="text-xs font-bold text-gray-800 mt-1.5 truncate w-full text-center">生活瀑布</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-PANEL 4: 照片素材面板 -->
+      <div id="panel-media" class="hidden flex-1 overflow-y-auto px-5 py-5 space-y-4 no-scrollbar">
+        <div class="flex items-center justify-between">
+          <h3 class="text-[15px] font-extrabold text-gray-950">照片素材库</h3>
+          <span class="text-xs text-gray-500 font-semibold">12 张照片</span>
+        </div>
+
+        <label class="w-full py-3 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-900 bg-gray-50 flex items-center justify-center gap-2 text-sm font-bold text-gray-800 cursor-pointer transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+          <span>批量上传照片</span>
+          <input type="file" multiple accept="image/*" class="hidden">
+        </label>
+
+        <div class="grid grid-cols-3 gap-3 pt-2">
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+          </div>
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+          </div>
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?w=300&auto=format&fit=crop&q=80" class="w-full h-full object-cover">
+          </div>
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover">
+          </div>
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="/covers/06_eastern_ink_diptych_scenery.webp" class="w-full h-full object-cover">
+          </div>
+          <div class="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform">
+            <img src="/covers/02_fantasy_qiqiguaiguai.webp" class="w-full h-full object-cover">
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-PANEL 5: 文字与相纸与图层 (默认提示) -->
+      <div id="panel-other" class="hidden flex-1 overflow-y-auto px-5 py-5 space-y-4 no-scrollbar">
+        <h3 id="panel-other-title" class="text-[15px] font-extrabold text-gray-950">文字排版</h3>
+        <p class="text-xs text-gray-500">点击画布上的文字或相纸可直接进行精细样式调节。</p>
+      </div>
+
+    </div>
+
+    <!-- 3. Center Giant Stage: 3D Book Mode vs AI Retouch Mode -->
+    <main class="flex-1 bg-white p-5 sm:p-7 flex flex-col items-center justify-center overflow-hidden relative">
+      
+      <!-- VIEW A: 3D 实体画册对开页展示 (Active in 'album' mode) -->
+      <div id="stage-album-view" class="w-full h-full flex flex-col items-center justify-center relative select-none">
+        
+        <!-- Top Album Info Pill -->
+        <div class="mb-4 px-4 py-1.5 rounded-full bg-gray-100 border border-gray-200 flex items-center gap-2 text-xs font-bold text-gray-800 shadow-2xs">
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span id="albumStageStatus">《九寨秘境 · 川西行记》· 第 1 / 3 对开页 (P.1 - P.2)</span>
+        </div>
+
+        <!-- 3D Open Book Spread (Realistic Center Gutter / Shadows) -->
+        <div id="bookSpreadContainer" class="relative w-[760px] h-[520px] max-w-[90vw] max-h-[68vh] bg-white rounded-xl book-spread-shadow flex overflow-hidden border border-gray-200 transition-all duration-300">
+          
+          <!-- Left Page -->
+          <div id="bookLeftPage" class="w-1/2 h-full bg-[#FAF9F5] border-r border-gray-300 relative overflow-hidden flex flex-col p-8 justify-between">
+            <div class="w-full h-[82%] rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 relative">
+              <img id="spreadLeftImg" src="/covers/06_eastern_ink_diptych_scenery.webp" class="w-full h-full object-cover">
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-600 font-serif">
+              <span id="spreadLeftTitle">THE SERENITY OF WATER</span>
+              <span id="spreadLeftPageNum" class="font-mono font-bold">P. 01</span>
+            </div>
+          </div>
+
+          <!-- Center Spine Crease (Realistic Book Gutter) -->
+          <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-8 book-spine-crease pointer-events-none z-20"></div>
+
+          <!-- Right Page -->
+          <div id="bookRightPage" class="w-1/2 h-full bg-[#FAF9F5] relative overflow-hidden flex flex-col p-8 justify-between">
+            <div class="w-full h-[82%] rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 relative">
+              <img id="spreadRightImg" src="/covers/07_eastern_ink_diptych_arch.webp" class="w-full h-full object-cover">
+            </div>
+            <div class="flex items-center justify-between text-xs text-gray-600 font-serif">
+              <span id="spreadRightPageNum" class="font-mono font-bold">P. 02</span>
+              <span id="spreadRightTitle">ATELIER EDITORIAL 2026</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Book Turn Controls (Mouse Wheel & Click) -->
+        <div class="mt-5 flex items-center gap-3 bg-white border border-gray-300 rounded-full px-5 py-2 shadow-sm text-xs font-bold text-gray-800">
+          <button onclick="turnPrevSpread()" class="px-2.5 py-1 rounded-md hover:bg-gray-100 flex items-center gap-1 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+            <span>上一对开</span>
+          </button>
+          <div class="h-4 w-[1px] bg-gray-300"></div>
+          <span id="spreadCounter" class="font-mono text-gray-900 font-bold px-1">1 / 3</span>
+          <div class="h-4 w-[1px] bg-gray-300"></div>
+          <button onclick="turnNextSpread()" class="px-2.5 py-1 rounded-md hover:bg-gray-100 flex items-center gap-1 cursor-pointer">
+            <span>下一对开</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+          <div class="h-4 w-[1px] bg-gray-300"></div>
+          <span class="text-gray-400 font-medium">支持鼠标滚轮翻书 📜</span>
+        </div>
+
+      </div>
+
+      <!-- VIEW B: AI 质感精修对比视窗 (Active in 'ai-stylize' mode) -->
+      <div id="stage-ai-view" class="hidden w-full h-full flex flex-col items-center justify-center relative select-none">
+        
+        <!-- Center Canvas Frame -->
+        <div id="imageStage" class="relative w-[480px] h-[640px] max-h-[75vh] max-w-[85vw] bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden select-none">
+          
+          <!-- After Image (AI Stylized Output) -->
+          <img id="afterImg" src="/covers/01_dreamy_motion_editorial.webp" alt="AI Stylized" class="absolute inset-0 w-full h-full object-cover">
+          
+          <!-- Typography Overlay -->
+          <div id="typographyOverlay" class="absolute inset-x-6 top-8 pointer-events-none">
+            <h2 class="text-white text-2xl font-extrabold tracking-widest drop-shadow-md">ATELIER EDITORIAL</h2>
+            <p class="text-white/90 text-xs font-semibold tracking-widest uppercase mt-0.5">THE POETICS OF LIGHT • 2026</p>
+          </div>
+
+          <!-- Before Image in Split Clip -->
+          <div id="beforeContainer" class="absolute inset-0 overflow-hidden pointer-events-none" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+            <img id="beforeImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80" class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute top-4 left-4 px-2.5 py-0.5 rounded bg-black/85 text-white text-[11px] font-bold">原图 RAW</div>
+          </div>
+
+          <!-- Split Divider Line -->
+          <div id="sliderLine" class="absolute top-0 bottom-0 w-[2px] bg-white cursor-ew-resize z-20 pointer-events-auto" style="left: 50%;">
+            <div class="slider-handle absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-gray-900 border border-gray-300 flex items-center justify-center text-xs font-extrabold shadow-xl">
+              ↔
+            </div>
+          </div>
+
+          <!-- Top-Right Current Effect Badge -->
+          <div class="absolute top-4 right-4 px-3 py-1 rounded-lg bg-black/85 text-white text-xs font-bold flex items-center gap-1.5 z-10 pointer-events-none">
+            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+            <span id="activeStyleBadge">01 梦幻动态电影</span>
+          </div>
+
+          <!-- Bottom-Left Hold-to-View Button -->
+          <button id="holdBtn" class="absolute bottom-4 left-4 z-20 px-3.5 py-1.5 rounded-lg bg-black/85 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <span>按住看原图</span>
+          </button>
+        </div>
+
+        <!-- Floating Bottom Zoom & Tool Controls -->
+        <div class="mt-4 flex items-center gap-3 bg-white border border-gray-300 rounded-full px-5 py-2 shadow-sm text-xs font-bold text-gray-700">
+          <button onclick="alert('放大画布')" class="p-1 hover:text-black cursor-pointer text-sm font-extrabold">-</button>
+          <span class="font-mono text-xs text-gray-900 font-bold">100%</span>
+          <button onclick="alert('缩小画布')" class="p-1 hover:text-black cursor-pointer text-sm font-extrabold">+</button>
+          <div class="h-3.5 w-[1px] bg-gray-300"></div>
+          <button onclick="addToAlbumCurrentPic()" class="hover:text-amber-600 cursor-pointer flex items-center gap-1.5 text-xs font-bold text-gray-900">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            <span>收录这张进 3D 画册</span>
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script>
+    // Spreads Database for 3D Book Mode
+    const ALBUM_SPREADS = [
+      {
+        title: "第一对开 · 高山湖泊",
+        leftImg: "/covers/06_eastern_ink_diptych_scenery.webp",
+        leftText: "THE SERENITY OF WATER",
+        leftPage: "P. 01",
+        rightImg: "/covers/07_eastern_ink_diptych_arch.webp",
+        rightText: "ATELIER EDITORIAL 2026",
+        rightPage: "P. 02"
+      },
+      {
+        title: "第二对开 · 人文定格",
+        leftImg: "/covers/02_fantasy_qiqiguaiguai.webp",
+        leftText: "VAGRANT MEMORIES",
+        leftPage: "P. 03",
+        rightImg: "/covers/05_culture_fragment_poster.webp",
+        rightText: "WILDERNESS AND DREAMS",
+        rightPage: "P. 04"
+      },
+      {
+        title: "第三对开 · 归途暮色",
+        leftImg: "/covers/09_photo_abstract_diptych.webp",
+        leftText: "TWILIGHT OVER RIDGE",
+        leftPage: "P. 05",
+        rightImg: "/covers/03_street_photo_black_ink.webp",
+        rightText: "POETICS OF INK",
+        rightPage: "P. 06"
+      }
+    ];
+
+    let currentSpreadIdx = 0;
+
+    function renderSpread(idx) {
+      currentSpreadIdx = Math.max(0, Math.min(ALBUM_SPREADS.length - 1, idx));
+      const sp = ALBUM_SPREADS[currentSpreadIdx];
+      document.getElementById('spreadLeftImg').src = sp.leftImg;
+      document.getElementById('spreadLeftTitle').textContent = sp.leftText;
+      document.getElementById('spreadLeftPageNum').textContent = sp.leftPage;
+      document.getElementById('spreadRightImg').src = sp.rightImg;
+      document.getElementById('spreadRightTitle').textContent = sp.rightText;
+      document.getElementById('spreadRightPageNum').textContent = sp.rightPage;
+      document.getElementById('spreadCounter').textContent = `${currentSpreadIdx + 1} / 3`;
+      document.getElementById('albumStageStatus').textContent = `《九寨秘境 · 川西行记》· 第 ${currentSpreadIdx + 1} / 3 对开页 (${sp.leftPage} - ${sp.rightPage})`;
+
+      document.querySelectorAll('.spread-card').forEach(c => {
+        c.classList.remove('border-2', 'border-gray-900', 'shadow-sm');
+        c.classList.add('border-gray-200');
+      });
+      const targetCard = document.getElementById(`spread-card-${currentSpreadIdx}`);
+      if (targetCard) {
+        targetCard.classList.add('border-2', 'border-gray-900', 'shadow-sm');
+        targetCard.classList.remove('border-gray-200');
+      }
+    }
+
+    function selectSpread(idx) {
+      if (idx === -1) {
+        alert('精装封面详情');
+        return;
+      }
+      if (idx === 3) {
+        alert('封底寄语详情');
+        return;
+      }
+      renderSpread(idx);
+    }
+
+    function turnPrevSpread() {
+      if (currentSpreadIdx > 0) renderSpread(currentSpreadIdx - 1);
+    }
+
+    function turnNextSpread() {
+      if (currentSpreadIdx < ALBUM_SPREADS.length - 1) renderSpread(currentSpreadIdx + 1);
+    }
+
+    // Mouse Wheel on Book Stage to Turn Pages
+    const bookContainer = document.getElementById('bookSpreadContainer');
+    bookContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        turnNextSpread();
+      } else {
+        turnPrevSpread();
+      }
+    }, { passive: false });
+
+    // AI Styles Database
+    const STYLE_COVERS = {
+      dreamy: { name: "01 梦幻动态电影", cover: "/covers/01_dreamy_motion_editorial.webp" },
+      fantasy: { name: "02 奇奇怪怪日杂", cover: "/covers/02_fantasy_qiqiguaiguai.webp" },
+      black_ink: { name: "03 黑白实景墨韵", cover: "/covers/03_street_photo_black_ink.webp" },
+      color_chibi: { name: "04 彩色轻Q插画", cover: "/covers/04_street_photo_color_chibi.webp" },
+      culture: { name: "05 文化碎片海报", cover: "/covers/05_culture_fragment_poster.webp" },
+      eastern_scenery: { name: "06 东方水墨诗意", cover: "/covers/06_eastern_ink_diptych_scenery.webp" },
+      enhance: { name: "08 纪实画质增强", cover: "/covers/08_reality_restaged.webp" },
+      hdr: { name: "09 电影舞台打光", cover: "/covers/09_photo_abstract_diptych.webp" },
+      ugly: { name: "11 趣味搞怪涂鸦", cover: "/covers/11_funny_ugly_doodle.webp" },
+      arch_ink: { name: "07 建筑留白水墨", cover: "/covers/07_eastern_ink_diptych_arch.webp" },
+      minimal_illust: { name: "10 极简杂志插画", cover: "/covers/10_minimal_editorial_illustration.webp" },
+      skin_retouch: { name: "AI 智能美肤精修", cover: "/covers/01_dreamy_motion_editorial.webp" }
+    };
+
+    function selectAiFeature(key, btnEl) {
+      const data = STYLE_COVERS[key] || STYLE_COVERS.dreamy;
+      document.getElementById('afterImg').src = data.cover;
+      document.getElementById('activeStyleBadge').textContent = data.name;
+
+      document.querySelectorAll('.thumb-box').forEach(c => {
+        c.classList.remove('ring-2', 'ring-gray-900', 'border-gray-900');
+      });
+      if (btnEl) {
+        const targetBox = btnEl.querySelector('.thumb-box');
+        if (targetBox) targetBox.classList.add('ring-2', 'ring-gray-900', 'border-gray-900');
+      }
+    }
+
+    // Tab Switching: Replaced with Album / Retouch / Templates / Media
+    let activeTabId = 'album';
+
+    function switchTab(tab) {
+      activeTabId = tab;
+      if (!isPanelOpen) toggleSecondaryPanel();
+
+      // Highlight Nav Tab
+      document.querySelectorAll('.nav-tab').forEach(el => {
+        el.classList.remove('bg-gray-100', 'text-gray-950');
+        el.classList.add('text-gray-700');
+        const icon = el.querySelector('svg');
+        if (icon) {
+          icon.classList.remove('text-gray-950');
+          icon.classList.add('text-gray-700');
+        }
+      });
+      const activeNav = document.getElementById('tab-' + tab);
+      if (activeNav) {
+        activeNav.classList.add('bg-gray-100', 'text-gray-950');
+        activeNav.classList.remove('text-gray-700');
+        const icon = activeNav.querySelector('svg');
+        if (icon) {
+          icon.classList.add('text-gray-950');
+          icon.classList.remove('text-gray-700');
+        }
+      }
+
+      // Switch Secondary Panels
+      document.getElementById('panel-album').classList.add('hidden');
+      document.getElementById('panel-ai-stylize').classList.add('hidden');
+      document.getElementById('panel-templates').classList.add('hidden');
+      document.getElementById('panel-media').classList.add('hidden');
+      document.getElementById('panel-other').classList.add('hidden');
+
+      // Switch Center Stages: Album Spread vs AI Retouch
+      const stageAlbum = document.getElementById('stage-album-view');
+      const stageAi = document.getElementById('stage-ai-view');
+
+      if (tab === 'album') {
+        document.getElementById('panel-album').classList.remove('hidden');
+        stageAlbum.classList.remove('hidden');
+        stageAi.classList.add('hidden');
+      } else if (tab === 'ai-stylize') {
+        document.getElementById('panel-ai-stylize').classList.remove('hidden');
+        stageAlbum.classList.add('hidden');
+        stageAi.classList.remove('hidden');
+      } else if (tab === 'templates') {
+        document.getElementById('panel-templates').classList.remove('hidden');
+        stageAlbum.classList.remove('hidden'); // 模板可在书本中套用
+        stageAi.classList.add('hidden');
+      } else if (tab === 'media') {
+        document.getElementById('panel-media').classList.remove('hidden');
+        stageAlbum.classList.remove('hidden');
+        stageAi.classList.add('hidden');
+      } else {
+        document.getElementById('panel-other').classList.remove('hidden');
+        const titles = { text: '文字排版与标题预设', background: '相纸底色与印制开本', layers: '页面图层元素管理' };
+        document.getElementById('panel-other-title').textContent = titles[tab] || '参数调整';
+      }
+    }
+
+    // Split Slider Drag for AI Retouch Mode
+    const imageStage = document.getElementById('imageStage');
+    const beforeContainer = document.getElementById('beforeContainer');
+    const sliderLine = document.getElementById('sliderLine');
+    let isDragging = false;
+
+    function updateSplit(pct) {
+      pct = Math.max(0, Math.min(100, pct));
+      sliderLine.style.left = `${pct}%`;
+      beforeContainer.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const rect = imageStage.getBoundingClientRect();
+      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const pct = (x / rect.width) * 100;
+      updateSplit(pct);
+    }
+
+    sliderLine.addEventListener('pointerdown', () => {
+      isDragging = true;
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', () => {
+        isDragging = false;
+        document.removeEventListener('pointermove', onPointerMove);
+      }, { once: true });
+    });
+
+    const holdBtn = document.getElementById('holdBtn');
+    holdBtn.addEventListener('mousedown', () => updateSplit(100));
+    holdBtn.addEventListener('mouseup', () => updateSplit(50));
+    holdBtn.addEventListener('touchstart', (e) => { e.preventDefault(); updateSplit(100); });
+    holdBtn.addEventListener('touchend', () => updateSplit(50));
+
+    // Secondary Panel Collapse
+    let isPanelOpen = true;
+    function toggleSecondaryPanel() {
+      isPanelOpen = !isPanelOpen;
+      const panel = document.getElementById('secondaryPanel');
+      const icon = document.getElementById('collapseIcon');
+      if (isPanelOpen) {
+        panel.style.width = '380px';
+        panel.style.minWidth = '380px';
+        panel.style.maxWidth = '380px';
+        panel.style.opacity = '1';
+        panel.style.overflow = 'visible';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>';
+      } else {
+        panel.style.width = '0px';
+        panel.style.minWidth = '0px';
+        panel.style.maxWidth = '0px';
+        panel.style.opacity = '0';
+        panel.style.overflow = 'hidden';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>';
+      }
+    }
+
+    function applyTemplate(num) {
+      alert(`已成功将【${num}图高定排版】套用至当前画册对开页！`);
+      switchTab('album');
+    }
+
+    function addToAlbumCurrentPic() {
+      alert('【已收录】：已将当前 AI 精修大片装订入《九寨秘境 · 川西行记》对开页！');
+      switchTab('album');
+    }
+
+    function exportBookOrImage() {
+      if (activeTabId === 'ai-stylize') {
+        alert('【下载图片】：已生成 2400×3200 300DPI 印刷级无损 JPG 文件！');
+      } else {
+        alert('【导出画册】：正在打包《九寨秘境 · 川西行记》整本 300DPI 印刷级 PDF 与高清对开图包！');
+      }
+    }
+  </script>
+</body>
+</html>

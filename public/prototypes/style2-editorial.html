@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>方案 B · 杂志编辑台分栏流 - ATELIER AI 质感修图</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --studio-bg: #F7F5F0;
+      --studio-sidebar: #EFECE5;
+      --studio-panel: #E8E4DB;
+      --studio-card: #FFFFFF;
+      --studio-border: #DCD6CC;
+      --studio-text: #1C1B1A;
+      --studio-muted: #736E66;
+      --studio-hover: #E3DFD6;
+      --studio-accent: #B88A58;
+      --studio-canvas-bg: #E7E3DB;
+    }
+    .dark {
+      --studio-bg: #0E0E10;
+      --studio-sidebar: #141417;
+      --studio-panel: #1A1A1E;
+      --studio-card: #222227;
+      --studio-border: #2E2E36;
+      --studio-text: #F4F4F6;
+      --studio-muted: #8E8E9A;
+      --studio-hover: #282830;
+      --studio-accent: #E5C49F;
+      --studio-canvas-bg: #121215;
+    }
+    body {
+      background-color: var(--studio-bg);
+      color: var(--studio-text);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      user-select: none;
+    }
+    .font-serif-title { font-family: 'Cormorant Garamond', 'Noto Serif SC', serif; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden">
+
+  <!-- Top Switcher -->
+  <div class="bg-[#1C1B1A] text-[#F7F5F0] px-3 sm:px-4 py-2 text-xs flex items-center justify-between border-b border-[#2E2E36] z-50 shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="font-bold tracking-wider text-[#B88A58]">ATELIER 转型设计方案 B</span>
+      <span class="text-zinc-500 hidden sm:inline">|</span>
+      <span class="text-zinc-300 text-[11px] hidden sm:inline">杂志编辑台分栏流 · 左选大卡风格 · 中看双联大画幅 · 右调下游排版</span>
+    </div>
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+      <a href="/prototypes/style1-capsule.html" class="px-2.5 py-1 rounded-md text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 whitespace-nowrap">方案 A · 胶囊流</a>
+      <a href="/prototypes/style2-editorial.html" class="px-2.5 py-1 rounded-md text-[11px] bg-[#B88A58] text-stone-950 font-bold whitespace-nowrap">方案 B · 杂志分栏流</a>
+      <a href="/prototypes/style3-camera.html" class="px-2.5 py-1 rounded-md text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 whitespace-nowrap">方案 C · 手机极速流</a>
+      <a href="/prototypes/index.html" class="px-2 py-1 rounded-md text-[11px] bg-zinc-800 hover:bg-zinc-700 text-zinc-400 ml-1 whitespace-nowrap">总览</a>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="h-14 border-b border-[var(--studio-border)] bg-[var(--studio-card)] px-4 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[#1C1B1A] border border-[#B88A58]/40 flex items-center justify-center text-[#B88A58] font-bold text-sm">
+        A
+      </div>
+      <div>
+        <h1 class="font-serif-title tracking-widest text-sm font-bold leading-none">ATELIER · 杂志修图工作台</h1>
+        <p class="text-[10px] text-[var(--studio-muted)] mt-0.5 font-mono">EDITORIAL RETOUCH STUDIO</p>
+      </div>
+    </div>
+
+    <!-- Center Compare Mode Selector -->
+    <div class="flex items-center p-0.5 rounded-lg bg-[var(--studio-panel)] border border-[var(--studio-border)] text-xs">
+      <button onclick="setCompareMode('split')" id="btnCompSplit" class="px-3 py-1 rounded-md bg-[var(--studio-card)] text-[#B88A58] font-bold shadow-xs">
+        滑动对比
+      </button>
+      <button onclick="setCompareMode('side')" id="btnCompSide" class="px-3 py-1 rounded-md text-[var(--studio-muted)] hover:text-[var(--studio-text)]">
+        左右并排 (双联)
+      </button>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <label class="px-3 py-1.5 rounded-lg border border-[var(--studio-border)] bg-[var(--studio-card)] hover:bg-[var(--studio-hover)] text-xs cursor-pointer flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5 text-[#B88A58]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <span>上传生活照</span>
+        <input type="file" id="uploadInput" accept="image/*" class="hidden">
+      </label>
+
+      <button onclick="alert('已导出高清无损 300DPI 杂志质感大片！')" class="px-3.5 py-1.5 rounded-lg bg-[#B88A58] hover:bg-[#9E7345] text-stone-950 font-bold text-xs flex items-center gap-1 shadow-xs transition-colors">
+        <span>保存出片</span>
+      </button>
+
+      <button onclick="toggleTheme()" class="p-2 rounded-lg border border-[var(--studio-border)] hover:bg-[var(--studio-hover)] text-xs text-[var(--studio-muted)]">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 3-Column Layout: Left (Styles) + Center (Canvas) + Right (Downstream & Tweak) -->
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Column: Rich Editorial Style Gallery (Width 320px) -->
+    <aside class="w-80 border-r border-[var(--studio-border)] bg-[var(--studio-card)] flex flex-col shrink-0 z-20">
+      <!-- Style Category Filter -->
+      <div class="p-3 border-b border-[var(--studio-border)] bg-[var(--studio-panel)]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold tracking-wider text-[var(--studio-text)]">内置修图风格 (47款)</span>
+          <span class="text-[10px] text-[#B88A58] font-mono">AI意境重构</span>
+        </div>
+        <div class="flex items-center gap-1 overflow-x-auto no-scrollbar text-[11px]">
+          <button class="px-2.5 py-1 rounded-md bg-[#B88A58] text-stone-950 font-bold whitespace-nowrap">全部</button>
+          <button class="px-2.5 py-1 rounded-md bg-[var(--studio-card)] border border-[var(--studio-border)] text-[var(--studio-muted)] whitespace-nowrap hover:text-black">高定杂志</button>
+          <button class="px-2.5 py-1 rounded-md bg-[var(--studio-card)] border border-[var(--studio-border)] text-[var(--studio-muted)] whitespace-nowrap hover:text-black">插画手绘</button>
+          <button class="px-2.5 py-1 rounded-md bg-[var(--studio-card)] border border-[var(--studio-border)] text-[var(--studio-muted)] whitespace-nowrap hover:text-black">东方水墨</button>
+        </div>
+      </div>
+
+      <!-- Styles List Scroll -->
+      <div id="editorialStylesList" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+        <!-- Injected by JS -->
+      </div>
+    </aside>
+
+    <!-- Center Stage: Giant Gallery Viewport -->
+    <main class="flex-1 bg-[var(--studio-canvas-bg)] p-4 sm:p-6 flex items-center justify-center overflow-hidden relative">
+      
+      <!-- Split Slider Mode View -->
+      <div id="viewSplit" class="relative w-full max-w-3xl h-full max-h-[78vh] flex items-center justify-center">
+        <div id="imageStage" class="relative w-[440px] h-[580px] max-h-[72vh] max-w-[85vw] bg-[var(--studio-card)] rounded-xl border border-[var(--studio-border)] shadow-2xl overflow-hidden select-none">
+          <img id="afterImg" src="/covers/01_dreamy_motion_editorial.webp" alt="AI Stylized" class="absolute inset-0 w-full h-full object-cover">
+          
+          <!-- Typography -->
+          <div class="absolute inset-x-6 top-8 pointer-events-none">
+            <h2 class="font-cinzel text-white text-3xl font-bold tracking-widest drop-shadow-lg">ATELIER VOGUE</h2>
+            <p class="font-serif-title text-white/80 text-xs tracking-widest uppercase mt-0.5">THE POETICS OF TIME • ISSUE 2026</p>
+          </div>
+          
+          <div id="beforeContainer" class="absolute inset-0 overflow-hidden pointer-events-none" style="clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);">
+            <img id="beforeImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80" alt="Original" class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute top-4 left-4 px-2 py-0.5 rounded bg-black/80 text-white text-[10px] font-mono">原图 RAW</div>
+          </div>
+
+          <div id="sliderLine" class="absolute top-0 bottom-0 w-[2px] bg-white cursor-ew-resize z-20" style="left: 50%;">
+            <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border border-stone-300 text-stone-800 flex items-center justify-center text-[10px] font-bold shadow-xl">
+              ↔
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side-by-Side (Diptych) Mode View (Initially Hidden) -->
+      <div id="viewSide" class="hidden w-full max-w-5xl h-full max-h-[78vh] grid grid-cols-2 gap-4 items-center">
+        <!-- Left: Original -->
+        <div class="w-[340px] h-[460px] mx-auto bg-[var(--studio-card)] rounded-xl border border-[var(--studio-border)] shadow-xl overflow-hidden relative">
+          <img id="sideBeforeImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80" class="w-full h-full object-cover">
+          <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-black/75 text-white text-[10px] font-mono">原生活照</div>
+        </div>
+        <!-- Right: Retouched -->
+        <div class="w-[340px] h-[460px] mx-auto bg-[var(--studio-card)] rounded-xl border border-[#B88A58]/50 shadow-2xl overflow-hidden relative">
+          <img id="sideAfterImg" src="/covers/01_dreamy_motion_editorial.webp" class="w-full h-full object-cover">
+          <div class="absolute top-3 left-3 px-2 py-0.5 rounded bg-[#B88A58] text-stone-950 font-bold text-[10px] font-mono">AI 重构后</div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Right Column: Downstream Exports & Light Tweaks (Width 300px) -->
+    <aside class="w-76 border-l border-[var(--studio-border)] bg-[var(--studio-card)] flex flex-col shrink-0 z-20 p-4 justify-between">
+      <div class="space-y-4">
+        
+        <!-- Active Style Summary Box -->
+        <div class="p-3 rounded-xl bg-[var(--studio-panel)] border border-[var(--studio-border)] space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono text-[#B88A58] font-bold">CURRENT PRESET</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded bg-black/10 text-stone-700">高定排版</span>
+          </div>
+          <h3 id="rightStyleTitle" class="text-xs font-bold text-[var(--studio-text)]">01 梦幻动态电影海报</h3>
+          <p id="rightStyleDesc" class="text-[11px] text-[var(--studio-muted)] leading-relaxed">慢门拖影与流动光晕，赋予照片诗意电影质感</p>
+        </div>
+
+        <!-- Downstream Card 1: One-Click Collage -->
+        <div class="p-3 rounded-xl bg-[var(--studio-card)] border border-[var(--studio-border)] hover:border-[#B88A58] transition-all cursor-pointer group shadow-xs" onclick="alert('【一键拼图海报】：已将该图片注入 3 张多图排版布局中，点击可直接调整布局！')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#B88A58]"></span>
+              <span>一键拼图海报</span>
+            </span>
+            <span class="text-[10px] font-mono text-[#B88A58] group-hover:translate-x-0.5 transition-transform">去排版 ➔</span>
+          </div>
+          <!-- Mini Preview of 3 Collage Templates -->
+          <div class="grid grid-cols-3 gap-1.5 mt-2 bg-[var(--studio-panel)] p-1.5 rounded-lg">
+            <div class="aspect-square bg-white rounded border border-stone-300 p-0.5 flex flex-col justify-end">
+              <div class="w-full h-1/2 bg-[#B88A58]/20 rounded-xs"></div>
+            </div>
+            <div class="aspect-square bg-white rounded border border-stone-300 p-0.5 grid grid-cols-2 gap-0.5">
+              <div class="bg-stone-300 rounded-xs"></div>
+              <div class="bg-[#B88A58]/40 rounded-xs"></div>
+            </div>
+            <div class="aspect-square bg-white rounded border border-stone-300 p-0.5 grid grid-cols-3 gap-0.5">
+              <div class="bg-stone-200"></div><div class="bg-stone-300"></div><div class="bg-[#B88A58]/30"></div>
+            </div>
+          </div>
+          <p class="text-[10px] text-[var(--studio-muted)] mt-2">只有好图做基础，拼图才高级。点击将此图送入 47 款模板。</p>
+        </div>
+
+        <!-- Downstream Card 2: 3D Album Book -->
+        <div class="p-3 rounded-xl bg-[var(--studio-card)] border border-[var(--studio-border)] hover:border-[#B88A58] transition-all cursor-pointer group shadow-xs" onclick="alert('【收录进实体画册】：已将当前精修照片自动编排为画册右页，支持 3D 翻页预览！')">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#B88A58]"></span>
+              <span>收录进 3D 相册</span>
+            </span>
+            <span class="text-[10px] font-mono text-[#B88A58] group-hover:translate-x-0.5 transition-transform">翻阅 ➔</span>
+          </div>
+          <p class="text-[10px] text-[var(--studio-muted)]">自动编入《九寨秘境 · 川西行记》对开页典藏。</p>
+        </div>
+
+        <!-- Fine Tuning: Minimal Sliders -->
+        <div class="space-y-3 pt-2 border-t border-[var(--studio-border)]">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-[var(--studio-muted)]">胶片质感颗粒</span>
+            <span class="font-mono text-[11px] text-[#B88A58]">40%</span>
+          </div>
+          <input type="range" value="40" class="w-full accent-[#B88A58] h-1.5 bg-stone-300 rounded cursor-pointer">
+
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-[var(--studio-muted)]">意境光影晕染</span>
+            <span class="font-mono text-[11px] text-[#B88A58]">75%</span>
+          </div>
+          <input type="range" value="75" class="w-full accent-[#B88A58] h-1.5 bg-stone-300 rounded cursor-pointer">
+        </div>
+
+      </div>
+
+      <!-- Action Button -->
+      <button onclick="alert('AI 重新精修完成！')" class="w-full py-2.5 rounded-xl bg-[#B88A58] hover:bg-[#9E7345] text-stone-950 font-bold text-xs shadow-md transition-colors cursor-pointer">
+        ✨ 重新生成此效果
+      </button>
+
+    </aside>
+
+  </div>
+
+  <script>
+    const STYLES = [
+      { id: "dreamy", name: "01 梦幻动态电影海报", tag: "电影光影", cover: "/covers/01_dreamy_motion_editorial.webp", desc: "慢门拖影与流动光晕，赋予照片诗意电影质感", scene: "适合：人像、夜景、旅拍动态" },
+      { id: "fantasy", name: "02 奇奇怪怪日杂插画", tag: "爆款社交", cover: "/covers/02_fantasy_qiqiguaiguai.webp", desc: "生活碎片拼贴与插画描边，高调有趣的日杂风", scene: "适合：咖啡馆、日常探店、萌宠" },
+      { id: "black_ink", name: "03 黑白实景水墨二分", tag: "黑白手绘", cover: "/covers/03_street_photo_black_ink.webp", desc: "实景与墨线虚实交融，手绘二次元破次元感", scene: "适合：街头漫步、写字台静物" },
+      { id: "color_chibi", name: "04 彩色轻Q实景插画", tag: "清新治愈", cover: "/covers/04_street_photo_color_chibi.webp", desc: "温柔低饱和手绘重绘，明媚治愈的动漫质感", scene: "适合：户外露营、山野旅行" },
+      { id: "culture", name: "05 文化碎片质感海报", tag: "梵想美学", cover: "/covers/05_culture_fragment_poster.webp", desc: "高定杂志级版式与大字衬线，纯净留白封面", scene: "适合：独处时刻、公路远方" },
+      { id: "eastern_scenery", name: "06 东方水墨山水诗意", tag: "东方古韵", cover: "/covers/06_eastern_ink_diptych_scenery.webp", desc: "古韵宣纸肌理与水墨层峦，东方诗性重构", scene: "适合：古镇建筑、自然山水" }
+    ];
+
+    let currentIdx = 0;
+    const listEl = document.getElementById('editorialStylesList');
+
+    function renderList() {
+      listEl.innerHTML = '';
+      STYLES.forEach((s, idx) => {
+        const isSel = idx === currentIdx;
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl border transition-all cursor-pointer flex gap-3 ${
+          isSel 
+            ? 'bg-[var(--studio-panel)] border-[#B88A58] ring-1 ring-[#B88A58] shadow-sm'
+            : 'bg-[var(--studio-card)] border-[var(--studio-border)] hover:border-stone-400'
+        }`;
+        card.innerHTML = `
+          <div class="w-16 h-20 rounded-lg overflow-hidden bg-black/10 shrink-0 relative">
+            <img src="${s.cover}" class="w-full h-full object-cover">
+          </div>
+          <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-[var(--studio-text)] truncate">${s.name}</span>
+              </div>
+              <p class="text-[10px] text-[var(--studio-muted)] line-clamp-2 mt-1 leading-relaxed">${s.desc}</p>
+            </div>
+            <span class="text-[9.5px] text-[#B88A58] font-mono">${s.scene}</span>
+          </div>
+        `;
+        card.onclick = () => selectStyle(idx);
+        listEl.appendChild(card);
+      });
+    }
+
+    function selectStyle(idx) {
+      currentIdx = idx;
+      const s = STYLES[idx];
+      document.getElementById('afterImg').src = s.cover;
+      document.getElementById('sideAfterImg').src = s.cover;
+      document.getElementById('rightStyleTitle').textContent = s.name;
+      document.getElementById('rightStyleDesc').textContent = s.desc;
+      renderList();
+    }
+
+    // Compare Modes
+    function setCompareMode(mode) {
+      if (mode === 'split') {
+        document.getElementById('viewSplit').classList.remove('hidden');
+        document.getElementById('viewSide').classList.add('hidden');
+        document.getElementById('btnCompSplit').className = 'px-3 py-1 rounded-md bg-[var(--studio-card)] text-[#B88A58] font-bold shadow-xs';
+        document.getElementById('btnCompSide').className = 'px-3 py-1 rounded-md text-[var(--studio-muted)] hover:text-[var(--studio-text)]';
+      } else {
+        document.getElementById('viewSplit').classList.add('hidden');
+        document.getElementById('viewSide').classList.remove('hidden');
+        document.getElementById('btnCompSide').className = 'px-3 py-1 rounded-md bg-[var(--studio-card)] text-[#B88A58] font-bold shadow-xs';
+        document.getElementById('btnCompSplit').className = 'px-3 py-1 rounded-md text-[var(--studio-muted)] hover:text-[var(--studio-text)]';
+      }
+    }
+
+    // Split Slider Drag
+    const imageStage = document.getElementById('imageStage');
+    const beforeContainer = document.getElementById('beforeContainer');
+    const sliderLine = document.getElementById('sliderLine');
+    let isDragging = false;
+
+    function updateSplit(pct) {
+      pct = Math.max(0, Math.min(100, pct));
+      sliderLine.style.left = `${pct}%`;
+      beforeContainer.style.clipPath = `polygon(0 0, ${pct}% 0, ${pct}% 100%, 0 100%)`;
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const rect = imageStage.getBoundingClientRect();
+      const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const pct = (x / rect.width) * 100;
+      updateSplit(pct);
+    }
+
+    sliderLine.addEventListener('pointerdown', () => {
+      isDragging = true;
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', () => {
+        isDragging = false;
+        document.removeEventListener('pointermove', onPointerMove);
+      }, { once: true });
+    });
+
+    // Upload
+    document.getElementById('uploadInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const u = URL.createObjectURL(file);
+        document.getElementById('beforeImg').src = u;
+        document.getElementById('sideBeforeImg').src = u;
+        alert('照片已载入左侧原图，可对比 AI 风格化重构效果。');
+      }
+    });
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
+    }
+
+    renderList();
+  </script>
+</body>
+</html>
