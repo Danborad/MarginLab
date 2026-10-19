@@ -3,6 +3,7 @@ import { useEditorStore } from "../../store/useEditorStore";
  import {
    Sparkles,
   BookOpen,
+  Eye,
    User,
    KeyRound,
    LogOut,
@@ -86,7 +87,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
   const handleQuickSave = async () => {
     if (!currentUser || !isAuthenticated) {
-      setAuthModalOpen(true, "login");
+      setAuthModalOpen(true, "register");
       return;
     }
     await saveCurrentProject(document.name);
@@ -276,14 +277,20 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
             )}
           </div>
         ) : (
-          <button
-            onClick={() => setAuthModalOpen(true, "login")}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg bg-studio-accent hover:bg-studio-accentHover text-white text-[11px] sm:text-xs font-semibold shadow-subtle-glow transition-all cursor-pointer shrink-0"
-            title="登录或注册专属个人账号"
-          >
-            <LogIn className="w-3 h-3" />
-            <span>登录</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="hidden xs:flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-[10px] sm:text-[11px] font-bold">
+              <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              <span>只读速览</span>
+            </div>
+            <button
+              onClick={() => setAuthModalOpen(true, "register")}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
+              title="登录或注册专属个人账号开启完整编辑"
+            >
+              <LogIn className="w-3 h-3" />
+              <span>登录 / 注册</span>
+            </button>
+          </div>
         )}
 
         {/* Collage Specific Tools: Canvas Preset, Projects, Admin Quick, Quick Save */}
@@ -303,7 +310,13 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
             {/* Project Gallery Button */}
             <button
-              onClick={() => setProjectModalOpen(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setAuthModalOpen(true, "register");
+                  return;
+                }
+                setProjectModalOpen(true);
+              }}
               className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-studio-card hover:bg-studio-hover border border-studio-border text-xs text-studio-text hover:text-studio-accent transition-colors cursor-pointer shrink-0"
               title="打开我的作品库与自制模板"
             >
@@ -475,7 +488,13 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setAutoLayoutModalOpen(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setAuthModalOpen(true, "register");
+                  return;
+                }
+                setAutoLayoutModalOpen(true);
+              }}
               className="hidden md:flex items-center gap-1 text-studio-text border-studio-border text-xs"
             >
               <Wand2 className="w-3.5 h-3.5 text-studio-accent" />
@@ -539,7 +558,13 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           <Button
             variant="accent"
             size="sm"
-            onClick={() => setExportModalOpen(true)}
+            onClick={() => {
+              if (!isAuthenticated) {
+                setAuthModalOpen(true, "register");
+                return;
+              }
+              setExportModalOpen(true);
+            }}
             className="flex items-center gap-1 shadow-subtle-glow px-2 sm:px-3 text-xs font-semibold py-1 sm:py-1.5 shrink-0"
           >
             <Download className="w-3.5 h-3.5" />

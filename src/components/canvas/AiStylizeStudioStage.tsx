@@ -19,6 +19,7 @@ import {
   Search,
   Undo2,
   FolderOpen,
+  Eye,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -129,6 +130,8 @@ export const AiStylizeStudioStage: React.FC = () => {
   // 生成历史折叠：默认只渲染最近 10 次，手动展开时每次再追加 10 次
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(HISTORY_PAGE_SIZE);
   const currentUser = useEditorStore((s) => s.currentUser);
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
+  const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -380,6 +383,10 @@ export const AiStylizeStudioStage: React.FC = () => {
   };
 
   const handleGenerateWithFraming = async () => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     if (isGenerating) return;
     let finalSource = sourceImage || undefined;
     if (sourceImage && (zoomScale !== 1 || panOffset.x !== 0 || panOffset.y !== 0)) {
@@ -455,6 +462,10 @@ export const AiStylizeStudioStage: React.FC = () => {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingOver(false);
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     const file = e.dataTransfer.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
     try {
@@ -649,6 +660,20 @@ export const AiStylizeStudioStage: React.FC = () => {
           </div>
         </div>
 
+        {/* 只读速览提示条 */}
+        {!isAuthenticated && (
+          <div className="mx-auto mb-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-center gap-2 shadow-xs shrink-0 animate-fadeIn">
+            <Eye className="w-3.5 h-3.5 text-amber-600" />
+            <span>AI 修图只读速览中 · 浏览质感风格与提示词 · 注册登录开启专属修图</span>
+            <button
+              onClick={() => setAuthModalOpen(true, "register")}
+              className="ml-1 px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer transition-all active:scale-95"
+            >
+              立即注册
+            </button>
+          </div>
+        )}
+
         {/* 中部核心区域：默认 3:4 竖屏图片尺寸（随所选尺寸实时变化） */}
         {!sourceImage ? (
           <div
@@ -658,7 +683,13 @@ export const AiStylizeStudioStage: React.FC = () => {
             }}
             onDragLeave={() => setIsDraggingOver(false)}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (!isAuthenticated) {
+                setAuthModalOpen(true, "register");
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
             style={{
               width: currentRatioOption.emptyWidth,
               height: currentRatioOption.emptyHeight,
@@ -700,6 +731,10 @@ export const AiStylizeStudioStage: React.FC = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!isAuthenticated) {
+                    setAuthModalOpen(true, "register");
+                    return;
+                  }
                   fileInputRef.current?.click();
                 }}
                 className="px-5 py-2.5 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 whitespace-nowrap"
@@ -913,7 +948,13 @@ export const AiStylizeStudioStage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthModalOpen(true, "register");
+                      return;
+                    }
+                    fileInputRef.current?.click();
+                  }}
                   className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />

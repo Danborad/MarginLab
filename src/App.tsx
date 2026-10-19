@@ -44,8 +44,8 @@ export function App() {
     fetchSiteFilingConfig();
   }, [loadFromStorage, fetchAiHistory, fetchAiConfig, fetchSiteFilingConfig]);
 
-  // 1. Landing Home View (未登录仅允许浏览首页与 3D 画册速览)
-  if (currentView === "home" || !isAuthenticated) {
+  // 1. Landing Home View (未登录亦可进入工作台进行只读浏览)
+  if (currentView === "home") {
     return (
       <div className="w-screen h-screen overflow-hidden bg-studio-bg select-none">
         <LandingHomePage />

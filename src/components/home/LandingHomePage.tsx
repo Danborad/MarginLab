@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Printer,
   LayoutTemplate,
+  LayoutGrid,
   Crop,
   LogOut,
   RefreshCw,
@@ -320,6 +321,15 @@ export const LandingHomePage: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center gap-1.5 sm:gap-3">
+              <button
+                onClick={() => setCurrentView("studio")}
+                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer whitespace-nowrap"
+                title="进入工作台速览各项功能（只读模式）"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-zinc-500" />
+                <span>进入工作台浏览</span>
+              </button>
+
                             <button
                 id="landing-album-btn"
                 onClick={() => setAlbumModalOpen(true)}
@@ -425,8 +435,19 @@ export const LandingHomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3D 实体画册速览入口 */}
-            <div className="pt-1 flex items-center gap-3">
+            {/* 工作台只读浏览与 3D 实体画册速览入口 */}
+            <div className="pt-1 flex flex-wrap items-center gap-3">
+              <button
+                id="landing-enter-studio-btn"
+                onClick={() => setCurrentView("studio")}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-950 hover:bg-black text-white text-xs font-bold shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                title="进入工作台速览 AI修图、风格化、自由生图与拼图排版"
+              >
+                <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                <span>进入工作台浏览</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/20 font-normal">只读速览</span>
+              </button>
+
               <button
                 id="landing-album-btn"
                 onClick={() => setAlbumModalOpen(true)}

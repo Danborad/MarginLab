@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Trash2,
   Compass,
+  Eye,
 } from "lucide-react";
 import { CreativeSessionItem } from "../../types/ai";
 import { MediaPickerModal } from "../studio/ai/MediaPickerModal";
@@ -48,6 +49,8 @@ export const AiCreativeStudioStage: React.FC = () => {
   const setCreativeReferenceImage = useEditorStore((s) => s.setCreativeReferenceImage);
   const reapplyCreativeSession = useEditorStore((s) => s.reapplyCreativeSession);
   const submitCreativeGeneration = useEditorStore((s) => s.submitCreativeGeneration);
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
+  const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
   const createNewCreativeSession = useEditorStore((s) => s.createNewCreativeSession);
   const addMediaAssets = useEditorStore((s) => s.addMediaAssets);
   const currentUser = useEditorStore((s) => s.currentUser);
@@ -138,6 +141,10 @@ export const AiCreativeStudioStage: React.FC = () => {
   };
 
   const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -160,6 +167,10 @@ export const AiCreativeStudioStage: React.FC = () => {
   };
 
   const handleSaveToGallery = async (url: string, index: number, prompt: string) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     try {
       await addMediaAssets([
         {
@@ -215,7 +226,13 @@ export const AiCreativeStudioStage: React.FC = () => {
 
         <button
           id="stage-new-chat-btn"
-          onClick={() => createNewCreativeSession()}
+          onClick={() => {
+            if (!isAuthenticated) {
+              setAuthModalOpen(true, "register");
+              return;
+            }
+            createNewCreativeSession();
+          }}
           className="px-3 py-1.5 rounded-xl bg-gray-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
           title="开启一次新的创作对话"
         >
@@ -243,6 +260,21 @@ export const AiCreativeStudioStage: React.FC = () => {
 
       {/* 中央主消息流 / 创作会话记录（像聊天对话一样左右排布） */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-6 sm:px-8 lg:px-12 no-scrollbar">
+        {/* 只读速览提示条 */}
+        {!isAuthenticated && (
+          <div className="max-w-4xl mx-auto mb-4 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs shrink-0 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-amber-600" />
+              <span>AI 自由创作只读速览中 · 浏览会话与提示词 · 注册登录开启专属生图</span>
+            </div>
+            <button
+              onClick={() => setAuthModalOpen(true, "register")}
+              className="ml-2 px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer transition-all active:scale-95"
+            >
+              立即注册
+            </button>
+          </div>
+        )}
         <div className="max-w-4xl mx-auto space-y-7 pb-8">
           {creativeHistory.map((item) => {
             const isCollapsed = collapsedSessionIds.has(item.id);
@@ -516,7 +548,13 @@ export const AiCreativeStudioStage: React.FC = () => {
             ) : (
               <>
                 <button
-                  onClick={() => refFileInputRef.current?.click()}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthModalOpen(true, "register");
+                      return;
+                    }
+                    refFileInputRef.current?.click();
+                  }}
                   className="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -524,7 +562,13 @@ export const AiCreativeStudioStage: React.FC = () => {
                 </button>
                 <button
                   id="creative-ref-gallery-btn"
-                  onClick={() => setIsMediaPickerOpen(true)}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthModalOpen(true, "register");
+                      return;
+                    }
+                    setIsMediaPickerOpen(true);
+                  }}
                   className="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                   title="从图库中选择一张作为参考图"
                 >

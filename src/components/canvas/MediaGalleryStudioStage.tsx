@@ -11,6 +11,7 @@ import {
   Search,
   X,
   Sparkles,
+  Eye,
   Check,
   ArrowUpDown,
 } from "lucide-react";
@@ -34,6 +35,8 @@ export const MediaGalleryStudioStage: React.FC = () => {
   const setActivePanel = useEditorStore((s) => s.setActivePanel);
   const addElement = useEditorStore((s) => s.addElement);
   const canvas = useEditorStore((s) => s.document.canvas);
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
+  const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
 
   useEffect(() => {
     fetchUserMedia().catch(() => {});
@@ -120,6 +123,10 @@ export const MediaGalleryStudioStage: React.FC = () => {
   }, [allFiles, filterTab, searchQuery, sortOrder]);
 
   const handleFileUpload = async (files: FileList | null) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     if (!files || files.length === 0) return;
     setIsUploading(true);
     try {
@@ -188,6 +195,10 @@ export const MediaGalleryStudioStage: React.FC = () => {
   };
 
   const handleDelete = (file: UserMediaAsset & { isFromHistory?: boolean }) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true, "register");
+      return;
+    }
     if (file.isFromHistory) {
       deleteAiHistoryItem(file.id);
     } else {
@@ -225,6 +236,21 @@ export const MediaGalleryStudioStage: React.FC = () => {
 
       {/* 顶部综合工具栏（现代文件管理器顶部） */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col gap-3 shrink-0 shadow-2xs">
+        {/* 只读速览提示条 */}
+        {!isAuthenticated && (
+          <div className="w-full px-4 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs shrink-0 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-amber-600" />
+              <span>素材图库只读速览中 · 浏览全部公有与演示资产 · 注册登录开启私有云端相册存储</span>
+            </div>
+            <button
+              onClick={() => setAuthModalOpen(true, "register")}
+              className="ml-2 px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer transition-all active:scale-95 whitespace-nowrap"
+            >
+              立即注册
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* 标题与文件数统计 */}
           <div className="flex items-center gap-3">
@@ -279,7 +305,13 @@ export const MediaGalleryStudioStage: React.FC = () => {
             )}
 
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setAuthModalOpen(true, "register");
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}
               disabled={isUploading}
               className="px-5 py-2.5 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >

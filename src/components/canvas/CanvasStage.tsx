@@ -14,6 +14,7 @@ import { AlignmentGuide, ImageElement, TextElement, ShapeElement, StickerElement
 import {
   Crop,
   ImagePlus,
+  Eye,
   Trash2,
   ZoomIn,
   ZoomOut,
@@ -48,6 +49,8 @@ export const CanvasStage: React.FC = () => {
   const updateElement = useEditorStore((s) => s.updateElement);
   const setEditingCropId = useEditorStore((s) => s.setEditingCropId);
   const openReplacePhotoModal = useEditorStore((s) => s.openReplacePhotoModal);
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
+  const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
   const openAiStylizeModal = useEditorStore((s) => s.openAiStylizeModal);
   const setGuides = useEditorStore((s) => s.setGuides);
   const clearGuides = useEditorStore((s) => s.clearGuides);
@@ -546,25 +549,33 @@ export const CanvasStage: React.FC = () => {
             const isSelected = selectedIds.includes(element.id);
 
             if (element.type === 'image') {
+              const el = { ...element, locked: !isAuthenticated || element.locked } as ImageElement;
               return (
                 <ImageElementNode
                   key={element.id}
-                  element={element as ImageElement}
+                  element={el}
                   isSelected={isSelected}
                   onSelect={(e) => toggleSelectElement(element.id, e.evt.shiftKey)}
                   onChange={(updates) => updateElement(element.id, updates)}
                   onDragMove={(e) => handleElementDragMove(element.id, e)}
                   onDragEnd={handleElementDragEnd}
-                  onDoubleClick={() => setEditingCropId(element.id)}
+                  onDoubleClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthModalOpen(true, "register");
+                      return;
+                    }
+                    setEditingCropId(element.id);
+                  }}
                 />
               );
             }
 
             if (element.type === 'text') {
+              const el = { ...element, locked: !isAuthenticated || element.locked } as TextElement;
               return (
                 <TextElementNode
                   key={element.id}
-                  element={element as TextElement}
+                  element={el}
                   isSelected={isSelected}
                   onSelect={(e) => toggleSelectElement(element.id, e.evt.shiftKey)}
                   onChange={(updates) => updateElement(element.id, updates)}
@@ -575,10 +586,11 @@ export const CanvasStage: React.FC = () => {
             }
 
             if (element.type === 'shape') {
+              const el = { ...element, locked: !isAuthenticated || element.locked } as ShapeElement;
               return (
                 <ShapeElementNode
                   key={element.id}
-                  element={element as ShapeElement}
+                  element={el}
                   isSelected={isSelected}
                   onSelect={(e) => toggleSelectElement(element.id, e.evt.shiftKey)}
                   onChange={(updates) => updateElement(element.id, updates)}
@@ -589,10 +601,11 @@ export const CanvasStage: React.FC = () => {
             }
 
             if (element.type === 'sticker') {
+              const el = { ...element, locked: !isAuthenticated || element.locked } as StickerElement;
               return (
                 <StickerElementNode
                   key={element.id}
-                  element={element as StickerElement}
+                  element={el}
                   isSelected={isSelected}
                   onSelect={(e) => toggleSelectElement(element.id, e.evt.shiftKey)}
                   onChange={(updates) => updateElement(element.id, updates)}
@@ -613,12 +626,26 @@ export const CanvasStage: React.FC = () => {
           />
 
           {/* Transformer Controller */}
-          <TransformController selectedIds={selectedIds} stageRef={stageRef} />
+          {isAuthenticated && <TransformController selectedIds={selectedIds} stageRef={stageRef} />}
         </Layer>
       </Stage>
 
+      {/* 只读速览顶部提示条 */}
+      {!isAuthenticated && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-3.5 py-1.5 rounded-full bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-semibold flex items-center gap-2 shadow-lg animate-fadeIn pointer-events-auto">
+          <Eye className="w-3.5 h-3.5 text-amber-600" />
+          <span>拼图排版只读速览中 · 注册登录开启画布排版与编辑</span>
+          <button
+            onClick={() => setAuthModalOpen(true, "register")}
+            className="ml-1 px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer transition-all active:scale-95"
+          >
+            立即注册
+          </button>
+        </div>
+      )}
+
       {/* Floating Quick Action Bar for Selected Image */}
-      {isSingleImageSelected && !editingCropId && (
+      {isAuthenticated && isSingleImageSelected && !editingCropId && (
         <div
           ref={quickBarRef}
           className="absolute z-30 flex items-center gap-1.5 bg-studio-card border border-studio-border shadow-2xl px-2.5 sm:px-3 py-1.5 rounded-xl text-xs text-studio-text transition-all pointer-events-auto select-none whitespace-nowrap"
