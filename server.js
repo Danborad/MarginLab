@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { execFile } from "child_process";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ const USERS_FILE = path.join(DATA_DIR, "users.json");
 const USERDATA_DIR = path.join(DATA_DIR, "userdata");
 const AI_CONFIG_FILE = path.join(DATA_DIR, "ai_config.json");
 const SITE_CONFIG_FILE = path.join(DATA_DIR, "site_config.json");
+const EMAIL_CONFIG_FILE = path.join(DATA_DIR, "email_config.json");
 const AI_STYLES_FILE = path.join(DATA_DIR, "ai_styles.json");
 const AI_HISTORY_DIR = path.join(DATA_DIR, "ai_history");
 const AI_HISTORY_ASSETS_DIR = path.join(DATA_DIR, "ai_history_assets");
@@ -213,6 +215,111 @@ function writeSiteConfig(config) {
   fs.renameSync(tmpFile, SITE_CONFIG_FILE);
   return updated;
 }
+
+// ---------------------------------------------------------------------------
+// 邮件发信通道 (SMTP) & 邮箱域名白名单配置
+// ---------------------------------------------------------------------------
+const DEFAULT_EMAIL_CONFIG = {
+  channelName: "飞书企业邮 (mexai.cc)",
+  host: "",
+  port: 465,
+  encryption: "tls", // "tls" | "starttls" | "none"
+  enabled: false,
+  user: "",
+  pass: "",
+  fromEmail: "",
+  fromName: "留白集 MarginLab",
+  whitelistEnabled: true,
+  whitelistDomains: [
+    "gmail.com",
+    "163.com",
+    "126.com",
+    "qq.com",
+    "outlook.com",
+    "hotmail.com",
+    "foxmail.com",
+    "sina.com",
+    "139.com",
+    "189.cn",
+    "aliyun.com",
+  ],
+};
+
+function readEmailConfig() {
+  try {
+    if (fs.existsSync(EMAIL_CONFIG_FILE)) {
+      const data = fs.readFileSync(EMAIL_CONFIG_FILE, "utf-8");
+      return { ...DEFAULT_EMAIL_CONFIG, ...JSON.parse(data) };
+    }
+  } catch (err) {
+    console.error("[EmailConfig] Read failed:", err.message);
+  }
+  return { ...DEFAULT_EMAIL_CONFIG };
+}
+
+function writeEmailConfig(config) {
+  const current = readEmailConfig();
+  const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
+  const tmpFile = EMAIL_CONFIG_FILE + ".tmp";
+  fs.writeFileSync(tmpFile, JSON.stringify(updated, null, 2), "utf-8");
+  fs.renameSync(tmpFile, EMAIL_CONFIG_FILE);
+  return updated;
+}
+
+function createMailTransporter(cfg) {
+  const port = Number(cfg.port) || 465;
+  const isDirectTls = cfg.encryption === "tls" || (!cfg.encryption && port === 465);
+
+  return nodemailer.createTransport({
+    host: cfg.host,
+    port: port,
+    secure: isDirectTls,
+    auth: {
+      user: cfg.user,
+      pass: cfg.pass,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeout: 12000,
+    greetingTimeout: 10000,
+  });
+}
+
+function getVerificationEmailHtml(code, email, type = "register") {
+  const actionText = type === "reset" ? "重置登录密码" : "注册新创作者账号";
+  return `
+    <div style="max-width: 520px; margin: 0 auto; padding: 36px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #ffffff; color: #18181b; border: 1px solid #e4e4e7; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.04);">
+      <div style="text-align: center; margin-bottom: 28px;">
+        <div style="display: inline-block; font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #18181b;">留白集 · MARGINLAB</div>
+        <div style="font-size: 11px; color: #71717a; margin-top: 4px; letter-spacing: 1px;">极简图片 AI 调色风格化与艺术拼图排版</div>
+      </div>
+      <div style="border-top: 1px solid #f4f4f5; margin-bottom: 24px;"></div>
+      <h2 style="font-size: 16px; font-weight: 700; margin: 0 0 12px 0; color: #18181b;">您好，欢迎加入留白集</h2>
+      <p style="font-size: 13px; line-height: 1.6; color: #52525b; margin: 0 0 20px 0;">您正在申请\${actionText}，请在验证页面输入下方 6 位数字验证码：</p>
+      <div style="background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 12px; padding: 22px; text-align: center; margin-bottom: 24px;">
+        <span style="font-family: 'JetBrains Mono', Consolas, Monaco, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #d97706;">\${code}</span>
+        <div style="font-size: 11px; color: #a1a1aa; margin-top: 10px;">验证码 10 分钟内有效，请勿向任何人泄露</div>
+      </div>
+      <p style="font-size: 12px; line-height: 1.6; color: #a1a1aa; margin: 0 0 24px 0;">若您未曾发起此操作，请忽略此邮件，您的账号或邮箱安全不会受到任何影响。</p>
+      <div style="border-top: 1px solid #f4f4f5; padding-top: 18px; text-align: center; font-size: 11px; color: #a1a1aa;">
+        © 2026 留白集 MarginLab · 保持留白，给创作留足想象
+      </div>
+    </div>
+  `;
+}
+
+// 内存验证码缓存：email -> { code, expiresAt, lastSentAt, type }
+const verificationCodeStore = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [email, item] of verificationCodeStore.entries()) {
+    if (now > item.expiresAt + 60000) {
+      verificationCodeStore.delete(email);
+    }
+  }
+}, 60000);
 
 function readAiHistory(userId = "default") {
   const userHistoryFile = path.join(AI_HISTORY_DIR, `${userId}.json`);
@@ -627,43 +734,192 @@ app.get("/api/auth/accounts", (req, res) => {
   res.json({ success: true, accounts: users });
 });
 
-// Register new account
+// 公开的发信与白名单状态（注册页使用）
+app.get("/api/email/public-config", (req, res) => {
+  const cfg = readEmailConfig();
+  res.json({
+    success: true,
+    enabled: Boolean(cfg.enabled && cfg.host && cfg.user),
+    whitelistEnabled: Boolean(cfg.whitelistEnabled),
+    whitelistDomains: cfg.whitelistDomains || [],
+  });
+});
+
+// 发送邮箱验证码 (注册 / 找回密码)
+app.post("/api/auth/send-code", async (req, res) => {
+  const { email, type = "register" } = req.body || {};
+  const cleanEmail = (email || "").trim().toLowerCase();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+    return res.status(400).json({ success: false, message: "请输入有效的电子邮箱地址" });
+  }
+
+  const domain = cleanEmail.split("@")[1];
+  const emailConfig = readEmailConfig();
+
+  // 1. 域名白名单限制检测
+  if (emailConfig.whitelistEnabled && Array.isArray(emailConfig.whitelistDomains) && emailConfig.whitelistDomains.length > 0) {
+    const isAllowed = emailConfig.whitelistDomains.some(
+      (d) => d && d.trim().toLowerCase() === domain
+    );
+    if (!isAllowed) {
+      return res.status(400).json({
+        success: false,
+        message: `邮箱域名 @${domain} 未在允许注册名单中。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`,
+      });
+    }
+  }
+
+  // 2. 注册时查重
+  if (type === "register") {
+    const users = readUsers();
+    const exists = users.some((u) => u.email && u.email.toLowerCase() === cleanEmail);
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: `邮箱 “${cleanEmail}” 已注册过账号，请直接登录`,
+      });
+    }
+  }
+
+  // 3. 频率限制 (60 秒防刷)
+  const existing = verificationCodeStore.get(cleanEmail);
+  const now = Date.now();
+  if (existing && now - existing.lastSentAt < 60000) {
+    const waitSec = Math.ceil((60000 - (now - existing.lastSentAt)) / 1000);
+    return res.status(429).json({
+      success: false,
+      message: `验证码发送过于频繁，请等待 ${waitSec} 秒后再试`,
+    });
+  }
+
+  // 4. 发信通道是否就绪
+  if (!emailConfig.enabled || !emailConfig.host || !emailConfig.user) {
+    return res.status(503).json({
+      success: false,
+      needConfig: true,
+      message: "发信邮箱服务未配置或未启用，请联系管理员在后台「发信与邮箱」中配置 SMTP 参数",
+    });
+  }
+
+  // 5. 生成 6 位纯数字验证码
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+  try {
+    const transporter = createMailTransporter(emailConfig);
+    const fromAddr = emailConfig.fromEmail || emailConfig.user;
+    const fromName = emailConfig.fromName || "留白集 MarginLab";
+
+    await transporter.sendMail({
+      from: `"${fromName}" <${fromAddr}>`,
+      to: cleanEmail,
+      subject: `【留白集 MarginLab】验证码：${code} (10分钟内有效)`,
+      html: getVerificationEmailHtml(code, cleanEmail, type),
+    });
+
+    verificationCodeStore.set(cleanEmail, {
+      code,
+      expiresAt: now + 10 * 60 * 1000,
+      lastSentAt: now,
+      type,
+    });
+
+    console.log(`[Email] Verification code sent to ${cleanEmail}`);
+    res.json({
+      success: true,
+      message: `验证码已发送至 ${cleanEmail}，请查收（10分钟有效）`,
+    });
+  } catch (err) {
+    console.error(`[Email] Send failed to ${cleanEmail}:`, err.message);
+    res.status(500).json({
+      success: false,
+      message: `邮件发送失败：${err.message}，请核对 SMTP 授权码与发信配置`,
+    });
+  }
+});
+
+// Register new account (支持邮箱注册 + 验证码 + 域名白名单)
 app.post("/api/auth/register", (req, res) => {
-  const { username, password, name, avatar, role, bio, email } = req.body || {};
-  const rawUser = (username || "").trim();
+  const { username, password, name, avatar, role, bio, email, code } = req.body || {};
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const rawUser = (username || "").trim() || (cleanEmail ? cleanEmail.split("@")[0] : "");
   const cleanUser = rawUser.toLowerCase().replace(/^@/, "").trim();
 
-  if (!cleanUser || cleanUser.length < 3) {
-    return res.status(400).json({ success: false, message: "登录账号至少需要 3 个字符（支持英文字母与数字）" });
+  // 若提供了邮箱，执行严格邮箱校验
+  if (cleanEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: "请输入有效的电子邮箱地址" });
+    }
+
+    const domain = cleanEmail.split("@")[1];
+    const emailConfig = readEmailConfig();
+
+    // 白名单校验
+    if (emailConfig.whitelistEnabled && Array.isArray(emailConfig.whitelistDomains) && emailConfig.whitelistDomains.length > 0) {
+      const isAllowed = emailConfig.whitelistDomains.some(
+        (d) => d && d.trim().toLowerCase() === domain
+      );
+      if (!isAllowed) {
+        return res.status(400).json({
+          success: false,
+          message: `邮箱域名 @${domain} 未在允许注册名单内。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`,
+        });
+      }
+    }
+
+    // 邮箱唯一性校验
+    const users = readUsers();
+    if (users.some((u) => u.email && u.email.toLowerCase() === cleanEmail)) {
+      return res.status(409).json({
+        success: false,
+        message: `邮箱 “${cleanEmail}” 已被注册，请直接登录`,
+      });
+    }
+
+    // 若发信通道已启用，强制验证邮箱验证码
+    if (emailConfig.enabled && emailConfig.host && emailConfig.user) {
+      const stored = verificationCodeStore.get(cleanEmail);
+      if (!stored || Date.now() > stored.expiresAt) {
+        return res.status(400).json({ success: false, message: "邮箱验证码不存在或已过期，请重新获取" });
+      }
+      if (stored.code !== (code || "").trim()) {
+        return res.status(400).json({ success: false, message: "邮箱验证码错误，请重新核对" });
+      }
+      verificationCodeStore.delete(cleanEmail);
+    }
+  } else {
+    // 未提供邮箱时，退回传统用户名模式
+    if (!cleanUser || cleanUser.length < 3) {
+      return res.status(400).json({ success: false, message: "登录账号至少需要 3 个字符（支持英文字母与数字）" });
+    }
   }
+
   if (!password || password.trim().length < 4) {
     return res.status(400).json({ success: false, message: "密码至少需要 4 位字符" });
   }
 
   const users = readUsers();
-  const exists = users.some(
-    (u) => (u.username && u.username.toLowerCase() === cleanUser)
-  );
-
-  if (exists) {
-    return res.status(409).json({
-      success: false,
-      message: `账号 “${rawUser}” 已被注册，请更换其他用户名或直接登录`,
-    });
+  // 确保 username 唯一
+  let finalUsername = cleanUser || "user_" + Date.now().toString().slice(-4);
+  let counter = 1;
+  while (users.some((u) => u.username && u.username.toLowerCase() === finalUsername)) {
+    finalUsername = `${cleanUser}_${counter++}`;
   }
 
   const newUserId = "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
   const newUser = {
     id: newUserId,
-    username: cleanUser,
+    username: finalUsername,
     passwordHash: password.trim(),
-    name: (name || "").trim() || cleanUser,
-    avatar: avatar || "🎨",
+    name: (name || "").trim() || (cleanEmail ? cleanEmail.split("@")[0] : finalUsername),
+    avatar: avatar || "🐱",
     role: (role || "").trim() || "独立创作者",
     isAdmin: false,
     status: "active",
     bio: (bio || "").trim() || "专注高定排版与艺术创作",
-    email: (email || "").trim(),
+    email: cleanEmail,
     themeColor: "#E5C49F",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
@@ -680,10 +936,10 @@ app.post("/api/auth/register", (req, res) => {
     mediaAssets: [],
   });
 
-  console.log(`[API] Registered new user: ${cleanUser} (${newUserId})`);
+  console.log(`[API] Registered new user: ${cleanEmail || finalUsername} (${newUserId})`);
   res.json({
     success: true,
-    message: `恭喜！已成功注册并登录账号「${newUser.name}」`,
+    message: `恭喜！已成功注册账号「${newUser.name}」`,
     user: newUser,
   });
 });
@@ -1436,6 +1692,162 @@ app.post("/api/admin/site/config", requireAdmin, (req, res) => {
     message: "备案信息已保存",
     config: updated,
   });
+});
+
+// ---------------------------------------------------------------------------
+// 管理员：发信邮箱 (SMTP) 与 域名白名单管理
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/email/config: 读取发信配置 (管理员)
+app.get("/api/admin/email/config", requireAdmin, (req, res) => {
+  const cfg = readEmailConfig();
+  res.json({
+    success: true,
+    config: {
+      channelName: cfg.channelName || "飞书企业邮 (mexai.cc)",
+      host: cfg.host || "",
+      port: cfg.port || 465,
+      encryption: cfg.encryption || "tls",
+      enabled: Boolean(cfg.enabled),
+      user: cfg.user || "",
+      hasPass: Boolean(cfg.pass && cfg.pass.length > 0),
+      fromEmail: cfg.fromEmail || "",
+      fromName: cfg.fromName || "留白集 MarginLab",
+      whitelistEnabled: Boolean(cfg.whitelistEnabled),
+      whitelistDomains: cfg.whitelistDomains || [],
+      updatedAt: cfg.updatedAt,
+    },
+  });
+});
+
+// POST /api/admin/email/config: 保存发信配置 (管理员)
+app.post("/api/admin/email/config", requireAdmin, (req, res) => {
+  const body = req.body || {};
+  const current = readEmailConfig();
+  const patch = {};
+
+  if (typeof body.channelName === "string") patch.channelName = body.channelName.trim();
+  if (typeof body.host === "string") patch.host = body.host.trim();
+  if (body.port !== undefined) patch.port = Number(body.port) || 465;
+  if (typeof body.encryption === "string") patch.encryption = body.encryption.trim();
+  if (typeof body.enabled === "boolean") patch.enabled = body.enabled;
+  if (typeof body.user === "string") patch.user = body.user.trim();
+  if (typeof body.pass === "string" && body.pass.trim()) {
+    patch.pass = body.pass.trim();
+  }
+  if (typeof body.fromEmail === "string") patch.fromEmail = body.fromEmail.trim();
+  if (typeof body.fromName === "string") patch.fromName = body.fromName.trim();
+  if (typeof body.whitelistEnabled === "boolean") patch.whitelistEnabled = body.whitelistEnabled;
+  if (Array.isArray(body.whitelistDomains)) {
+    patch.whitelistDomains = body.whitelistDomains
+      .map((d) => (typeof d === "string" ? d.trim().toLowerCase() : ""))
+      .filter(Boolean);
+  }
+
+  const updated = writeEmailConfig(patch);
+  console.log(
+    `[Email Config] Admin updated: enabled=${updated.enabled}, host=${updated.host}, whitelist=${updated.whitelistEnabled ? "on" : "off"}`
+  );
+
+  res.json({
+    success: true,
+    message: "发信邮箱与白名单设置已成功保存！",
+    config: {
+      channelName: updated.channelName,
+      host: updated.host,
+      port: updated.port,
+      encryption: updated.encryption,
+      enabled: updated.enabled,
+      user: updated.user,
+      hasPass: Boolean(updated.pass),
+      fromEmail: updated.fromEmail,
+      fromName: updated.fromName,
+      whitelistEnabled: updated.whitelistEnabled,
+      whitelistDomains: updated.whitelistDomains,
+      updatedAt: updated.updatedAt,
+    },
+  });
+});
+
+// POST /api/admin/email/test: 即时连通性测试并发送测试邮件 (管理员)
+app.post("/api/admin/email/test", requireAdmin, async (req, res) => {
+  const { targetEmail, channelName, host, port, encryption, user, pass, fromEmail, fromName } = req.body || {};
+  const cleanTarget = (targetEmail || "").trim().toLowerCase();
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!cleanTarget || !emailRegex.test(cleanTarget)) {
+    return res.status(400).json({ success: false, message: "请输入合法有效的测试收件邮箱地址" });
+  }
+
+  const currentCfg = readEmailConfig();
+  const testCfg = {
+    channelName: channelName || currentCfg.channelName || "发信测试通道",
+    host: host !== undefined ? (host || "").trim() : currentCfg.host,
+    port: port !== undefined ? Number(port) || 465 : currentCfg.port,
+    encryption: encryption || currentCfg.encryption || "tls",
+    user: user !== undefined ? (user || "").trim() : currentCfg.user,
+    pass: (pass && pass.trim()) ? pass.trim() : currentCfg.pass,
+    fromEmail: fromEmail !== undefined ? (fromEmail || "").trim() : (currentCfg.fromEmail || currentCfg.user),
+    fromName: fromName !== undefined ? (fromName || "").trim() : (currentCfg.fromName || "留白集 MarginLab"),
+  };
+
+  if (!testCfg.host) {
+    return res.status(400).json({ success: false, message: "请填写 SMTP 主机（例如 smtp.larksuite.com 或 smtp.qq.com）" });
+  }
+  if (!testCfg.user) {
+    return res.status(400).json({ success: false, message: "请填写 SMTP 登录账号" });
+  }
+  if (!testCfg.pass) {
+    return res.status(400).json({ success: false, message: "请填写 SMTP 密码或专用授权码" });
+  }
+
+  try {
+    const transporter = createMailTransporter(testCfg);
+    console.log(`[Email Test] Verifying SMTP connection to ${testCfg.host}:${testCfg.port}...`);
+    await transporter.verify();
+
+    const fromAddr = testCfg.fromEmail || testCfg.user;
+    const testTime = new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
+
+    await transporter.sendMail({
+      from: `"${testCfg.fromName || "留白集 MarginLab"}" <${fromAddr}>`,
+      to: cleanTarget,
+      subject: `【留白集 MarginLab】SMTP 发信通道连通性测试成功`,
+      html: `
+        <div style="max-width: 520px; margin: 0 auto; padding: 32px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #ffffff; color: #18181b; border: 1px solid #e4e4e7; border-radius: 16px;">
+          <div style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #059669;">
+            ✅ SMTP 发信通道连通性测试成功
+          </div>
+          <p style="font-size: 13px; color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+            恭喜！您在 <strong>留白集 MarginLab</strong> 管理后台配置的发信通道「${testCfg.channelName}」已成功通过认证并完成投递测试。
+          </p>
+          <div style="background-color: #f4f4f5; border-radius: 10px; padding: 16px; font-size: 12px; color: #3f3f46; line-height: 1.8; font-family: 'JetBrains Mono', Consolas, monospace;">
+            <div><strong>通道名称：</strong>\${testCfg.channelName}</div>
+            <div><strong>SMTP 主机：</strong>\${testCfg.host}:\${testCfg.port}</div>
+            <div><strong>连接加密：</strong>\${testCfg.encryption.toUpperCase()}</div>
+            <div><strong>发件邮箱：</strong>\${fromAddr}</div>
+            <div><strong>测试收件：</strong>\${cleanTarget}</div>
+            <div><strong>验证时间：</strong>\${testTime}</div>
+          </div>
+          <p style="font-size: 11px; color: #a1a1aa; margin-top: 18px; margin-bottom: 0;">
+            这是一封系统自动发送的测试验证邮件，收到此邮件说明发信功能已随时可用于发送注册验证码。
+          </p>
+        </div>
+      `,
+    });
+
+    console.log(`[Email Test] Test email sent successfully to ${cleanTarget}`);
+    res.json({
+      success: true,
+      message: `连通性测试成功！测试邮件已成功投递至「${cleanTarget}」，请查收确认。`,
+    });
+  } catch (err) {
+    console.error(`[Email Test] Connection failed:`, err);
+    res.status(500).json({
+      success: false,
+      message: `发信连接失败：${err.message}。请核对 SMTP 主机、端口、SSL/TLS 加密设置及专用授权码。`,
+    });
+  }
 });
 
 // POST /api/ai/test: Test connectivity to configured AI API

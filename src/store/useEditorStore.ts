@@ -56,8 +56,13 @@ import {
    apiAdminDeleteUser,
    apiGetSiteFilingConfig,
    apiAdminSaveSiteFilingConfig,
+   apiGetPublicEmailConfig,
+   apiSendVerificationCode,
+   apiGetEmailConfig,
+   apiSaveEmailConfig,
+   apiTestEmailConfig,
  } from "../lib/api";
-import type { SiteFilingConfig } from "../lib/api";
+import type { SiteFilingConfig, EmailConfig, PublicEmailConfig } from "../lib/api";
 import { DEFAULT_SITE_FILING_CONFIG } from "../lib/api";
  
  // Multi-user & Auth Storage Keys (Strictly isolated per registered user)
@@ -518,13 +523,14 @@ export interface EditorState {
   // Real Auth Actions (Login / Register / Logout / Profile)
   login: (username: string, password: string) => Promise<{ success: boolean; message: string; user?: UserAccount }>;
   register: (data: {
-    username: string;
+    username?: string;
     password: string;
-    name: string;
+    name?: string;
     avatar?: string;
     role?: string;
     bio?: string;
     email?: string;
+    code?: string;
   }) => Promise<{ success: boolean; message: string; user?: UserAccount }>;
   logout: () => Promise<void>;
   updateUserProfile: (updates: Partial<UserAccount>) => Promise<{ success: boolean; message: string }>;
@@ -657,8 +663,15 @@ export interface EditorState {
 
    // Admin System Management
    adminModalOpen: boolean;
-   adminModalTab: "users" | "ai_config" | "styles" | "filing";
-   setAdminModalOpen: (open: boolean, tab?: "users" | "ai_config" | "styles" | "filing") => void;
+   adminModalTab: "users" | "ai_config" | "styles" | "filing" | "email";
+   setAdminModalOpen: (open: boolean, tab?: "users" | "ai_config" | "styles" | "filing" | "email") => void;
+   publicEmailConfig: PublicEmailConfig;
+   fetchPublicEmailConfig: () => Promise<PublicEmailConfig | null>;
+   sendVerificationCode: (email: string, type?: "register" | "reset") => Promise<{ success: boolean; message: string; needConfig?: boolean }>;
+   adminEmailConfig: EmailConfig | null;
+   fetchAdminEmailConfig: () => Promise<EmailConfig | null>;
+   saveAdminEmailConfig: (cfg: Partial<EmailConfig>) => Promise<{ success: boolean; message: string; config?: EmailConfig }>;
+   testAdminEmailConfig: (data: { targetEmail: string; [key: string]: any }) => Promise<{ success: boolean; message: string }>;
    aiStyles: StylePreset[];
    fetchAiStyles: (all?: boolean) => Promise<StylePreset[]>;
    adminSaveAiStyle: (style: Partial<StylePreset> & { id: string }) => Promise<{ success: boolean; message: string; styles?: StylePreset[] }>;
@@ -1169,11 +1182,72 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
          getStore().fetchAiConfig();
          getStore().fetchSiteFilingConfig();
          getStore().fetchAiStyles(true);
+         getStore().fetchAdminEmailConfig();
        }
      },
      adminUsersList: [],
      adminStats: { total: 0, activeCount: 0, bannedCount: 0, adminCount: 0 },
  
+     publicEmailConfig: {
+       enabled: false,
+       whitelistEnabled: true,
+       whitelistDomains: [
+         "gmail.com",
+         "163.com",
+         "126.com",
+         "qq.com",
+         "outlook.com",
+         "hotmail.com",
+         "foxmail.com",
+         "sina.com",
+         "139.com",
+         "189.cn",
+         "aliyun.com",
+       ],
+     },
+     adminEmailConfig: null,
+
+     fetchPublicEmailConfig: async () => {
+       const cfg = await apiGetPublicEmailConfig();
+       if (cfg) {
+         setStore({ publicEmailConfig: cfg });
+         return cfg;
+       }
+       return null;
+     },
+
+     sendVerificationCode: async (email: string, type: "register" | "reset" = "register") => {
+       return await apiSendVerificationCode(email, type);
+     },
+
+     fetchAdminEmailConfig: async () => {
+       const state = getStore();
+       const adminId = state.currentUser?.id || "user_admin";
+       const cfg = await apiGetEmailConfig(adminId);
+       if (cfg) {
+         setStore({ adminEmailConfig: cfg });
+         return cfg;
+       }
+       return null;
+     },
+
+     saveAdminEmailConfig: async (cfg: Partial<EmailConfig>) => {
+       const state = getStore();
+       const adminId = state.currentUser?.id || "user_admin";
+       const res = await apiSaveEmailConfig(adminId, cfg);
+       if (res.success && res.config) {
+         setStore({ adminEmailConfig: res.config });
+         getStore().fetchPublicEmailConfig();
+       }
+       return res;
+     },
+
+     testAdminEmailConfig: async (data: { targetEmail: string; [key: string]: any }) => {
+       const state = getStore();
+       const adminId = state.currentUser?.id || "user_admin";
+       return await apiTestEmailConfig(adminId, data);
+     },
+
      fetchAdminUsers: async () => {
        const state = getStore();
        const adminId = state.currentUser?.id || (state.currentUser?.isAdmin ? "user_admin" : "user_admin");
@@ -2341,13 +2415,14 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     },
 
     // Real Authentication: Register New Individual Account
-    register: async ({ username, password, name, avatar, role, bio, email }) => {
+    register: async ({ username = "", password, name = "", avatar, role, bio, email = "", code = "" }) => {
       const state = getStore();
-      const rawUser = username.trim();
+      const cleanEmail = email.trim().toLowerCase();
+      const rawUser = username.trim() || (cleanEmail ? cleanEmail.split("@")[0].trim() : "");
       const cleanUser = rawUser.toLowerCase();
       const cleanWithoutAt = cleanUser.startsWith("@") ? cleanUser.slice(1).trim() : cleanUser;
 
-      if (!cleanWithoutAt || cleanWithoutAt.length < 3) {
+      if (!cleanEmail && (!cleanWithoutAt || cleanWithoutAt.length < 3)) {
         return { success: false, message: "登录账号至少需要 3 个字符（支持英文字母与数字）" };
       }
 
@@ -2366,11 +2441,12 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       const serverRes = await apiRegister({
         username: cleanWithoutAt,
         password: password.trim(),
-        name: name.trim() || cleanWithoutAt,
-        avatar: avatar || "🎨",
+        name: name.trim() || (cleanEmail ? cleanEmail.split("@")[0] : cleanWithoutAt),
+        avatar: avatar || "🐱",
         role: role?.trim() || "独立创作者",
         bio: bio?.trim() || "专注高定排版与艺术创作",
-        email: email?.trim() || "",
+        email: cleanEmail,
+        code: code.trim(),
       });
 
       let newAccount: UserAccount;

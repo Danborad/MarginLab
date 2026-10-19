@@ -22,6 +22,7 @@ import {
   AlertCircle,
   RefreshCw,
   Crown,
+  Mail,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 
@@ -38,6 +39,9 @@ export const AuthModal: React.FC = () => {
 
   const login = useEditorStore((s) => s.login);
   const register = useEditorStore((s) => s.register);
+  const sendVerificationCode = useEditorStore((s) => s.sendVerificationCode);
+  const publicEmailConfig = useEditorStore((s) => s.publicEmailConfig);
+  const fetchPublicEmailConfig = useEditorStore((s) => s.fetchPublicEmailConfig);
   const logout = useEditorStore((s) => s.logout);
   const updateUserProfile = useEditorStore((s) => s.updateUserProfile);
   const changePassword = useEditorStore((s) => s.changePassword);
@@ -68,6 +72,10 @@ export const AuthModal: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Register Form State & Captcha
+  const [regEmail, setRegEmail] = useState("");
+  const [regEmailCode, setRegEmailCode] = useState("");
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
@@ -94,6 +102,63 @@ export const AuthModal: React.FC = () => {
       drawCaptchaCanvas(captchaCanvasRef.current, captchaCode, themeMode);
     }
   }, [tab, captchaCode, themeMode]);
+
+  useEffect(() => {
+    if (authModalOpen) {
+      fetchPublicEmailConfig();
+    }
+  }, [authModalOpen]);
+
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setEmailCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [emailCooldown]);
+
+  const emailDomain = regEmail.includes("@") ? regEmail.split("@")[1].trim().toLowerCase() : "";
+  const isEmailDomainValid =
+    !publicEmailConfig.whitelistEnabled ||
+    !publicEmailConfig.whitelistDomains?.length ||
+    !emailDomain ||
+    publicEmailConfig.whitelistDomains.includes(emailDomain);
+
+  const handleSendEmailCode = async () => {
+    setRegError("");
+    setRegSuccess("");
+    const cleanEmail = regEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setRegError("请先输入注册电子邮箱");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setRegError("请输入格式正确的电子邮箱（如 creator@163.com）");
+      return;
+    }
+    const domain = cleanEmail.split("@")[1];
+    if (publicEmailConfig.whitelistEnabled && publicEmailConfig.whitelistDomains?.length) {
+      const allowed = publicEmailConfig.whitelistDomains.some(
+        (d) => d && d.trim().toLowerCase() === domain
+      );
+      if (!allowed) {
+        setRegError(`邮箱域名 @${domain} 未在允许注册名单内。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`);
+        return;
+      }
+    }
+
+    setIsSendingCode(true);
+    const res = await sendVerificationCode(cleanEmail, "register");
+    setIsSendingCode(false);
+
+    if (res.success) {
+      setRegSuccess(res.message);
+      setEmailCooldown(60);
+    } else {
+      setRegError(res.message);
+    }
+  };
 
   // Profile Edit State
   const [editName, setEditName] = useState("");
@@ -159,10 +224,33 @@ export const AuthModal: React.FC = () => {
     setRegError("");
     setRegSuccess("");
 
-    if (!regUsername.trim() || regUsername.trim().length < 3) {
-      setRegError("账号至少需要 3 个字符（支持字母、数字、下划线）");
+    const cleanEmail = regEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setRegError("请输入注册电子邮箱");
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setRegError("请输入有效的电子邮箱地址");
+      return;
+    }
+
+    const domain = cleanEmail.split("@")[1];
+    if (publicEmailConfig.whitelistEnabled && publicEmailConfig.whitelistDomains?.length) {
+      const allowed = publicEmailConfig.whitelistDomains.some(
+        (d) => d && d.trim().toLowerCase() === domain
+      );
+      if (!allowed) {
+        setRegError(`邮箱域名 @${domain} 未在允许注册名单内。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`);
+        return;
+      }
+    }
+
+    if (publicEmailConfig.enabled && !regEmailCode.trim()) {
+      setRegError("请输入收到的 6 位邮箱验证码");
+      return;
+    }
+
     if (!regPassword.trim() || regPassword.trim().length < 4) {
       setRegError("密码长度至少 4 位");
       return;
@@ -173,22 +261,26 @@ export const AuthModal: React.FC = () => {
     }
 
     if (!regCaptcha.trim()) {
-      setRegError("请输入图形验证码");
+      setRegError("请输入防刷安全验证码");
       return;
     }
 
     if (regCaptcha.trim().toUpperCase() !== captchaCode.toUpperCase()) {
-      setRegError("验证码输入错误，已自动刷新，请重新输入");
+      setRegError("防刷验证码输入错误，已自动刷新，请重新输入");
       setRegCaptcha("");
       refreshCaptcha();
       return;
     }
 
     setIsRegistering(true);
+    const effectiveUsername = regUsername.trim() || cleanEmail.split("@")[0].trim();
+    const effectiveName = regName.trim() || effectiveUsername;
     const res = await register({
-      username: regUsername.trim(),
+      email: cleanEmail,
+      code: regEmailCode.trim(),
+      username: effectiveUsername,
+      name: effectiveName,
       password: regPassword.trim(),
-      name: regName.trim() || regUsername.trim(),
       avatar: regAvatar,
       role: "创作者",
       bio: "专注高定排版与艺术创作",
@@ -199,6 +291,8 @@ export const AuthModal: React.FC = () => {
       setRegSuccess(res.message);
       setTimeout(() => {
         setAuthModalOpen(false);
+        setRegEmail("");
+        setRegEmailCode("");
         setRegUsername("");
         setRegPassword("");
         setRegConfirmPassword("");
@@ -493,32 +587,105 @@ export const AuthModal: React.FC = () => {
                   </div>
                 )}
 
+                {/* 1. 电子邮箱输入框 & 实时域名白名单检测 */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
+                      注册电子邮箱 (Email) *
+                    </label>
+                    {publicEmailConfig.whitelistEnabled && (
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                        仅限日常常用邮箱
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="如 creator@163.com 或 name@gmail.com"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono transition-colors"
+                  />
+                  {regEmail.includes("@") && (
+                    <div className="mt-1 text-[11px] font-mono">
+                      {isEmailDomainValid ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>邮箱域名 @{emailDomain} 属于允许注册名单</span>
+                        </span>
+                      ) : (
+                        <span className="text-red-500 dark:text-red-400 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>未在允许注册名单中（支持 @qq.com, @163.com, @gmail.com, @outlook.com 等）</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. 邮箱验证码输入框 + 获取验证码按钮 */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
+                    邮箱验证码 *
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required={publicEmailConfig.enabled}
+                      placeholder="输入 6 位验证码"
+                      value={regEmailCode}
+                      onChange={(e) => setRegEmailCode(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 placeholder:font-normal placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none tracking-widest"
+                    />
+                    <button
+                      type="button"
+                      disabled={isSendingCode || emailCooldown > 0 || !regEmail.trim()}
+                      onClick={handleSendEmailCode}
+                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
+                    >
+                      <Mail className={`w-3.5 h-3.5 ${isSendingCode ? "animate-spin" : ""}`} />
+                      <span>
+                        {isSendingCode
+                          ? "发送中..."
+                          : emailCooldown > 0
+                          ? `${emailCooldown}s 后重发`
+                          : "获取验证码"}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
+                    {publicEmailConfig.enabled
+                      ? "验证码将投递至您的邮箱，10 分钟内有效"
+                      : "提示：发信服务暂未开启，若无需验证码可直接注册"}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      登录账号 (Username) *
+                      登录账号 (选填，默认同邮箱前缀)
                     </label>
                     <input
                       type="text"
-                      required
-                      placeholder="如 photo_lin"
+                      placeholder={regEmail ? regEmail.split("@")[0] : "如 photo_lin"}
                       value={regUsername}
                       onChange={(e) => setRegUsername(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                     />
                   </div>
 
                   <div>
                     <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      用户昵称 (Name) *
+                      用户昵称 (Name)
                     </label>
                     <input
                       type="text"
-                      required
                       placeholder="如 Lin 摄影工作室"
                       value={regName}
                       onChange={(e) => setRegName(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none"
+                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -535,7 +702,7 @@ export const AuthModal: React.FC = () => {
                         placeholder="至少 4 位字符"
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
-                        className="w-full px-3 pr-8 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                        className="w-full px-3 pr-8 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                       />
                       <button
                         type="button"
@@ -557,14 +724,14 @@ export const AuthModal: React.FC = () => {
                       placeholder="再次输入密码"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    选择头像 (艺术 Emoji / 读取 QQ 头像)
+                    选择头像 (精选卡通形象 / 本地上传)
                   </label>
                   <AvatarPicker value={regAvatar} onChange={setRegAvatar} />
                 </div>
@@ -683,7 +850,7 @@ export const AuthModal: React.FC = () => {
                     </div>
                     <div>
                       <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                        选择头像 (艺术 Emoji / 读取 QQ 头像)
+                        选择头像 (精选卡通形象 / 本地上传)
                       </label>
                       <AvatarPicker value={editAvatar} onChange={setEditAvatar} />
                     </div>
@@ -843,7 +1010,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="请输入当前账号原密码"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                   />
                 </div>
 
@@ -858,7 +1025,7 @@ export const AuthModal: React.FC = () => {
                       placeholder="至少 4 位字符"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3.5 pr-10 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                      className="w-full px-3.5 pr-10 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                     />
                     <button
                       type="button"
@@ -880,7 +1047,7 @@ export const AuthModal: React.FC = () => {
                     placeholder="再次输入新密码"
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
                   />
                 </div>
 

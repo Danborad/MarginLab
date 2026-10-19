@@ -35,6 +35,10 @@ import {
   Copy,
   BookOpen,
   Camera,
+  Mail,
+  Send,
+  CheckCircle2,
+  ListFilter,
 } from "lucide-react";
 import { StylePreset, StyleCategory } from "../../types/ai";
 import { STYLE_CATEGORIES } from "../../lib/ai-styles";
@@ -218,6 +222,127 @@ export const AdminManagementModal: React.FC = () => {
     } catch (e) {
       setStyleFeedback({ type: "success", text: `GitHub 地址: ${url}` });
     }
+  };
+
+  // ---------------------------------------------------------------------
+  // 发信邮箱通道 (SMTP) & 邮箱域名白名单设置
+  // ---------------------------------------------------------------------
+  const adminEmailConfig = useEditorStore((s) => s.adminEmailConfig);
+  const saveAdminEmailConfig = useEditorStore((s) => s.saveAdminEmailConfig);
+  const testAdminEmailConfig = useEditorStore((s) => s.testAdminEmailConfig);
+
+  const [emailChannelName, setEmailChannelName] = useState("飞书企业邮 (mexai.cc)");
+  const [emailHost, setEmailHost] = useState("");
+  const [emailPort, setEmailPort] = useState(465);
+  const [emailEncryption, setEmailEncryption] = useState<"tls" | "starttls" | "none">("tls");
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailUser, setEmailUser] = useState("");
+  const [emailPass, setEmailPass] = useState("");
+  const [showEmailPass, setShowEmailPass] = useState(false);
+  const [emailFrom, setEmailFrom] = useState("");
+  const [emailFromName, setEmailFromName] = useState("留白集 MarginLab");
+
+  const [whitelistEnabled, setWhitelistEnabled] = useState(true);
+  const [whitelistText, setWhitelistText] = useState("");
+
+  const [testTargetEmail, setTestTargetEmail] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (adminEmailConfig) {
+      setEmailChannelName(adminEmailConfig.channelName || "飞书企业邮 (mexai.cc)");
+      setEmailHost(adminEmailConfig.host || "");
+      setEmailPort(adminEmailConfig.port || 465);
+      setEmailEncryption(adminEmailConfig.encryption || "tls");
+      setEmailEnabled(Boolean(adminEmailConfig.enabled));
+      setEmailUser(adminEmailConfig.user || "");
+      setEmailFrom(adminEmailConfig.fromEmail || "");
+      setEmailFromName(adminEmailConfig.fromName || "留白集 MarginLab");
+      setWhitelistEnabled(Boolean(adminEmailConfig.whitelistEnabled));
+      if (Array.isArray(adminEmailConfig.whitelistDomains)) {
+        setWhitelistText(adminEmailConfig.whitelistDomains.join("\n"));
+      }
+    }
+  }, [adminEmailConfig, open]);
+
+  const handleSaveEmailConfig = async () => {
+    setSavingEmail(true);
+    setEmailFeedback(null);
+    const domains = whitelistText
+      .split("\n")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    const res = await saveAdminEmailConfig({
+      channelName: emailChannelName.trim(),
+      host: emailHost.trim(),
+      port: Number(emailPort) || 465,
+      encryption: emailEncryption,
+      enabled: emailEnabled,
+      user: emailUser.trim(),
+      ...(emailPass.trim() ? { pass: emailPass.trim() } : {}),
+      fromEmail: emailFrom.trim(),
+      fromName: emailFromName.trim(),
+      whitelistEnabled,
+      whitelistDomains: domains,
+    });
+    setSavingEmail(false);
+    setEmailFeedback(
+      res.success
+        ? { type: "success", text: res.message || "发信设置与域名白名单已成功保存！" }
+        : { type: "error", text: res.message || "保存失败，请检查配置参数" }
+    );
+    if (res.success) {
+      setEmailPass("");
+      setTimeout(() => setEmailFeedback(null), 3500);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!testTargetEmail.trim()) {
+      setTestResult({ success: false, message: "请先输入接收测试邮件的目标邮箱地址" });
+      return;
+    }
+    setTestingEmail(true);
+    setTestResult(null);
+    const res = await testAdminEmailConfig({
+      targetEmail: testTargetEmail.trim(),
+      channelName: emailChannelName.trim(),
+      host: emailHost.trim(),
+      port: Number(emailPort) || 465,
+      encryption: emailEncryption,
+      user: emailUser.trim(),
+      pass: emailPass.trim(),
+      fromEmail: emailFrom.trim(),
+      fromName: emailFromName.trim(),
+    });
+    setTestingEmail(false);
+    setTestResult({
+      success: res.success,
+      message: res.message,
+    });
+  };
+
+  const handleFillCommonDomains = () => {
+    const defaults = [
+      "gmail.com",
+      "163.com",
+      "126.com",
+      "qq.com",
+      "outlook.com",
+      "hotmail.com",
+      "foxmail.com",
+      "sina.com",
+      "139.com",
+      "189.cn",
+      "aliyun.com",
+    ];
+    setWhitelistText(defaults.join("\n"));
+    setEmailFeedback({ type: "success", text: "已填入常用日常主流邮箱域名" });
+    setTimeout(() => setEmailFeedback(null), 2200);
   };
 
   // Search & Filter
@@ -664,6 +789,23 @@ export const AdminManagementModal: React.FC = () => {
               <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-blue-500/20 text-blue-600 border border-blue-500/40 whitespace-nowrap shrink-0">
                 {aiStyles.filter((s) => s.enabled !== false).length} 开启
               </span>
+            </button>
+
+            <button
+              onClick={() => setOpen(true, "email")}
+              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                activeTab === "email"
+                  ? "border-amber-500 text-amber-600"
+                  : "border-transparent text-studio-muted hover:text-studio-text"
+              }`}
+            >
+              <Mail className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">发信与邮箱</span>
+              {adminEmailConfig?.enabled && (
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-500/20 text-emerald-600 border border-emerald-500/40 whitespace-nowrap shrink-0">
+                  SMTP 已开启
+                </span>
+              )}
             </button>
 
             <button
@@ -1902,6 +2044,364 @@ export const AdminManagementModal: React.FC = () => {
               <p className="text-[10px] text-studio-muted leading-relaxed">
                 只有「开关打开 + 已填号码」的备案才会出现在落地页页脚，两个开关彼此独立。
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: 发信邮箱 (SMTP) & 域名白名单设置 */}
+        {activeTab === "email" && (
+          <div className="flex-1 overflow-y-auto p-5 space-y-5 animate-fadeIn">
+            {/* Top Global Feedback */}
+            {emailFeedback && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs flex items-center justify-between animate-fadeIn ${
+                  emailFeedback.type === "success"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600"
+                    : "bg-red-500/10 border-red-500/30 text-red-600"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {emailFeedback.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  )}
+                  <span className="font-medium">{emailFeedback.text}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmailFeedback(null)}
+                  className="text-xs text-studio-muted hover:text-studio-text"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* CARD 1: 编辑发信邮箱 (SMTP 设置) */}
+            <div className="bg-studio-panel border border-studio-border rounded-2xl overflow-hidden shadow-xs">
+              <div className="px-5 py-4 border-b border-studio-border bg-studio-sidebar/50 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-studio-text tracking-wide">
+                      编辑发信邮箱 (SMTP 通道设置)
+                    </h4>
+                    <p className="text-[11px] text-studio-muted mt-0.5">
+                      配置系统发信邮箱通道，用于用户注册发送 6 位验证码及账号安全提醒
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] font-mono font-semibold ${
+                      emailEnabled ? "text-emerald-600" : "text-studio-muted"
+                    }`}
+                  >
+                    {emailEnabled ? "发信已启用" : "已停用"}
+                  </span>
+                  <FilingSwitch
+                    checked={emailEnabled}
+                    onChange={setEmailEnabled}
+                    label="发信服务全局开关"
+                  />
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* 1. 通道识别名称 */}
+                <div>
+                  <label className="text-xs font-bold text-studio-text flex items-center gap-1 mb-1">
+                    <span className="text-red-500">*</span> 通道识别名称
+                  </label>
+                  <input
+                    type="text"
+                    value={emailChannelName}
+                    onChange={(e) => setEmailChannelName(e.target.value)}
+                    placeholder="如：飞书企业邮 (mexai.cc) 或 腾讯企业邮"
+                    className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-medium focus:outline-none transition-colors"
+                  />
+                  <p className="text-[11px] text-studio-muted mt-1">
+                    用于管理后台区分不同邮箱通道，如：飞书企业邮、SMTP2GO 等。
+                  </p>
+                </div>
+
+                {/* 2. SMTP 主机 & 端口 */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-bold text-studio-text flex items-center gap-1 mb-1">
+                      <span className="text-red-500">*</span> SMTP 主机
+                    </label>
+                    <input
+                      type="text"
+                      value={emailHost}
+                      onChange={(e) => setEmailHost(e.target.value)}
+                      placeholder="smtp.larksuite.com 或 smtp.qq.com"
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-studio-text flex items-center gap-1 mb-1">
+                      <span className="text-red-500">*</span> 端口
+                    </label>
+                    <input
+                      type="number"
+                      value={emailPort}
+                      onChange={(e) => setEmailPort(Number(e.target.value))}
+                      placeholder="465"
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. 连接加密方式 & 启用状态 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-studio-text flex items-center gap-1 mb-1">
+                      <span className="text-red-500">*</span> 连接加密方式
+                    </label>
+                    <select
+                      value={emailEncryption}
+                      onChange={(e) => setEmailEncryption(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-medium focus:outline-none transition-colors"
+                    >
+                      <option value="tls">直接 TLS (通常 465)</option>
+                      <option value="starttls">STARTTLS (通常 587)</option>
+                      <option value="none">无加密 (不推荐)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-studio-text block mb-1">
+                      启用状态
+                    </label>
+                    <div className="flex items-center justify-between px-3.5 py-2 bg-studio-sidebar border border-studio-border rounded-xl">
+                      <span className="text-xs text-studio-muted">
+                        {emailEnabled ? "发信通道已启用" : "发信通道未开启"}
+                      </span>
+                      <FilingSwitch
+                        checked={emailEnabled}
+                        onChange={setEmailEnabled}
+                        label="启用状态"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. SMTP 登录账号 & 密码 / 授权码 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-studio-text block mb-1">
+                      SMTP 登录账号
+                    </label>
+                    <input
+                      type="text"
+                      value={emailUser}
+                      onChange={(e) => setEmailUser(e.target.value)}
+                      placeholder="mexai@mexai.cc"
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-studio-muted mt-1">通常是完整邮箱地址</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-studio-text block mb-1">
+                      SMTP 密码 / 专用密码 (留空保留已配置)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showEmailPass ? "text" : "password"}
+                        value={emailPass}
+                        onChange={(e) => setEmailPass(e.target.value)}
+                        placeholder={adminEmailConfig?.hasPass ? "••••••••••••  (已保存，留空保留原密码)" : "服务商提供的客户端专用授权码"}
+                        className="w-full px-3.5 pr-10 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPass(!showEmailPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-studio-muted hover:text-studio-text p-1 cursor-pointer"
+                        title={showEmailPass ? "隐藏授权码" : "显示授权码"}
+                      >
+                        {showEmailPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. 发件人邮箱 & 发件人名称 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-studio-text flex items-center gap-1 mb-1">
+                      <span className="text-red-500">*</span> 发件人邮箱 (From)
+                    </label>
+                    <input
+                      type="text"
+                      value={emailFrom}
+                      onChange={(e) => setEmailFrom(e.target.value)}
+                      placeholder="mexai@mexai.cc"
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-studio-text block mb-1">
+                      发件人名称
+                    </label>
+                    <input
+                      type="text"
+                      value={emailFromName}
+                      onChange={(e) => setEmailFromName(e.target.value)}
+                      placeholder="留白集 MarginLab"
+                      className="w-full px-3.5 py-2.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text focus:outline-none transition-colors"
+                    />
+                    <p className="text-[11px] text-studio-muted mt-1">
+                      留空使用站点名称“留白集 MarginLab”
+                    </p>
+                  </div>
+                </div>
+
+                {/* 6. 弹窗内即时连通性测试 (完全复刻参考图) */}
+                <div className="p-4 rounded-xl bg-studio-sidebar border border-studio-border/90 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-studio-text">
+                      <Send className="w-3.5 h-3.5 text-amber-600" />
+                      <span>弹窗内即时连通性测试</span>
+                    </div>
+                    <span className="text-[11px] text-studio-muted">保存前即可验证参数</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={testTargetEmail}
+                      onChange={(e) => setTestTargetEmail(e.target.value)}
+                      placeholder="duck@ugreen.tv 或您的日常个人测试邮箱"
+                      className="flex-1 min-w-0 px-3.5 py-2 bg-studio-panel border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono focus:outline-none"
+                    />
+                    <Button
+                      type="button"
+                      variant="accent"
+                      size="sm"
+                      disabled={testingEmail}
+                      onClick={handleTestEmail}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-xs"
+                    >
+                      <Send className={`w-3.5 h-3.5 ${testingEmail ? "animate-spin" : ""}`} />
+                      <span>{testingEmail ? "测试中..." : "测试发送"}</span>
+                    </Button>
+                  </div>
+
+                  {testResult && (
+                    <div
+                      className={`p-3 rounded-xl border text-xs flex items-start gap-2 animate-fadeIn ${
+                        testResult.success
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600"
+                          : "bg-red-500/10 border-red-500/30 text-red-600"
+                      }`}
+                    >
+                      {testResult.success ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                      )}
+                      <div className="flex-1 leading-relaxed">
+                        <div className="font-semibold">{testResult.success ? "连通性测试通过！" : "连通性测试失败"}</div>
+                        <div className="text-[11px] opacity-90 mt-0.5">{testResult.message}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="accent"
+                    disabled={savingEmail}
+                    onClick={handleSaveEmailConfig}
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{savingEmail ? "正在保存发信设置..." : "保存发信邮箱配置"}</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD 2: 3. 电子邮件域名白名单 (完全复刻参考图) */}
+            <div className="bg-studio-panel border border-studio-border rounded-2xl overflow-hidden shadow-xs">
+              <div className="px-5 py-4 border-b border-studio-border bg-studio-sidebar/50 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                    <ListFilter className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-studio-text tracking-wide">
+                      3. 电子邮件域名白名单
+                    </h4>
+                    <p className="text-[11px] text-studio-muted mt-0.5">
+                      每行填写一个允许注册的邮箱域名；不在白名单内的邮箱无法注册。
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[11px] font-mono font-semibold ${
+                      whitelistEnabled ? "text-emerald-600" : "text-studio-muted"
+                    }`}
+                  >
+                    {whitelistEnabled ? "白名单限制已开启" : "限制已关闭"}
+                  </span>
+                  <FilingSwitch
+                    checked={whitelistEnabled}
+                    onChange={setWhitelistEnabled}
+                    label="域名白名单开关"
+                  />
+                </div>
+              </div>
+
+              <div className={`p-5 space-y-4 transition-opacity ${whitelistEnabled ? "" : "opacity-60"}`}>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-studio-text block">
+                    电子邮件域名白名单（每行一个域名，例如 163.com 或 qq.com）
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleFillCommonDomains}
+                    className="text-[11px] font-semibold text-amber-600 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>快捷填入常用主流邮箱</span>
+                  </button>
+                </div>
+
+                <textarea
+                  rows={7}
+                  value={whitelistText}
+                  onChange={(e) => setWhitelistText(e.target.value)}
+                  placeholder="gmail.com&#10;163.com&#10;126.com&#10;qq.com&#10;outlook.com&#10;hotmail.com"
+                  className="w-full p-3.5 bg-studio-sidebar border border-studio-border focus:border-amber-500 rounded-xl text-xs text-studio-text font-mono leading-relaxed focus:outline-none transition-colors"
+                />
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-studio-muted">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>规则只影响新用户注册，不限制发件邮箱和已有账号找回密码</span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="accent"
+                    disabled={savingEmail}
+                    onClick={handleSaveEmailConfig}
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all shrink-0"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{savingEmail ? "保存中..." : "保存白名单配置"}</span>
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}

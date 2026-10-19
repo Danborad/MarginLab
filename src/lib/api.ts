@@ -31,13 +31,14 @@
  }
  
  export async function apiRegister(data: {
-   username: string;
+   username?: string;
    password: string;
-   name: string;
+   name?: string;
    avatar?: string;
    role?: string;
    bio?: string;
    email?: string;
+   code?: string;
  }): Promise<{ success: boolean; message: string; user?: UserAccount }> {
    try {
      const res = await fetch("/api/auth/register", {
@@ -569,3 +570,105 @@ export async function apiGetAiHistory(userId?: string): Promise<GenerationTask[]
      return { success: false, message: err.message || "删除用户失败" };
    }
  }
+
+
+// =========================================================================
+// Email / SMTP Configuration & Whitelist APIs
+// =========================================================================
+
+export interface EmailConfig {
+  channelName: string;
+  host: string;
+  port: number;
+  encryption: "tls" | "starttls" | "none";
+  enabled: boolean;
+  user: string;
+  hasPass?: boolean;
+  pass?: string;
+  fromEmail: string;
+  fromName: string;
+  whitelistEnabled: boolean;
+  whitelistDomains: string[];
+  updatedAt?: string;
+}
+
+export interface PublicEmailConfig {
+  enabled: boolean;
+  whitelistEnabled: boolean;
+  whitelistDomains: string[];
+}
+
+export async function apiGetPublicEmailConfig(): Promise<PublicEmailConfig | null> {
+  const res = await safeFetch<{
+    success: boolean;
+    enabled: boolean;
+    whitelistEnabled: boolean;
+    whitelistDomains: string[];
+  }>("/api/email/public-config");
+  if (res && res.success) {
+    return {
+      enabled: !!res.enabled,
+      whitelistEnabled: !!res.whitelistEnabled,
+      whitelistDomains: Array.isArray(res.whitelistDomains) ? res.whitelistDomains : [],
+    };
+  }
+  return null;
+}
+
+export async function apiSendVerificationCode(
+  email: string,
+  type: "register" | "reset" = "register"
+): Promise<{ success: boolean; message: string; needConfig?: boolean }> {
+  try {
+    const res = await fetch("/api/auth/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, type }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "请求发送验证码失败" };
+  }
+}
+
+export async function apiGetEmailConfig(adminUserId: string): Promise<EmailConfig | null> {
+  const res = await safeFetch<{ success: boolean; config: EmailConfig }>("/api/admin/email/config", {
+    headers: { "x-user-id": adminUserId },
+  });
+  if (res && res.success && res.config) {
+    return res.config;
+  }
+  return null;
+}
+
+export async function apiSaveEmailConfig(
+  adminUserId: string,
+  config: Partial<EmailConfig>
+): Promise<{ success: boolean; message: string; config?: EmailConfig }> {
+  try {
+    const res = await fetch("/api/admin/email/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": adminUserId },
+      body: JSON.stringify({ ...config, adminUserId }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "保存发信配置失败" };
+  }
+}
+
+export async function apiTestEmailConfig(
+  adminUserId: string,
+  data: { targetEmail: string; [key: string]: any }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch("/api/admin/email/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": adminUserId },
+      body: JSON.stringify({ ...data, adminUserId }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "连通性测试请求失败" };
+  }
+}
