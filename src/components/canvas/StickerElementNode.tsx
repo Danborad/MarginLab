@@ -1,7 +1,24 @@
 import React from 'react';
 import { Group, Rect, Text, Line, Circle } from 'react-konva';
 import Konva from 'konva';
-import { StickerElement } from '../../types/document';
+import { StickerElement, WatermarkStyle } from '../../types/document';
+
+let measureCanvas: HTMLCanvasElement | null = null;
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+function measureTextWidth(text: string, font: string): number {
+  if (!text) return 0;
+  if (typeof document === 'undefined') return text.length * 8;
+  if (!measureCanvas) {
+    measureCanvas = document.createElement('canvas');
+    measureCtx = measureCanvas.getContext('2d');
+  }
+  if (measureCtx) {
+    measureCtx.font = font;
+    return measureCtx.measureText(text).width;
+  }
+  return text.length * 8;
+}
 
 interface StickerElementNodeProps {
   element: StickerElement;
@@ -33,6 +50,12 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
     label,
     color,
     accentColor,
+    showDevice = true,
+    showDateTime = true,
+    showParams = true,
+    showLocation = watermarkStyle === 'leica' || watermarkStyle === 'fuji',
+    showBrandLogo = true,
+    paddingX = 0,
   } = element;
 
   const isDarkBg = bgTheme === 'dark';
@@ -44,6 +67,17 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
   const isLegacy =
     stickerType !== 'camera-watermark' &&
     ['washi-tape', 'archival-tag', 'date-stamp', 'film-strip', 'grid-cross'].includes(stickerType || '');
+
+  const leftX = Math.max(0, paddingX);
+  const rightMargin = width - Math.max(0, paddingX);
+
+  const handleDblClick = () => {
+    window.dispatchEvent(
+      new CustomEvent('open-watermark-modal', {
+        detail: { elementId: element.id },
+      })
+    );
+  };
 
   return (
     <Group
@@ -57,6 +91,8 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
       draggable={!element.locked}
       onClick={onSelect}
       onTap={onSelect}
+      onDblClick={handleDblClick}
+      onDblTap={handleDblClick}
       onDragMove={onDragMove}
       onDragEnd={(e) => {
         onChange({
@@ -81,319 +117,465 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
         });
       }}
     >
-      {/* Camera Watermark Background Container */}
-      {!isLegacy && !isTransparent && (
+      {/* Camera Watermark Background & Hit-Testing Container */}
+      {!isLegacy && (
         <Rect
           x={0}
           y={0}
           width={width}
           height={height}
-          fill={isDarkBg ? '#121214' : '#FFFFFF'}
-          cornerRadius={4}
+          fill={isTransparent ? 'rgba(0,0,0,0.001)' : isDarkBg ? '#121214' : '#FFFFFF'}
+          cornerRadius={isTransparent ? 0 : 4}
           shadowColor="#000000"
-          shadowBlur={isDarkBg ? 12 : 6}
-          shadowOpacity={isDarkBg ? 0.25 : 0.08}
-          shadowOffsetY={2}
+          shadowBlur={isTransparent ? 0 : isDarkBg ? 12 : 6}
+          shadowOpacity={isTransparent ? 0 : isDarkBg ? 0.25 : 0.08}
+          shadowOffsetY={isTransparent ? 0 : 2}
+          listening={true}
         />
       )}
 
       {/* 1. Leica Watermark Style */}
-      {!isLegacy && watermarkStyle === 'leica' && (
-        <Group>
-          <Text
-            text={device || 'iPhone 13 Pro'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.18}
-            fill={textColor}
-            fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
-            fontSize={Math.max(12, Math.round(height * 0.28))}
-            fontStyle="bold"
-            listening={false}
-          />
-          <Text
-            text={dateTime || '2026.10.19 17:27:50'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.54}
-            fill={subTextColor}
-            fontFamily='"JetBrains Mono", monospace'
-            fontSize={Math.max(9, Math.round(height * 0.20))}
-            listening={false}
-          />
+      {!isLegacy && watermarkStyle === 'leica' && (() => {
+        const hasLeftBoth = showDevice && showDateTime;
+        const yDev = hasLeftBoth ? height * 0.18 : height * 0.34;
+        const yDate = hasLeftBoth ? height * 0.54 : height * 0.38;
 
-          <Group x={width - Math.max(190, width * 0.38)} y={height * 0.5}>
-            <Circle
-              x={0}
-              y={0}
-              radius={Math.max(10, Math.round(height * 0.26))}
-              fill="#E4002B"
-              listening={false}
-            />
-            <Text
-              text="Leica"
-              x={-Math.max(10, Math.round(height * 0.26))}
-              y={-Math.round(height * 0.14)}
-              width={Math.max(20, Math.round(height * 0.52))}
-              align="center"
-              fill="#FFFFFF"
-              fontFamily="serif"
-              fontStyle="italic bold"
-              fontSize={Math.max(9, Math.round(height * 0.20))}
-              listening={false}
-            />
-            <Line
-              points={[
-                Math.max(18, Math.round(height * 0.38)),
-                -Math.round(height * 0.28),
-                Math.max(18, Math.round(height * 0.38)),
-                Math.round(height * 0.28),
-              ]}
-              stroke={subTextColor}
-              strokeWidth={1}
-              opacity={0.35}
-              listening={false}
-            />
-            <Text
-              text={params || '26mm f/1.5 1/24 ISO1000'}
-              x={Math.max(26, Math.round(height * 0.48))}
-              y={-Math.round(height * 0.32)}
-              fill={textColor}
-              fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
-              fontSize={Math.max(10, Math.round(height * 0.22))}
-              fontStyle="bold"
-              listening={false}
-            />
-            <Text
-              text={location || '52°13\'14"N 124°41\'31"W'}
-              x={Math.max(26, Math.round(height * 0.48))}
-              y={Math.round(height * 0.04)}
-              fill={subTextColor}
-              fontFamily='"JetBrains Mono", monospace'
-              fontSize={Math.max(8, Math.round(height * 0.18))}
-              listening={false}
-            />
+        const hasP = showParams && !!params;
+        const hasL = showLocation && !!location;
+        const fontP = `bold ${Math.max(10, Math.round(height * 0.22))}px "Plus Jakarta Sans", "PingFang SC", sans-serif`;
+        const fontL = `${Math.max(8, Math.round(height * 0.18))}px "JetBrains Mono", monospace`;
+        const wP = hasP ? measureTextWidth(params, fontP) : 0;
+        const wL = hasL ? measureTextWidth(location, fontL) : 0;
+        const textWidth = Math.max(wP, wL);
+
+        const dotRadius = Math.max(10, Math.round(height * 0.26));
+        const textStartX = rightMargin - textWidth;
+        const hasRightText = hasP || hasL;
+        const sepX = textStartX - Math.max(12, Math.round(height * 0.18));
+        const dotX = hasRightText
+          ? sepX - Math.max(12, Math.round(height * 0.18)) - dotRadius
+          : rightMargin - dotRadius;
+
+        return (
+          <Group listening={false}>
+            {/* Left Block */}
+            {showDevice && (
+              <Text
+                text={device || 'iPhone 13 Pro'}
+                x={leftX}
+                y={yDev}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
+                fontSize={Math.max(12, Math.round(height * 0.28))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {showDateTime && (
+              <Text
+                text={dateTime || '2026.10.19 17:27:50'}
+                x={leftX}
+                y={yDate}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(9, Math.round(height * 0.20))}
+                listening={false}
+              />
+            )}
+
+            {/* Right Block */}
+            {showBrandLogo && (
+              <Group x={dotX} y={height * 0.5}>
+                <Circle
+                  x={0}
+                  y={0}
+                  radius={dotRadius}
+                  fill="#E4002B"
+                  listening={false}
+                />
+                <Text
+                  text="Leica"
+                  x={-dotRadius}
+                  y={-Math.round(height * 0.14)}
+                  width={dotRadius * 2}
+                  align="center"
+                  fill="#FFFFFF"
+                  fontFamily="serif"
+                  fontStyle="italic bold"
+                  fontSize={Math.max(9, Math.round(height * 0.20))}
+                  listening={false}
+                />
+              </Group>
+            )}
+
+            {showBrandLogo && hasRightText && (
+              <Line
+                points={[
+                  sepX,
+                  height * 0.22,
+                  sepX,
+                  height * 0.78,
+                ]}
+                stroke={subTextColor}
+                strokeWidth={1}
+                opacity={0.35}
+                listening={false}
+              />
+            )}
+
+            {hasP && (
+              <Text
+                text={params}
+                x={hasL ? textStartX : rightMargin - wP}
+                y={hasL ? height * 0.18 : height * 0.36}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
+                fontSize={Math.max(10, Math.round(height * 0.22))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {hasL && (
+              <Text
+                text={location}
+                x={textStartX}
+                y={hasP ? height * 0.54 : height * 0.38}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(8, Math.round(height * 0.18))}
+                listening={false}
+              />
+            )}
           </Group>
-        </Group>
-      )}
+        );
+      })()}
 
       {/* 2. Hasselblad Watermark Style */}
-      {!isLegacy && watermarkStyle === 'hasselblad' && (
-        <Group>
-          <Text
-            text={device || 'OPPO Find X6 Pro'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.28}
-            fill={textColor}
-            fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
-            fontSize={Math.max(14, Math.round(height * 0.36))}
-            fontStyle="bold"
-            listening={false}
-          />
+      {!isLegacy && watermarkStyle === 'hasselblad' && (() => {
+        const hasLeftBoth = showDevice && showDateTime;
+        const yDev = hasLeftBoth ? height * 0.18 : height * 0.34;
+        const yDate = hasLeftBoth ? height * 0.56 : height * 0.38;
 
-          <Group x={width - Math.max(170, width * 0.34)} y={height * 0.2}>
-            <Text
-              text="HASSELBLAD"
-              x={0}
-              y={0}
-              fill={textColor}
-              fontFamily="serif"
-              fontStyle="italic bold"
-              letterSpacing={2}
-              fontSize={Math.max(11, Math.round(height * 0.26))}
-              listening={false}
-            />
-            <Circle
-              x={6}
-              y={Math.round(height * 0.44)}
-              radius={Math.max(3, Math.round(height * 0.07))}
-              fill="#E65A28"
-              listening={false}
-            />
-            <Text
-              text={params || '144mm f/2.6 1/1108 ISO100'}
-              x={16}
-              y={Math.round(height * 0.35)}
-              fill={subTextColor}
-              fontFamily='"Plus Jakarta Sans", sans-serif'
-              fontSize={Math.max(9, Math.round(height * 0.19))}
-              listening={false}
-            />
+        const hasP = showParams && !!params;
+        const fontH = `italic bold ${Math.max(11, Math.round(height * 0.26))}px serif`;
+        const fontP = `${Math.max(9, Math.round(height * 0.19))}px "Plus Jakarta Sans", sans-serif`;
+        const wH = showBrandLogo ? measureTextWidth('HASSELBLAD', fontH) : 0;
+        const wP = hasP ? measureTextWidth(params, fontP) : 0;
+
+        const hX = rightMargin - wH;
+        const pX = rightMargin - wP;
+
+        return (
+          <Group listening={false}>
+            {/* Left Block */}
+            {showDevice && (
+              <Text
+                text={device || 'OPPO Find X6 Pro'}
+                x={leftX}
+                y={yDev}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
+                fontSize={Math.max(13, Math.round(height * 0.34))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {showDateTime && (
+              <Text
+                text={dateTime || '2026.10.19'}
+                x={leftX}
+                y={yDate}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(9, Math.round(height * 0.19))}
+                listening={false}
+              />
+            )}
+
+            {/* Right Block */}
+            {showBrandLogo && (
+              <Text
+                text="HASSELBLAD"
+                x={hX}
+                y={hasP ? height * 0.18 : height * 0.34}
+                fill={textColor}
+                fontFamily="serif"
+                fontStyle="italic bold"
+                letterSpacing={1.5}
+                fontSize={Math.max(11, Math.round(height * 0.26))}
+                listening={false}
+              />
+            )}
+
+            {hasP && (
+              <Group>
+                <Circle
+                  x={pX - 10}
+                  y={showBrandLogo ? height * 0.65 : height * 0.5}
+                  radius={Math.max(3, Math.round(height * 0.07))}
+                  fill="#E65A28"
+                  listening={false}
+                />
+                <Text
+                  text={params}
+                  x={pX}
+                  y={showBrandLogo ? height * 0.54 : height * 0.38}
+                  fill={subTextColor}
+                  fontFamily='"Plus Jakarta Sans", sans-serif'
+                  fontSize={Math.max(9, Math.round(height * 0.19))}
+                  listening={false}
+                />
+              </Group>
+            )}
           </Group>
-        </Group>
-      )}
+        );
+      })()}
 
       {/* 3. Zeiss Watermark Style */}
-      {!isLegacy && watermarkStyle === 'zeiss' && (
-        <Group>
-          <Text
-            text={device || 'vivo X100 Ultra'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.18}
-            fill={textColor}
-            fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
-            fontSize={Math.max(12, Math.round(height * 0.28))}
-            fontStyle="bold"
-            listening={false}
-          />
-          <Text
-            text={dateTime || '2026.10.19 16:42'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.54}
-            fill={subTextColor}
-            fontFamily='"JetBrains Mono", monospace'
-            fontSize={Math.max(9, Math.round(height * 0.20))}
-            listening={false}
-          />
+      {!isLegacy && watermarkStyle === 'zeiss' && (() => {
+        const hasLeftBoth = showDevice && showDateTime;
+        const yDev = hasLeftBoth ? height * 0.18 : height * 0.34;
+        const yDate = hasLeftBoth ? height * 0.54 : height * 0.38;
 
-          <Group x={width - Math.max(190, width * 0.38)} y={height * 0.25}>
-            <Rect
-              x={0}
-              y={0}
-              width={Math.round(height * 0.65)}
-              height={Math.round(height * 0.45)}
-              fill="#002D72"
-              cornerRadius={2}
-              listening={false}
-            />
-            <Text
-              text="ZEISS"
-              x={2}
-              y={Math.round(height * 0.10)}
-              width={Math.round(height * 0.61)}
-              align="center"
-              fill="#FFFFFF"
-              fontFamily="sans-serif"
-              fontStyle="bold"
-              fontSize={Math.max(9, Math.round(height * 0.20))}
-              listening={false}
-            />
-            <Text
-              text="T*"
-              x={Math.round(height * 0.72)}
-              y={Math.round(height * 0.08)}
-              fill="#E4002B"
-              fontFamily="sans-serif"
-              fontStyle="bold"
-              fontSize={Math.max(9, Math.round(height * 0.22))}
-              listening={false}
-            />
-            <Text
-              text={params || '85mm f/2.57 1/250 ISO125'}
-              x={Math.round(height * 1.05)}
-              y={Math.round(height * 0.09)}
-              fill={textColor}
-              fontFamily='"Plus Jakarta Sans", sans-serif'
-              fontSize={Math.max(10, Math.round(height * 0.22))}
-              fontStyle="bold"
-              listening={false}
-            />
+        const hasP = showParams && !!params;
+        const fontP = `bold ${Math.max(10, Math.round(height * 0.22))}px "Plus Jakarta Sans", sans-serif`;
+        const wP = hasP ? measureTextWidth(params, fontP) : 0;
+        const paramsX = rightMargin - wP;
+
+        const boxW = Math.round(height * 0.65);
+        const boxH = Math.round(height * 0.45);
+        const tStarW = 20;
+        const badgeEndX = hasP ? paramsX - 12 : rightMargin;
+        const tStarX = badgeEndX - tStarW;
+        const boxX = tStarX - 4 - boxW;
+
+        return (
+          <Group listening={false}>
+            {/* Left Block */}
+            {showDevice && (
+              <Text
+                text={device || 'vivo X100 Ultra'}
+                x={leftX}
+                y={yDev}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", "PingFang SC", sans-serif'
+                fontSize={Math.max(12, Math.round(height * 0.28))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {showDateTime && (
+              <Text
+                text={dateTime || '2026.10.19 16:42'}
+                x={leftX}
+                y={yDate}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(9, Math.round(height * 0.20))}
+                listening={false}
+              />
+            )}
+
+            {/* Right Block */}
+            {showBrandLogo && (
+              <Group>
+                <Rect
+                  x={boxX}
+                  y={height * 0.26}
+                  width={boxW}
+                  height={boxH}
+                  fill="#002D72"
+                  cornerRadius={2}
+                  listening={false}
+                />
+                <Text
+                  text="ZEISS"
+                  x={boxX}
+                  y={height * 0.36}
+                  width={boxW}
+                  align="center"
+                  fill="#FFFFFF"
+                  fontFamily="sans-serif"
+                  fontStyle="bold"
+                  fontSize={Math.max(9, Math.round(height * 0.20))}
+                  listening={false}
+                />
+                <Text
+                  text="T*"
+                  x={tStarX}
+                  y={height * 0.34}
+                  fill="#E4002B"
+                  fontFamily="sans-serif"
+                  fontStyle="bold"
+                  fontSize={Math.max(10, Math.round(height * 0.22))}
+                  listening={false}
+                />
+              </Group>
+            )}
+
+            {hasP && (
+              <Text
+                text={params}
+                x={paramsX}
+                y={height * 0.36}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", sans-serif'
+                fontSize={Math.max(10, Math.round(height * 0.22))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
           </Group>
-        </Group>
-      )}
+        );
+      })()}
 
       {/* 4. Apple Shot on iPhone Style */}
-      {!isLegacy && watermarkStyle === 'iphone' && (
-        <Group>
-          <Text
-            text={` Shot on ${device || 'iPhone 16 Pro'}`}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.3}
-            fill={textColor}
-            fontFamily='"Plus Jakarta Sans", -apple-system, sans-serif'
-            fontSize={Math.max(12, Math.round(height * 0.30))}
-            fontStyle="bold"
-            listening={false}
-          />
-          <Group x={width - Math.max(170, width * 0.34)} y={height * 0.2}>
-            <Text
-              text={params || '24mm • f/1.78 • 1/120s • ISO64'}
-              x={0}
-              y={0}
-              fill={textColor}
-              fontFamily='"Plus Jakarta Sans", sans-serif'
-              fontSize={Math.max(9, Math.round(height * 0.22))}
-              listening={false}
-            />
-            <Text
-              text={dateTime || '2026.10.19'}
-              x={0}
-              y={height * 0.35}
-              fill={subTextColor}
-              fontFamily='"JetBrains Mono", monospace'
-              fontSize={Math.max(8, Math.round(height * 0.18))}
-              listening={false}
-            />
+      {!isLegacy && watermarkStyle === 'iphone' && (() => {
+        const hasP = showParams && !!params;
+        const hasD = showDateTime && !!dateTime;
+        const fontP = `${Math.max(9, Math.round(height * 0.22))}px "Plus Jakarta Sans", sans-serif`;
+        const fontD = `${Math.max(8, Math.round(height * 0.18))}px "JetBrains Mono", monospace`;
+        const wP = hasP ? measureTextWidth(params, fontP) : 0;
+        const wD = hasD ? measureTextWidth(dateTime, fontD) : 0;
+
+        const textTitle = showBrandLogo
+          ? ` Shot on ${device || 'iPhone 16 Pro'}`
+          : `Shot on ${device || 'iPhone 16 Pro'}`;
+
+        return (
+          <Group listening={false}>
+            {showDevice && (
+              <Text
+                text={textTitle}
+                x={leftX}
+                y={height * 0.32}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", -apple-system, sans-serif'
+                fontSize={Math.max(12, Math.round(height * 0.30))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+
+            {hasP && (
+              <Text
+                text={params}
+                x={rightMargin - wP}
+                y={hasD ? height * 0.18 : height * 0.36}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", sans-serif'
+                fontSize={Math.max(9, Math.round(height * 0.22))}
+                listening={false}
+              />
+            )}
+            {hasD && (
+              <Text
+                text={dateTime}
+                x={rightMargin - wD}
+                y={hasP ? height * 0.54 : height * 0.38}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(8, Math.round(height * 0.18))}
+                listening={false}
+              />
+            )}
           </Group>
-        </Group>
-      )}
+        );
+      })()}
 
       {/* 5. Fujifilm Simulation Style */}
-      {!isLegacy && watermarkStyle === 'fuji' && (
-        <Group>
-          <Text
-            text={`FUJIFILM · ${device || 'X-T5'}`}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.18}
-            fill={textColor}
-            fontFamily='"Plus Jakarta Sans", sans-serif'
-            fontSize={Math.max(12, Math.round(height * 0.28))}
-            fontStyle="bold"
-            listening={false}
-          />
-          <Text
-            text={location || 'CLASSIC CHROME • FILM SIMULATION'}
-            x={Math.max(16, width * 0.03)}
-            y={height * 0.54}
-            fill={subTextColor}
-            fontFamily='"Plus Jakarta Sans", sans-serif'
-            letterSpacing={1.2}
-            fontSize={Math.max(8, Math.round(height * 0.17))}
-            listening={false}
-          />
-          <Group x={width - Math.max(170, width * 0.34)} y={height * 0.2}>
+      {!isLegacy && watermarkStyle === 'fuji' && (() => {
+        const hasLeftBoth = showDevice && (showLocation && !!location);
+        const yDev = hasLeftBoth ? height * 0.18 : height * 0.34;
+        const yLoc = hasLeftBoth ? height * 0.54 : height * 0.38;
+
+        const hasP = showParams && !!params;
+        const hasD = showDateTime && !!dateTime;
+        const fontP = `bold ${Math.max(9, Math.round(height * 0.22))}px "Plus Jakarta Sans", sans-serif`;
+        const fontD = `${Math.max(8, Math.round(height * 0.18))}px "JetBrains Mono", monospace`;
+        const wP = hasP ? measureTextWidth(params, fontP) : 0;
+        const wD = hasD ? measureTextWidth(dateTime, fontD) : 0;
+
+        return (
+          <Group listening={false}>
+            {/* Left Block */}
+            {showDevice && (
+              <Text
+                text={showBrandLogo ? `FUJIFILM · ${device || 'X-T5'}` : device || 'X-T5'}
+                x={leftX}
+                y={yDev}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", sans-serif'
+                fontSize={Math.max(12, Math.round(height * 0.28))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {showLocation && (
+              <Text
+                text={location || 'CLASSIC CHROME • FILM SIMULATION'}
+                x={leftX}
+                y={yLoc}
+                fill={subTextColor}
+                fontFamily='"Plus Jakarta Sans", sans-serif'
+                letterSpacing={1.2}
+                fontSize={Math.max(8, Math.round(height * 0.17))}
+                listening={false}
+              />
+            )}
+
+            {/* Right Block */}
+            {hasP && (
+              <Text
+                text={params}
+                x={rightMargin - wP}
+                y={hasD ? height * 0.18 : height * 0.36}
+                fill={textColor}
+                fontFamily='"Plus Jakarta Sans", sans-serif'
+                fontSize={Math.max(9, Math.round(height * 0.22))}
+                fontStyle="bold"
+                listening={false}
+              />
+            )}
+            {hasD && (
+              <Text
+                text={dateTime}
+                x={rightMargin - wD}
+                y={hasP ? height * 0.54 : height * 0.38}
+                fill={subTextColor}
+                fontFamily='"JetBrains Mono", monospace'
+                fontSize={Math.max(8, Math.round(height * 0.18))}
+                listening={false}
+              />
+            )}
+          </Group>
+        );
+      })()}
+
+      {/* 6. Vintage Film Golden LCD Date Stamp */}
+      {!isLegacy && watermarkStyle === 'film-date' && (() => {
+        const dateStr = dateTime ? dateTime.replace(/-/g, ' ').slice(0, 10) : "'26 10 19";
+        const fontDate = `bold ${Math.max(14, Math.round(height * 0.50))}px "JetBrains Mono", monospace`;
+        const wDate = measureTextWidth(dateStr, fontDate);
+        return (
+          <Group listening={false}>
             <Text
-              text={params || '35mm f/1.4 1/500 ISO160'}
-              x={0}
-              y={0}
-              fill={textColor}
-              fontFamily='"Plus Jakarta Sans", sans-serif'
-              fontSize={Math.max(9, Math.round(height * 0.22))}
-              fontStyle="bold"
-              listening={false}
-            />
-            <Text
-              text={dateTime || '2026.10.19'}
-              x={0}
-              y={height * 0.35}
-              fill={subTextColor}
+              text={dateStr}
+              x={rightMargin - wDate - 4}
+              y={height * 0.22}
+              fill="#FF8A00"
               fontFamily='"JetBrains Mono", monospace'
-              fontSize={Math.max(8, Math.round(height * 0.18))}
+              fontSize={Math.max(14, Math.round(height * 0.50))}
+              fontStyle="bold"
+              letterSpacing={3}
+              shadowColor="#FF8A00"
+              shadowBlur={6}
+              shadowOpacity={0.7}
               listening={false}
             />
           </Group>
-        </Group>
-      )}
-
-      {/* 6. Vintage Film Golden LCD Date Stamp */}
-      {!isLegacy && watermarkStyle === 'film-date' && (
-        <Group>
-          <Text
-            text={dateTime ? dateTime.replace(/-/g, ' ').slice(0, 10) : "'26 10 19"}
-            x={width * 0.05}
-            y={height * 0.22}
-            width={width * 0.9}
-            align="right"
-            fill="#FF8A00"
-            fontFamily='"JetBrains Mono", monospace'
-            fontSize={Math.max(14, Math.round(height * 0.50))}
-            fontStyle="bold"
-            letterSpacing={4}
-            shadowColor="#FF8A00"
-            shadowBlur={6}
-            shadowOpacity={0.7}
-            listening={false}
-          />
-        </Group>
-      )}
+        );
+      })()}
 
       {/* Legacy Stickers Fallback */}
       {isLegacy && stickerType === 'washi-tape' && (

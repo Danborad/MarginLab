@@ -118,6 +118,15 @@ export interface StickerElement extends BaseElement {
   color?: string;
   accentColor?: string;
   styleVariant?: number;
+  // 显示开关
+  showDevice?: boolean;
+  showDateTime?: boolean;
+  showParams?: boolean;
+  showLocation?: boolean;
+  showBrandLogo?: boolean;
+  // 边距与对齐
+  paddingX?: number;
+  alignToGrid?: boolean;
 }
 
 export type CollageElement = ImageElement | TextElement | ShapeElement | StickerElement;

@@ -1,11 +1,13 @@
 import React from 'react';
 import { useEditorStore } from '../../store/useEditorStore';
-import { Camera, Sparkles, Clock, Compass, Layers } from 'lucide-react';
-import { WatermarkStyle } from '../../types/document';
+import { Camera, Sparkles, Clock, Compass, Layers, Maximize2 } from 'lucide-react';
+import { WatermarkStyle, ImageElement } from '../../types/document';
 
 export const StickersPanel: React.FC = () => {
   const addElement = useEditorStore((s) => s.addElement);
+  const elements = useEditorStore((s) => s.document.elements);
   const canvas = useEditorStore((s) => s.document.canvas);
+  const setWatermarkModalOpen = useEditorStore((s) => s.setWatermarkModalOpen);
 
   const getNowFormatted = () => {
     const now = new Date();
@@ -106,10 +108,30 @@ export const StickersPanel: React.FC = () => {
   ];
 
   const handleAddWatermark = (w: (typeof watermarks)[0]) => {
-    const width = Math.min(canvas.width - 60, 1040);
     const height = w.watermarkStyle === 'film-date' ? 48 : 76;
-    const x = Math.round((canvas.width - width) / 2);
-    const y = Math.max(20, Math.round(canvas.height - height - 36));
+    let width = Math.min(canvas.width - 60, 1040);
+    let x = Math.round((canvas.width - width) / 2);
+    let y = Math.max(20, Math.round(canvas.height - height - 36));
+
+    // 自动贴齐拼图照片两侧边界
+    const imageElements = elements.filter(
+      (el): el is ImageElement => el.type === 'image' && el.visible !== false && !!el.src
+    );
+    if (imageElements.length > 0) {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const img of imageElements) {
+        minX = Math.min(minX, img.x);
+        maxX = Math.max(maxX, img.x + img.width);
+        maxY = Math.max(maxY, img.y + img.height);
+      }
+      if (minX < maxX) {
+        x = minX;
+        width = maxX - minX;
+        y = Math.min(maxY + 12, canvas.height - height - 10);
+      }
+    }
 
     addElement({
       type: 'sticker',
@@ -121,6 +143,12 @@ export const StickersPanel: React.FC = () => {
       params: w.params,
       location: w.location,
       bgTheme: w.bgTheme,
+      showDevice: true,
+      showDateTime: true,
+      showParams: true,
+      showLocation: w.watermarkStyle === 'leica' || w.watermarkStyle === 'fuji',
+      showBrandLogo: true,
+      paddingX: 0,
       x,
       y,
       width,

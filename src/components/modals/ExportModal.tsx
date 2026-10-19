@@ -272,6 +272,15 @@ export const ExportModal: React.FC = () => {
         const textColor = isDarkBg ? '#F4F4F5' : '#18181B';
         const subTextColor = isDarkBg ? '#A1A1AA' : '#71717A';
 
+        const showDevice = el.showDevice ?? true;
+        const showDateTime = el.showDateTime ?? true;
+        const showParams = el.showParams ?? true;
+        const showLocation = el.showLocation ?? (el.watermarkStyle === 'leica' || el.watermarkStyle === 'fuji');
+        const showBrandLogo = el.showBrandLogo ?? true;
+        const padX = (el.paddingX ?? 0) * pixelRatio;
+        const leftX = renderX + padX;
+        const rightMargin = renderX + renderW - padX;
+
         // Background
         if (!isTransparent && (el.stickerType === 'camera-watermark' || el.watermarkStyle)) {
           ctx.fillStyle = isDarkBg ? '#121214' : '#FFFFFF';
@@ -283,161 +292,257 @@ export const ExportModal: React.FC = () => {
 
         if (el.watermarkStyle === 'leica') {
           // Left side
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(el.device || 'iPhone 13 Pro', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.18);
+          const hasLeftBoth = showDevice && showDateTime;
+          if (showDevice) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.device || 'iPhone 13 Pro', leftX, hasLeftBoth ? renderY + renderH * 0.18 : renderY + renderH * 0.34);
+          }
+          if (showDateTime) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.20)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.dateTime || '2026.10.19 17:27:50', leftX, hasLeftBoth ? renderY + renderH * 0.54 : renderY + renderH * 0.38);
+          }
 
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.20)}px monospace`;
-          ctx.fillText(el.dateTime || '2026.10.19 17:27:50', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.54);
+          // Right side text measurement
+          const hasP = showParams && !!el.params;
+          const hasL = showLocation && !!el.location;
+          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+          const wP = hasP ? ctx.measureText(el.params || '').width : 0;
+          ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
+          const wL = hasL ? ctx.measureText(el.location || '').width : 0;
+          const textWidth = Math.max(wP, wL);
+          const textStartX = rightMargin - textWidth;
+          const hasRightText = hasP || hasL;
 
-          // Right side
-          const rightX = renderX + renderW - Math.max(190 * pixelRatio, renderW * 0.38);
-          const centerY = renderY + renderH * 0.5;
           const dotRadius = Math.max(10 * pixelRatio, renderH * 0.26);
+          const sepX = textStartX - Math.max(12 * pixelRatio, renderH * 0.18);
+          const dotX = hasRightText
+            ? sepX - Math.max(12 * pixelRatio, renderH * 0.18) - dotRadius
+            : rightMargin - dotRadius;
+          const centerY = renderY + renderH * 0.5;
 
-          // Red Dot
-          ctx.fillStyle = '#E4002B';
-          ctx.beginPath();
-          ctx.arc(rightX, centerY, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
+          if (showBrandLogo) {
+            // Red Dot
+            ctx.fillStyle = '#E4002B';
+            ctx.beginPath();
+            ctx.arc(dotX, centerY, dotRadius, 0, Math.PI * 2);
+            ctx.fill();
 
-          // Leica text
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `italic bold ${Math.round(dotRadius * 0.75)}px serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('Leica', rightX, centerY);
+            // Leica text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `italic bold ${Math.round(dotRadius * 0.75)}px serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Leica', dotX, centerY);
 
-          // Divider
-          ctx.strokeStyle = subTextColor;
-          ctx.lineWidth = 1 * pixelRatio;
-          ctx.globalAlpha = 0.35;
-          ctx.beginPath();
-          const sepX = rightX + Math.max(18 * pixelRatio, renderH * 0.38);
-          ctx.moveTo(sepX, centerY - renderH * 0.28);
-          ctx.lineTo(sepX, centerY + renderH * 0.28);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
+            // Divider
+            if (hasRightText) {
+              ctx.strokeStyle = subTextColor;
+              ctx.lineWidth = 1 * pixelRatio;
+              ctx.globalAlpha = 0.35;
+              ctx.beginPath();
+              ctx.moveTo(sepX, centerY - renderH * 0.28);
+              ctx.lineTo(sepX, centerY + renderH * 0.28);
+              ctx.stroke();
+              ctx.globalAlpha = 1;
+            }
+          }
 
           // Params
-          const textStartX = sepX + Math.max(8 * pixelRatio, renderH * 0.1);
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(el.params || '26mm f/1.5 1/24 ISO1000', textStartX, centerY - 2 * pixelRatio);
+          if (hasP) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = hasL ? 'bottom' : 'middle';
+            ctx.fillText(el.params || '', textStartX, hasL ? centerY - 2 * pixelRatio : centerY);
+          }
 
           // GPS
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
-          ctx.textBaseline = 'top';
-          ctx.fillText(el.location || '52°13\'14"N 124°41\'31"W', textStartX, centerY + 2 * pixelRatio);
+          if (hasL) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.location || '', textStartX, centerY + 2 * pixelRatio);
+          }
         } else if (el.watermarkStyle === 'hasselblad') {
           // Left
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.36)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(el.device || 'OPPO Find X6 Pro', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.5);
+          const hasLeftBoth = showDevice && showDateTime;
+          if (showDevice) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.34)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.device || 'OPPO Find X6 Pro', leftX, hasLeftBoth ? renderY + renderH * 0.18 : renderY + renderH * 0.34);
+          }
+          if (showDateTime) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.19)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.dateTime || '2026.10.19', leftX, hasLeftBoth ? renderY + renderH * 0.56 : renderY + renderH * 0.38);
+          }
 
           // Right
-          const rightX = renderX + renderW - Math.max(170 * pixelRatio, renderW * 0.34);
-          ctx.font = `italic bold ${Math.round(renderH * 0.26)}px serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText('HASSELBLAD', rightX, renderY + renderH * 0.2);
+          const hasP = showParams && !!el.params;
+          if (showBrandLogo) {
+            ctx.font = `italic bold ${Math.round(renderH * 0.26)}px serif`;
+            const wH = ctx.measureText('HASSELBLAD').width;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('HASSELBLAD', rightMargin - wH, hasP ? renderY + renderH * 0.18 : renderY + renderH * 0.34);
+          }
 
-          // Orange dot
-          ctx.fillStyle = '#E65A28';
-          ctx.beginPath();
-          ctx.arc(rightX + 6 * pixelRatio, renderY + renderH * 0.68, Math.max(3 * pixelRatio, renderH * 0.07), 0, Math.PI * 2);
-          ctx.fill();
+          if (hasP) {
+            ctx.font = `${Math.round(renderH * 0.19)}px sans-serif`;
+            const wP = ctx.measureText(el.params || '').width;
+            const pX = rightMargin - wP;
+            const dotY = showBrandLogo ? renderY + renderH * 0.65 : renderY + renderH * 0.5;
+            // Orange dot
+            ctx.fillStyle = '#E65A28';
+            ctx.beginPath();
+            ctx.arc(pX - 10 * pixelRatio, dotY, Math.max(3 * pixelRatio, renderH * 0.07), 0, Math.PI * 2);
+            ctx.fill();
 
-          // Params
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.19)}px sans-serif`;
-          ctx.textBaseline = 'middle';
-          ctx.fillText(el.params || '144mm f/2.6 1/1108 ISO100', rightX + 16 * pixelRatio, renderY + renderH * 0.68);
+            // Params
+            ctx.fillStyle = subTextColor;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(el.params || '', pX, dotY);
+          }
         } else if (el.watermarkStyle === 'zeiss') {
           // Left
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(el.device || 'vivo X100 Ultra', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.18);
+          const hasLeftBoth = showDevice && showDateTime;
+          if (showDevice) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.device || 'vivo X100 Ultra', leftX, hasLeftBoth ? renderY + renderH * 0.18 : renderY + renderH * 0.34);
+          }
+          if (showDateTime) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.20)}px monospace`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.dateTime || '2026.10.19 16:42', leftX, hasLeftBoth ? renderY + renderH * 0.54 : renderY + renderH * 0.38);
+          }
 
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.20)}px monospace`;
-          ctx.fillText(el.dateTime || '2026.10.19 16:42', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.54);
+          // Right side
+          const hasP = showParams && !!el.params;
+          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+          const wP = hasP ? ctx.measureText(el.params || '').width : 0;
+          const paramsX = rightMargin - wP;
 
-          // Right
-          const rightX = renderX + renderW - Math.max(190 * pixelRatio, renderW * 0.38);
           const boxW = Math.round(renderH * 0.65);
           const boxH = Math.round(renderH * 0.45);
-          ctx.fillStyle = '#002D72';
-          ctx.fillRect(rightX, renderY + renderH * 0.25, boxW, boxH);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${Math.round(renderH * 0.20)}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('ZEISS', rightX + boxW / 2, renderY + renderH * 0.25 + boxH / 2);
+          const tStarW = 20 * pixelRatio;
+          const badgeEndX = hasP ? paramsX - 12 * pixelRatio : rightMargin;
+          const tStarX = badgeEndX - tStarW;
+          const boxX = tStarX - 4 * pixelRatio - boxW;
 
-          ctx.fillStyle = '#E4002B';
-          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.fillText('T*', rightX + boxW + 4 * pixelRatio, renderY + renderH * 0.48);
+          if (showBrandLogo) {
+            ctx.fillStyle = '#002D72';
+            ctx.fillRect(boxX, renderY + renderH * 0.26, boxW, boxH);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${Math.round(renderH * 0.20)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ZEISS', boxX + boxW / 2, renderY + renderH * 0.26 + boxH / 2);
 
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
-          ctx.fillText(el.params || '85mm f/2.57 1/250 ISO125', rightX + boxW + 28 * pixelRatio, renderY + renderH * 0.48);
+            ctx.fillStyle = '#E4002B';
+            ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.fillText('T*', tStarX, renderY + renderH * 0.48);
+          }
+
+          if (hasP) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.fillText(el.params || '', paramsX, renderY + renderH * 0.48);
+          }
         } else if (el.watermarkStyle === 'iphone') {
           // Left
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.30)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(` Shot on ${el.device || 'iPhone 16 Pro'}`, renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.5);
+          if (showDevice) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.30)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            const prefix = showBrandLogo ? ' Shot on ' : 'Shot on ';
+            ctx.fillText(`${prefix}${el.device || 'iPhone 16 Pro'}`, leftX, renderY + renderH * 0.5);
+          }
 
           // Right
-          const rightX = renderX + renderW - Math.max(170 * pixelRatio, renderW * 0.34);
-          ctx.font = `${Math.round(renderH * 0.22)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(el.params || '24mm • f/1.78 • 1/120s • ISO64', rightX, renderY + renderH * 0.2);
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
-          ctx.fillText(el.dateTime || '2026.10.19', rightX, renderY + renderH * 0.55);
+          const hasP = showParams && !!el.params;
+          const hasD = showDateTime && !!el.dateTime;
+          if (hasP) {
+            ctx.font = `${Math.round(renderH * 0.22)}px sans-serif`;
+            const wP = ctx.measureText(el.params || '').width;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = hasD ? 'top' : 'middle';
+            ctx.fillText(el.params || '', rightMargin - wP, hasD ? renderY + renderH * 0.2 : renderY + renderH * 0.5);
+          }
+          if (hasD) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
+            const wD = ctx.measureText(el.dateTime || '').width;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = hasP ? 'top' : 'middle';
+            ctx.fillText(el.dateTime || '', rightMargin - wD, hasP ? renderY + renderH * 0.55 : renderY + renderH * 0.5);
+          }
         } else if (el.watermarkStyle === 'fuji') {
           // Left
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(`FUJIFILM · ${el.device || 'X-T5'}`, renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.18);
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.17)}px sans-serif`;
-          ctx.fillText(el.location || 'CLASSIC CHROME • FILM SIMULATION', renderX + Math.max(16 * pixelRatio, renderW * 0.03), renderY + renderH * 0.54);
+          const hasLeftBoth = showDevice && (showLocation && !!el.location);
+          if (showDevice) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.28)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const textDev = showBrandLogo ? `FUJIFILM · ${el.device || 'X-T5'}` : el.device || 'X-T5';
+            ctx.fillText(textDev, leftX, hasLeftBoth ? renderY + renderH * 0.18 : renderY + renderH * 0.34);
+          }
+          if (showLocation) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.17)}px sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(el.location || 'CLASSIC CHROME • FILM SIMULATION', leftX, hasLeftBoth ? renderY + renderH * 0.54 : renderY + renderH * 0.38);
+          }
 
           // Right
-          const rightX = renderX + renderW - Math.max(170 * pixelRatio, renderW * 0.34);
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.fillText(el.params || '35mm f/1.4 1/500 ISO160', rightX, renderY + renderH * 0.2);
-          ctx.fillStyle = subTextColor;
-          ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
-          ctx.fillText(el.dateTime || '2026.10.19', rightX, renderY + renderH * 0.55);
+          const hasP = showParams && !!el.params;
+          const hasD = showDateTime && !!el.dateTime;
+          if (hasP) {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${Math.round(renderH * 0.22)}px sans-serif`;
+            const wP = ctx.measureText(el.params || '').width;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = hasD ? 'top' : 'middle';
+            ctx.fillText(el.params || '', rightMargin - wP, hasD ? renderY + renderH * 0.2 : renderY + renderH * 0.5);
+          }
+          if (hasD) {
+            ctx.fillStyle = subTextColor;
+            ctx.font = `${Math.round(renderH * 0.18)}px monospace`;
+            const wD = ctx.measureText(el.dateTime || '').width;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = hasP ? 'top' : 'middle';
+            ctx.fillText(el.dateTime || '', rightMargin - wD, hasP ? renderY + renderH * 0.55 : renderY + renderH * 0.5);
+          }
         } else if (el.watermarkStyle === 'film-date') {
           ctx.fillStyle = '#FF8A00';
           ctx.font = `bold ${Math.round(renderH * 0.5)}px monospace`;
           ctx.textAlign = 'right';
           ctx.textBaseline = 'middle';
           const dateStr = el.dateTime ? el.dateTime.replace(/-/g, ' ').slice(0, 10) : "'26 10 19";
-          ctx.fillText(dateStr, renderX + renderW * 0.95, renderY + renderH * 0.5);
+          ctx.fillText(dateStr, rightMargin - 4 * pixelRatio, renderY + renderH * 0.5);
         } else {
           // Legacy fallback
           ctx.fillStyle = el.color || '#1A1918';

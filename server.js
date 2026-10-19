@@ -2557,6 +2557,209 @@ app.delete("/api/ai/history/:id", (req, res) => {
 app.use("/api/ai/history-assets", express.static(AI_HISTORY_ASSETS_DIR, { maxAge: "7d" }));
 app.use("/api/user-media", express.static(USER_MEDIA_DIR, { maxAge: "7d" }));
 
+// ============================================================
+// 照片 EXIF 元数据解析 /api/media-exif
+// ============================================================
+function formatExposureTime(sec) {
+  if (!sec || isNaN(sec)) return "";
+  if (sec >= 1) {
+    return Number.isInteger(sec) ? `${sec}s` : `${sec.toFixed(1)}s`;
+  }
+  const denominator = Math.round(1 / sec);
+  return `1/${denominator}s`;
+}
+
+function formatGps(coords, ref) {
+  if (!coords || coords.length < 3) return "";
+  const deg = Math.floor(coords[0]);
+  const min = Math.floor(coords[1]);
+  const sec = Math.round(coords[2]);
+  return `${deg}°${min}′${sec}″${ref}`;
+}
+
+function parseExifBuffer(buffer) {
+  try {
+    const view = new DataView(buffer);
+    if (view.byteLength < 32) return null;
+    if (view.getUint16(0, false) !== 0xFFD8) return null;
+
+    let offset = 2;
+    let tiffOffset = -1;
+
+    while (offset < view.byteLength - 4) {
+      const marker = view.getUint16(offset, false);
+      offset += 2;
+      if (marker === 0xFFE1) {
+        const length = view.getUint16(offset, false);
+        const id0 = view.getUint32(offset + 2, false);
+        const id1 = view.getUint16(offset + 6, false);
+        if (id0 === 0x45786966 && id1 === 0x0000) {
+          tiffOffset = offset + 8;
+          break;
+        }
+        offset += length;
+      } else if ((marker & 0xFF00) === 0xFF00) {
+        if (marker === 0xFFDA || marker === 0xFFD9) break;
+        const length = view.getUint16(offset, false);
+        offset += length;
+      } else {
+        break;
+      }
+    }
+
+    if (tiffOffset < 0 || tiffOffset + 8 > view.byteLength) return null;
+
+    const isLittle = view.getUint16(tiffOffset, false) === 0x4949;
+    const ifd0Offset = view.getUint32(tiffOffset + 4, isLittle);
+    const tags = {};
+    const u8 = new Uint8Array(buffer);
+
+    function readIFD(dirOffset) {
+      if (tiffOffset + dirOffset + 2 > view.byteLength) return;
+      const count = view.getUint16(tiffOffset + dirOffset, isLittle);
+      for (let i = 0; i < count; i++) {
+        const entryOffset = tiffOffset + dirOffset + 2 + i * 12;
+        if (entryOffset + 12 > view.byteLength) break;
+        const tag = view.getUint16(entryOffset, isLittle);
+        const type = view.getUint16(entryOffset + 2, isLittle);
+        const valCount = view.getUint32(entryOffset + 4, isLittle);
+        const valOffset = view.getUint32(entryOffset + 8, isLittle);
+
+        let val = null;
+        if (type === 2) {
+          const strOffset = valCount > 4 ? tiffOffset + valOffset : entryOffset + 8;
+          if (strOffset < view.byteLength) {
+            const end = Math.min(view.byteLength, strOffset + valCount);
+            let s = "";
+            for (let k = strOffset; k < end; k++) {
+              if (u8[k] === 0) break;
+              s += String.fromCharCode(u8[k]);
+            }
+            val = s.trim();
+          }
+        } else if (type === 3) {
+          val = view.getUint16(entryOffset + 8, isLittle);
+        } else if (type === 4) {
+          val = valOffset;
+        } else if (type === 5) {
+          if (valCount === 1) {
+            const num = view.getUint32(tiffOffset + valOffset, isLittle);
+            const den = view.getUint32(tiffOffset + valOffset + 4, isLittle);
+            val = den ? num / den : 0;
+          } else if (valCount === 3) {
+            const vals = [];
+            for (let j = 0; j < 3; j++) {
+              const num = view.getUint32(tiffOffset + valOffset + j * 8, isLittle);
+              const den = view.getUint32(tiffOffset + valOffset + j * 8 + 4, isLittle);
+              vals.push(den ? num / den : 0);
+            }
+            val = vals;
+          }
+        }
+        tags[tag] = val;
+
+        if (tag === 0x8769 || tag === 0x8825) {
+          readIFD(valOffset);
+        }
+      }
+    }
+
+    readIFD(ifd0Offset);
+
+    const make = (tags[0x010F] || "").trim();
+    let model = (tags[0x0110] || "").trim();
+    let deviceName = model;
+    if (!deviceName && make) deviceName = make;
+    if (make && deviceName && !deviceName.toLowerCase().includes(make.toLowerCase())) {
+      deviceName = `${make} ${deviceName}`;
+    }
+
+    let rawDateTime = tags[0x9003] || tags[0x0132] || "";
+    let formattedDateTime = "";
+    if (rawDateTime) {
+      const parts = rawDateTime.split(" ");
+      if (parts.length === 2) {
+        formattedDateTime = `${parts[0].replace(/:/g, ".")} ${parts[1]}`;
+      } else {
+        formattedDateTime = rawDateTime.replace(/:/g, ".");
+      }
+    }
+
+    const focal35 = tags[0xA405] || (tags[0x920A] ? Math.round(tags[0x920A]) : null);
+    const fNumber = tags[0x829D];
+    const expTime = tags[0x829A];
+    const iso = tags[0x8827] || tags[0x8833];
+
+    const paramParts = [];
+    if (focal35) paramParts.push(`${focal35}mm`);
+    if (fNumber) paramParts.push(`f/${Number.isInteger(fNumber) ? fNumber : fNumber.toFixed(1)}`);
+    if (expTime) paramParts.push(formatExposureTime(expTime));
+    if (iso) paramParts.push(`ISO${iso}`);
+    const params = paramParts.join(" ");
+
+    let locationStr = "";
+    const latRef = tags[0x0001] || "N";
+    const lat = tags[0x0002];
+    const lngRef = tags[0x0003] || "E";
+    const lng = tags[0x0004];
+    if (Array.isArray(lat) && Array.isArray(lng)) {
+      locationStr = `${formatGps(lat, latRef)} ${formatGps(lng, lngRef)}`;
+    }
+
+    let style = "leica";
+    const combinedBrand = `${make} ${model}`.toLowerCase();
+    if (combinedBrand.includes("xiaomi") || combinedBrand.includes("leica")) {
+      style = "leica";
+    } else if (combinedBrand.includes("oppo") || combinedBrand.includes("oneplus") || combinedBrand.includes("hasselblad")) {
+      style = "hasselblad";
+    } else if (combinedBrand.includes("vivo") || combinedBrand.includes("zeiss") || combinedBrand.includes("sony")) {
+      style = "zeiss";
+    } else if (combinedBrand.includes("apple") || combinedBrand.includes("iphone")) {
+      style = "iphone";
+    } else if (combinedBrand.includes("fujifilm") || combinedBrand.includes("fuji")) {
+      style = "fuji";
+    }
+
+    return {
+      make,
+      model,
+      device: deviceName || "智能手机",
+      dateTime: formattedDateTime,
+      params,
+      location: locationStr,
+      watermarkStyle: style
+    };
+  } catch (err) {
+    console.error("[EXIF] parse error:", err);
+    return null;
+  }
+}
+
+app.get("/api/media-exif", (req, res) => {
+  const url = typeof req.query.url === "string" ? req.query.url : "";
+  const abs = resolveLocalImagePath(url);
+  if (!abs || !fs.existsSync(abs)) {
+    return res.status(404).json({ error: "图片文件不存在" });
+  }
+
+  try {
+    const fd = fs.openSync(abs, "r");
+    const buf = Buffer.alloc(262144);
+    const bytesRead = fs.readSync(fd, buf, 0, 262144, 0);
+    fs.closeSync(fd);
+
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + bytesRead);
+    const parsed = parseExifBuffer(ab);
+    if (!parsed) {
+      return res.json({ success: false, message: "未检测到 EXIF 元数据" });
+    }
+    return res.json({ success: true, ...parsed });
+  } catch (err) {
+    console.error("[EXIF] read error:", err.message);
+    return res.status(500).json({ error: "EXIF 读取失败: " + err.message });
+  }
+});
+
 // GET /api/thumb?src=<站内图片地址>&w=<边长>: 按需生成并缓存缩略图
 app.get("/api/thumb", async (req, res) => {
   const src = typeof req.query.src === "string" ? req.query.src : "";

@@ -35,7 +35,11 @@ import {
   Image as ImageIcon,
   Camera,
   Clock,
+  Maximize2,
+  Check,
+  ExternalLink,
 } from 'lucide-react';
+import { extractExifFromUrl } from '../../lib/exif';
 
 const TextContentEditor: React.FC<{
   elementId: string;
@@ -82,6 +86,8 @@ const TextContentEditor: React.FC<{
 export const ElementPropertyPanel: React.FC = () => {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const elements = useEditorStore((s) => s.document.elements);
+  const canvas = useEditorStore((s) => s.document.canvas);
+  const setWatermarkModalOpen = useEditorStore((s) => s.setWatermarkModalOpen);
   const updateElement = useEditorStore((s) => s.updateElement);
   const deleteElements = useEditorStore((s) => s.deleteElements);
   const duplicateElements = useEditorStore((s) => s.duplicateElements);
@@ -91,6 +97,9 @@ export const ElementPropertyPanel: React.FC = () => {
   const setEditingCropId = useEditorStore((s) => s.setEditingCropId);
   const openAiStylizeModal = useEditorStore((s) => s.openAiStylizeModal);
   const openReplacePhotoModal = useEditorStore((s) => s.openReplacePhotoModal);
+
+  const [loadingExifId, setLoadingExifId] = useState<string | null>(null);
+  const [exifSuccessMsg, setExifSuccessMsg] = useState<string | null>(null);
 
   const selectedElements = elements.filter((el) => selectedIds.includes(el.id));
 
@@ -630,7 +639,146 @@ export const ElementPropertyPanel: React.FC = () => {
             <span className="text-[11px] font-mono text-studio-muted uppercase tracking-wider block">
               相机与时间水印属性
             </span>
-            <Camera className="w-3.5 h-3.5 text-studio-accent" />
+            <button
+              type="button"
+              onClick={() => setWatermarkModalOpen(true)}
+              className="text-[10px] text-studio-accent hover:underline flex items-center gap-1 font-mono"
+            >
+              <ExternalLink className="w-3 h-3" />
+              打开弹窗编辑
+            </button>
+          </div>
+
+          {/* 1. 一键贴齐拼图两侧 */}
+          <div className="p-2.5 rounded-xl bg-studio-accent/5 border border-studio-accent/20 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <span className="text-xs font-semibold text-studio-text block">
+                📐 贴齐拼图照片两侧
+              </span>
+              <span className="text-[10px] text-studio-muted block mt-0.5">
+                宽度匹配上方多图网格，左右文字严密贴边
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const imgs = elements.filter(
+                  (el): el is ImageElement => el.type === 'image' && el.visible !== false && !!el.src
+                );
+                if (imgs.length === 0) return;
+                let minX = Infinity;
+                let maxX = -Infinity;
+                let maxY = -Infinity;
+                for (const img of imgs) {
+                  minX = Math.min(minX, img.x);
+                  maxX = Math.max(maxX, img.x + img.width);
+                  maxY = Math.max(maxY, img.y + img.height);
+                }
+                if (minX < maxX) {
+                  updateElement(element.id, {
+                    x: minX,
+                    width: maxX - minX,
+                    paddingX: 0,
+                    y: Math.min(maxY + 12, canvas.height - element.height - 10),
+                  });
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-studio-accent hover:bg-studio-accent/90 text-white text-[11px] font-medium transition-colors shrink-0 flex items-center gap-1 shadow-xs"
+            >
+              <Maximize2 className="w-3 h-3" />
+              一键贴齐
+            </button>
+          </div>
+
+          {/* 2. 从画布照片提取 EXIF */}
+          {(() => {
+            const imgs = elements.filter(
+              (el): el is ImageElement => el.type === 'image' && el.visible !== false && !!el.src
+            );
+            if (imgs.length === 0) return null;
+            return (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-mono text-studio-muted uppercase flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    从拼图照片读取 EXIF
+                  </label>
+                  <span className="text-[10px] text-studio-muted font-mono">{imgs.length} 张照片</span>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {imgs.map((img, idx) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      disabled={loadingExifId === img.id}
+                      onClick={async () => {
+                        setLoadingExifId(img.id);
+                        setExifSuccessMsg(null);
+                        try {
+                          const data = await extractExifFromUrl(img.src);
+                          if (data && (data.device || data.dateTime || data.params)) {
+                            updateElement(element.id, {
+                              device: data.device || (element as StickerElement).device,
+                              dateTime: data.dateTime || (element as StickerElement).dateTime,
+                              params: data.params || (element as StickerElement).params,
+                              location: data.location || (element as StickerElement).location,
+                              watermarkStyle: data.watermarkStyle || (element as StickerElement).watermarkStyle,
+                            });
+                            setExifSuccessMsg(`已提取 #${idx + 1}: ${data.device || '参数'}`);
+                          } else {
+                            setExifSuccessMsg(`照片 #${idx + 1} 无 EXIF`);
+                          }
+                        } catch (e) {
+                          setExifSuccessMsg('读取失败');
+                        } finally {
+                          setLoadingExifId(null);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 p-1 rounded-lg border border-studio-border hover:border-studio-accent bg-studio-card text-left transition-all shrink-0"
+                    >
+                      <img src={img.src} alt="" className="w-7 h-7 object-cover rounded bg-gray-200" />
+                      <span className="text-[10px] font-mono text-studio-text pr-1">
+                        {loadingExifId === img.id ? '读取...' : `#${idx + 1}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {exifSuccessMsg && (
+                  <div className="text-[10px] text-emerald-600 font-mono flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    {exifSuccessMsg}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* 3. 字段显示开关 */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-mono text-studio-muted uppercase">显示内容开关</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { key: 'showDevice', label: '机型名称', val: (element as StickerElement).showDevice ?? true },
+                { key: 'showDateTime', label: '拍摄时间', val: (element as StickerElement).showDateTime ?? true },
+                { key: 'showParams', label: '曝光参数', val: (element as StickerElement).showParams ?? true },
+                { key: 'showLocation', label: '地点坐标', val: (element as StickerElement).showLocation ?? ((element as StickerElement).watermarkStyle === 'leica' || (element as StickerElement).watermarkStyle === 'fuji') },
+                { key: 'showBrandLogo', label: '影像徽标', val: (element as StickerElement).showBrandLogo ?? true },
+              ].map((sw) => (
+                <button
+                  key={sw.key}
+                  type="button"
+                  onClick={() => updateElement(element.id, { [sw.key]: !sw.val })}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-mono border flex items-center justify-between transition-all ${
+                    sw.val
+                      ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                      : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+                  }`}
+                >
+                  <span>{sw.label}</span>
+                  {sw.val ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-studio-muted" />}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Watermark style selector */}
@@ -668,6 +816,31 @@ export const ElementPropertyPanel: React.FC = () => {
                   }`}
                 >
                   {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Padding setting */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-mono text-studio-muted uppercase">两侧内边距</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { val: 0, label: '0px 严密切齐' },
+                { val: 16, label: '16px 留白' },
+                { val: 24, label: '24px 宽松' },
+              ].map((p) => (
+                <button
+                  key={p.val}
+                  type="button"
+                  onClick={() => updateElement(element.id, { paddingX: p.val })}
+                  className={`py-1 px-1.5 rounded-lg text-xs font-mono border transition-all ${
+                    ((element as StickerElement).paddingX ?? 0) === p.val
+                      ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                      : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+                  }`}
+                >
+                  {p.label}
                 </button>
               ))}
             </div>

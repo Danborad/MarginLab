@@ -23,6 +23,7 @@ import { AiSettingsModal } from "./components/modals/AiSettingsModal";
 import { AdminManagementModal } from "./components/modals/AdminManagementModal";
 import { AiStylizeModal } from "./components/modals/AiStylizeModal";
 import { AlbumModal } from "./components/album/AlbumModal";
+import { WatermarkEditModal } from "./components/modals/WatermarkEditModal";
 
 export function App() {
   (window as any).__store = useEditorStore;
@@ -99,6 +100,7 @@ export function App() {
       <AdminManagementModal />
       <AiStylizeModal />
       <AlbumModal />
+      <WatermarkEditModal />
     </div>
   );
 }

@@ -581,6 +581,7 @@ export interface EditorState {
   autoLayoutModalOpen: boolean;
   projectModalOpen: boolean;
   saveTemplateModalOpen: boolean;
+  watermarkModalOpen: boolean;
 
   // History
   past: CollageDocument[];
@@ -631,6 +632,7 @@ export interface EditorState {
   setAutoLayoutModalOpen: (open: boolean) => void;
   setProjectModalOpen: (open: boolean) => void;
   setSaveTemplateModalOpen: (open: boolean) => void;
+  setWatermarkModalOpen: (open: boolean) => void;
   replacePhotoModalOpen: boolean;
   replaceTargetElementId: string | null;
   openReplacePhotoModal: (elementId?: string) => void;
@@ -886,6 +888,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     autoLayoutModalOpen: false,
     projectModalOpen: false,
     saveTemplateModalOpen: false,
+    watermarkModalOpen: false,
     replacePhotoModalOpen: false,
     replaceTargetElementId: null,
 
@@ -3320,6 +3323,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     setAutoLayoutModalOpen: (open) => setStore({ autoLayoutModalOpen: open }),
     setProjectModalOpen: (open) => setStore({ projectModalOpen: open }),
     setSaveTemplateModalOpen: (open) => setStore({ saveTemplateModalOpen: open }),
+    setWatermarkModalOpen: (open) => setStore({ watermarkModalOpen: open }),
     setIsExporting: (exporting) => setStore({ isExporting: exporting }),
 
     // Templates & New Project
