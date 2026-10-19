@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useEditorStore } from "../../store/useEditorStore";
 import { generateCaptchaCode, drawCaptchaCanvas } from "../../lib/captcha";
-import { AvatarPicker } from "../ui/AvatarPicker";
+import { CARTOON_AVATARS } from "../ui/AvatarPicker";
 import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
 import {
@@ -231,13 +231,14 @@ export const LandingHomePage: React.FC = () => {
     setIsRegistering(true);
     const effectiveUsername = regUsername.trim() || cleanEmail.split("@")[0].trim();
     const effectiveName = regName.trim() || effectiveUsername;
+    const randomAvatar = CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱";
     const res = await register({
       email: cleanEmail,
       code: regEmailCode.trim(),
       username: effectiveUsername,
       name: effectiveName,
       password: regPassword.trim(),
-      avatar: regAvatar,
+      avatar: randomAvatar,
       role: "创作者",
       bio: "专注高定排版与艺术创作",
     });
@@ -328,12 +329,7 @@ export const LandingHomePage: React.FC = () => {
                 <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>3D 艺术画册</span>
               </button>
-              <button
-                onClick={enterAsGuest}
-                className="text-[11px] sm:text-xs text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer whitespace-nowrap font-medium"
-              >
-                直接体验 →
-              </button>
+
               <button
                 onClick={() => {
                   setAuthTab("register");
@@ -429,33 +425,17 @@ export const LandingHomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Guest CTA */}
-            <div className="pt-1 flex items-center gap-4">
-                            <button
+            {/* 3D 实体画册速览入口 */}
+            <div className="pt-1 flex items-center gap-3">
+              <button
                 id="landing-album-btn"
                 onClick={() => setAlbumModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-800 dark:text-amber-300 text-xs font-semibold transition-all cursor-pointer"
-                title="沉浸式翻阅 3D 实体艺术画册"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-900 dark:text-amber-200 text-xs font-semibold transition-all cursor-pointer shadow-xs hover:scale-[1.02]"
+                title="沉浸式速览 3D 实体艺术画册"
               >
-                <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>3D 艺术画册</span>
+                <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>沉浸式翻阅 3D 艺术画册《九寨沟旅记》</span>
               </button>
-              <button
-                onClick={enterAsGuest}
-                className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1.5 py-1 cursor-pointer"
-              >
-                <span>免登录直接体验全部排版功能</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setAlbumModalOpen(true)}
-                className="text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 px-3 py-1 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="免登录沉浸式翻阅 3D 实体画册"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>沉浸式翻阅《九寨沟旅记》画册</span>
-              </button>
-
             </div>
           </div>
 
@@ -736,12 +716,7 @@ export const LandingHomePage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                        选择头像 (精选卡通形象 / 本地上传)
-                      </label>
-                      <AvatarPicker value={regAvatar} onChange={setRegAvatar} />
-                    </div>
+
 
                     {/* Anti-spam Verification Code */}
                     <div>

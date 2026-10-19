@@ -914,7 +914,7 @@ app.post("/api/auth/register", (req, res) => {
     username: finalUsername,
     passwordHash: password.trim(),
     name: (name || "").trim() || (cleanEmail ? cleanEmail.split("@")[0] : finalUsername),
-    avatar: avatar || "🐱",
+    avatar: avatar || ["🐱", "🐶", "🦊", "🐼", "🐰", "🐻", "🐨", "🦖", "🦁", "🐧", "🦉", "🐬", "🧑‍🎨", "📷", "🧑‍🚀", "☕"][Math.floor(Math.random() * 16)],
     role: (role || "").trim() || "独立创作者",
     isAdmin: false,
     status: "active",

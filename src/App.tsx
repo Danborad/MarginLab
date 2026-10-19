@@ -29,6 +29,7 @@ export function App() {
   (window as any).__store = useEditorStore;
 
   const currentView = useEditorStore((s) => s.currentView);
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
   const activePanel = useEditorStore((s) => s.activePanel);
   const loadFromStorage = useEditorStore((s) => s.loadFromStorage);
   const fetchAiHistory = useEditorStore((s) => s.fetchAiHistory);
@@ -43,8 +44,8 @@ export function App() {
     fetchSiteFilingConfig();
   }, [loadFromStorage, fetchAiHistory, fetchAiConfig, fetchSiteFilingConfig]);
 
-  // 1. Landing Home View
-  if (currentView === "home") {
+  // 1. Landing Home View (未登录仅允许浏览首页与 3D 画册速览)
+  if (currentView === "home" || !isAuthenticated) {
     return (
       <div className="w-screen h-screen overflow-hidden bg-studio-bg select-none">
         <LandingHomePage />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useEditorStore, AuthTab } from "../../store/useEditorStore";
 import { generateCaptchaCode, drawCaptchaCanvas } from "../../lib/captcha";
-import { AvatarPicker } from "../ui/AvatarPicker";
+import { AvatarPicker, CARTOON_AVATARS } from "../ui/AvatarPicker";
 import { AvatarView } from "../ui/AvatarView";
 import {
   X,
@@ -275,13 +275,14 @@ export const AuthModal: React.FC = () => {
     setIsRegistering(true);
     const effectiveUsername = regUsername.trim() || cleanEmail.split("@")[0].trim();
     const effectiveName = regName.trim() || effectiveUsername;
+    const randomAvatar = CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱";
     const res = await register({
       email: cleanEmail,
       code: regEmailCode.trim(),
       username: effectiveUsername,
       name: effectiveName,
       password: regPassword.trim(),
-      avatar: regAvatar,
+      avatar: randomAvatar,
       role: "创作者",
       bio: "专注高定排版与艺术创作",
     });
@@ -729,12 +730,7 @@ export const AuthModal: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    选择头像 (精选卡通形象 / 本地上传)
-                  </label>
-                  <AvatarPicker value={regAvatar} onChange={setRegAvatar} />
-                </div>
+
 
                 {/* Anti-spam Verification Code */}
                 <div>

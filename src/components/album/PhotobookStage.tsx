@@ -29,6 +29,8 @@ import {
   Maximize2,
   Minimize2,
   RotateCcw,
+  LogIn,
+  Eye,
 } from 'lucide-react';
 
 export interface PhotobookStageProps {
@@ -97,6 +99,9 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
   const nRef = useRef(totalSpreads);
   nRef.current = totalSpreads;
 
+  const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
+  const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
+
   /* ── 基础 UI 状态 ─────────────────────────────────────────── */
   const [viewMode, setViewMode] = useState<'book' | 'grid'>('book');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -111,10 +116,15 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
 
   const handleOpenEditPage = useCallback(
     (target: "cover" | "backCover" | "page", spreadIndex?: number, side?: "left" | "right") => {
+      if (!isAuthenticated) {
+        setToast("当前为只读速览模式，请注册专属账号后开启排版编辑");
+        setAuthModalOpen(true, "register");
+        return;
+      }
       setPageConfigTarget({ type: target, spreadIndex, side });
       setIsPageConfigOpen(true);
     },
-    []
+    [isAuthenticated, setAuthModalOpen]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -307,12 +317,17 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
     () => ({
       album,
       totalPages,
-      onPlaceholderClick: onOpenAddModal,
+      onPlaceholderClick: isAuthenticated
+        ? onOpenAddModal
+        : () => {
+            setToast("当前为只读画册速览，请注册专属账号后开启排版编辑");
+            setAuthModalOpen(true, "register");
+          },
       onRestart,
-      onEditPage: handleOpenEditPage,
+      onEditPage: isAuthenticated ? handleOpenEditPage : undefined,
       interactive: !turn,
     }),
-    [album, totalPages, onOpenAddModal, onRestart, handleOpenEditPage, turn]
+    [album, totalPages, isAuthenticated, setAuthModalOpen, onOpenAddModal, onRestart, handleOpenEditPage, turn]
   );
 
   const pageLabel =
@@ -386,9 +401,16 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             </div>
           ) : (
             <div
-              onClick={() => setIsEditingTitle(true)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setToast("当前为只读速览模式，请注册专属账号后开启排版编辑");
+                  setAuthModalOpen(true, "register");
+                  return;
+                }
+                setIsEditingTitle(true);
+              }}
               className="group flex items-center gap-1.5 cursor-pointer max-w-[46vw]"
-              title="点击编辑相册标题"
+              title={isAuthenticated ? "点击编辑相册标题" : "当前为只读模式"}
             >
               <h2 className={`text-base sm:text-lg font-serif font-bold tracking-wider truncate ${currentThemeCls}`}>
                 {album.title || '艺术相册'}
@@ -409,6 +431,15 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {!isAuthenticated && (
+            <button
+              onClick={() => setAuthModalOpen(true, "login")}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer whitespace-nowrap"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>登录 / 注册</span>
+            </button>
+          )}
           <button
             onClick={toggleFullscreen}
             className={`p-2 rounded-xl transition-all cursor-pointer ${toolBtnCls} ${
@@ -536,6 +567,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                     </div>
 
                     {/* 悬停快捷编辑按键 */}
+                    {isAuthenticated && (
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center gap-1">
                       <button
                         onClick={(e) => {
@@ -560,6 +592,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                         <span>右</span>
                       </button>
                     </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -602,7 +635,14 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
               </div>
 
               <div
-                onClick={onOpenAddModal}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setToast("当前为只读画册速览，请注册专属账号后开启排版编辑");
+                    setAuthModalOpen(true, "register");
+                    return;
+                  }
+                  onOpenAddModal();
+                }}
                 className={`rounded-xl border-2 border-dashed aspect-[3/2] flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all group ${
                   isLight
                     ? 'border-black/15 hover:border-amber-500 bg-white/60 hover:bg-white'
@@ -623,42 +663,57 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             {/* 页面快速独立配置浮动操作栏 */}
             {!turn && (
               <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 animate-fadeIn pointer-events-auto">
-                {index === -1 && (
+                {!isAuthenticated ? (
                   <button
-                    onClick={() => handleOpenEditPage('cover')}
-                    className="px-3 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1.5 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
+                    onClick={() => {
+                      setToast("当前为只读画册速览，请注册专属账号后开启排版编辑");
+                      setAuthModalOpen(true, "register");
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-white/95 hover:bg-white text-gray-900 text-[11px] font-semibold flex items-center gap-1.5 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer backdrop-blur-md"
                   >
-                    <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                    <span>自定义封面与装订</span>
+                    <Eye className="w-3.5 h-3.5 text-amber-600" />
+                    <span>画册速览浏览中 · 注册登录开启专属编辑</span>
                   </button>
-                )}
-
-                {index >= totalSpreads && (
-                  <button
-                    onClick={() => handleOpenEditPage('backCover')}
-                    className="px-3 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1.5 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                    <span>自定义封底寄语</span>
-                  </button>
-                )}
-
-                {index >= 0 && index < totalSpreads && (
+                ) : (
                   <>
-                    <button
-                      onClick={() => handleOpenEditPage('page', index, 'left')}
-                      className="px-2.5 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3 text-amber-600" />
-                      <span>配置左页 (P.{index * 2 + 1})</span>
-                    </button>
-                    <button
-                      onClick={() => handleOpenEditPage('page', index, 'right')}
-                      className="px-2.5 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3 text-amber-600" />
-                      <span>配置右页 (P.{index * 2 + 2})</span>
-                    </button>
+                    {index === -1 && (
+                      <button
+                        onClick={() => handleOpenEditPage('cover')}
+                        className="px-3 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1.5 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-amber-600" />
+                        <span>自定义封面与装订</span>
+                      </button>
+                    )}
+
+                    {index >= totalSpreads && (
+                      <button
+                        onClick={() => handleOpenEditPage('backCover')}
+                        className="px-3 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1.5 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-amber-600" />
+                        <span>自定义封底寄语</span>
+                      </button>
+                    )}
+
+                    {index >= 0 && index < totalSpreads && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditPage('page', index, 'left')}
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
+                        >
+                          <Edit2 className="w-3 h-3 text-amber-600" />
+                          <span>配置左页 (P.{index * 2 + 1})</span>
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditPage('page', index, 'right')}
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-gray-100 text-gray-900 text-[11px] font-semibold flex items-center gap-1 shadow-xl border border-white/20 transition-all hover:scale-105 cursor-pointer"
+                        >
+                          <Edit2 className="w-3 h-3 text-amber-600" />
+                          <span>配置右页 (P.{index * 2 + 2})</span>
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -815,6 +870,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             <Upload className="w-4 h-4" />
           </button>
 
+          {isAuthenticated && (
           <button
             onClick={() => setConfirmDelete(true)}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
@@ -826,6 +882,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
           >
             <Trash2 className="w-4 h-4" />
           </button>
+          )}
 
           {index >= totalSpreads ? (
             <button
@@ -846,13 +903,15 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             </button>
           )}
 
-          <button
-            onClick={onOpenAddModal}
-            className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center justify-center transition-colors cursor-pointer font-bold shadow-md hover:scale-105"
-            title="添加新画册页面"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={onOpenAddModal}
+              className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center justify-center transition-colors cursor-pointer font-bold shadow-md hover:scale-105"
+              title="添加新画册页面"
+            >
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          )}
 
           {confirmDelete && (
             <div

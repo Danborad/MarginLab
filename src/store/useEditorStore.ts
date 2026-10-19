@@ -64,6 +64,7 @@ import {
  } from "../lib/api";
 import type { SiteFilingConfig, EmailConfig, PublicEmailConfig } from "../lib/api";
 import { DEFAULT_SITE_FILING_CONFIG } from "../lib/api";
+import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
  
  // Multi-user & Auth Storage Keys (Strictly isolated per registered user)
  const STORAGE_ACCOUNTS_KEY = "atelier_registered_accounts_v4";
@@ -480,24 +481,10 @@ export const getInitialViewState = (): {
       }
     }
   } catch (e) {}
-  // Zero-friction instant guest creator mode
-  const defaultGuest: UserAccount = {
-    id: "guest_default",
-    username: "guest",
-    passwordHash: "",
-    name: "创作者体验官",
-    avatar: "🎨",
-    role: "独立创作者",
-    isAdmin: false,
-    status: "active",
-    bio: "零门槛即刻创作",
-    themeColor: "#111827",
-    createdAt: new Date().toISOString(),
-  };
   return {
-    currentUser: defaultGuest,
-    isAuthenticated: true,
-    currentView: "studio" as StudioView,
+    currentUser: null,
+    isAuthenticated: false,
+    currentView: "home" as StudioView,
   };
 };
 
@@ -2158,6 +2145,10 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
     openReplacePhotoModal: (elementId) => {
       const state = getStore();
+      if (!state.isAuthenticated) {
+        setStore({ authModalOpen: true, authModalTab: "register" });
+        return;
+      }
       const targetId = elementId || state.selectedIds[0] || null;
       setStore({
         replacePhotoModalOpen: true,
@@ -2199,6 +2190,11 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
     // View & Navigation Actions
     setCurrentView: (view) => {
+      const state = getStore();
+      if (view === "studio" && !state.isAuthenticated) {
+        setStore({ authModalOpen: true, authModalTab: "register" });
+        return;
+      }
       setStoredView(view);
       setStore({ currentView: view });
     },
@@ -2218,20 +2214,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       setStore({ themeMode: "light" });
     },
     enterAsGuest: () => {
-      const guestUser: UserAccount = {
-        id: "guest",
-        username: "guest",
-        passwordHash: "guest",
-        name: "访客体验官",
-        avatar: "🎨",
-        role: "访客体验",
-        isAdmin: false,
-        status: "active",
-        createdAt: new Date().toISOString(),
-      };
-      setLocalActiveUserId("guest");
-      setStoredView("studio");
-      setStore({ currentUser: guestUser, isAuthenticated: true, currentView: "studio" });
+      setStore({ authModalOpen: true, authModalTab: "register" });
     },
 
     // Multi-user & Auth Modal Controls
@@ -2442,7 +2425,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         username: cleanWithoutAt,
         password: password.trim(),
         name: name.trim() || (cleanEmail ? cleanEmail.split("@")[0] : cleanWithoutAt),
-        avatar: avatar || "🐱",
+        avatar: avatar || (CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱"),
         role: role?.trim() || "独立创作者",
         bio: bio?.trim() || "专注高定排版与艺术创作",
         email: cleanEmail,
@@ -3970,27 +3953,13 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
           // 立即同步拉取当前用户的生成历史，确保首屏打开立刻展示
           getStore().fetchAiHistory(activeUser.id).catch(() => {});
         } else {
-          const guestUser: UserAccount = {
-            id: "guest_default",
-            username: "guest",
-            passwordHash: "",
-            name: "创作者体验官",
-            avatar: "🎨",
-            role: "独立创作者",
-            isAdmin: false,
-            status: "active",
-            bio: "零门槛即刻创作",
-            themeColor: "#111827",
-            createdAt: new Date().toISOString(),
-          };
+          setLocalActiveUserId(null);
           setStore({
             userAccounts: accounts,
-            currentUser: guestUser,
-            isAuthenticated: true,
-            currentView: "studio",
-            activePanel: "ai-stylize",
+            currentUser: null,
+            isAuthenticated: false,
+            currentView: "home",
           });
-          getStore().fetchAiHistory().catch(() => {});
         }
         return true;
       } catch (err) {
