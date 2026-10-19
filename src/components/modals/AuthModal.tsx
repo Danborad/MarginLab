@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useEditorStore, AuthTab } from "../../store/useEditorStore";
-import { generateCaptchaCode, drawCaptchaCanvas } from "../../lib/captcha";
-import { AvatarPicker, CARTOON_AVATARS } from "../ui/AvatarPicker";
+import { useEditorStore } from "../../store/useEditorStore";
 import { AvatarView } from "../ui/AvatarView";
 import {
   X,
@@ -10,8 +8,6 @@ import {
   FolderOpen,
   Image as ImageIcon,
   LayoutTemplate,
-  ArrowRight,
-  UserPlus,
   Lock,
   Eye,
   EyeOff,
@@ -20,13 +16,9 @@ import {
   KeyRound,
   User,
   AlertCircle,
-  RefreshCw,
   Crown,
-  Mail,
 } from "lucide-react";
 import { Button } from "../ui/Button";
-
-const AVATAR_OPTIONS = ["🎨", "📷", "✨", "🌿", "☕", "🏛️", "🎞️", "🌸", "⚡", "💎", "🪐", "🎬"];
 
 export const AuthModal: React.FC = () => {
   const authModalOpen = useEditorStore((s) => s.authModalOpen || s.userAccountModalOpen);
@@ -35,13 +27,8 @@ export const AuthModal: React.FC = () => {
   const setAdminModalOpen = useEditorStore((s) => s.setAdminModalOpen);
   const currentUser = useEditorStore((s) => s.currentUser);
   const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
-  const themeMode = useEditorStore((s) => s.themeMode);
+  const navigateToHomeAuth = useEditorStore((s) => s.navigateToHomeAuth);
 
-  const login = useEditorStore((s) => s.login);
-  const register = useEditorStore((s) => s.register);
-  const sendVerificationCode = useEditorStore((s) => s.sendVerificationCode);
-  const publicEmailConfig = useEditorStore((s) => s.publicEmailConfig);
-  const fetchPublicEmailConfig = useEditorStore((s) => s.fetchPublicEmailConfig);
   const logout = useEditorStore((s) => s.logout);
   const updateUserProfile = useEditorStore((s) => s.updateUserProfile);
   const changePassword = useEditorStore((s) => s.changePassword);
@@ -50,122 +37,24 @@ export const AuthModal: React.FC = () => {
   const customTemplates = useEditorStore((s) => s.customTemplates);
   const mediaAssets = useEditorStore((s) => s.mediaAssets);
 
-  // Active Tab state
-  const [tab, setTab] = useState<AuthTab>(
-    authModalTab || (isAuthenticated ? "profile" : "login")
+  const [tab, setTab] = useState<"profile" | "changePassword">(
+    authModalTab === "changePassword" ? "changePassword" : "profile"
   );
 
   useEffect(() => {
-    if (authModalTab) {
-      setTab(authModalTab);
+    if (authModalTab === "changePassword") {
+      setTab("changePassword");
     } else {
-      setTab(isAuthenticated ? "profile" : "login");
+      setTab("profile");
     }
-  }, [authModalTab, authModalOpen, isAuthenticated]);
-
-  // Login Form State
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [loginError, setLoginError] = useState("");
-  const [loginSuccess, setLoginSuccess] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // Register Form State & Captcha
-  const [regEmail, setRegEmail] = useState("");
-  const [regEmailCode, setRegEmailCode] = useState("");
-  const [isSendingCode, setIsSendingCode] = useState(false);
-  const [emailCooldown, setEmailCooldown] = useState(0);
-  const [regUsername, setRegUsername] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regConfirmPassword, setRegConfirmPassword] = useState("");
-  const [regName, setRegName] = useState("");
-  const [regAvatar, setRegAvatar] = useState(AVATAR_OPTIONS[0]);
-  const [showRegPassword, setShowRegPassword] = useState(false);
-  const [regCaptcha, setRegCaptcha] = useState("");
-  const [captchaCode, setCaptchaCode] = useState(() => generateCaptchaCode(4));
-  const captchaCanvasRef = React.useRef<HTMLCanvasElement>(null);
-  const [regError, setRegError] = useState("");
-  const [regSuccess, setRegSuccess] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
-
-  const refreshCaptcha = React.useCallback(() => {
-    const newCode = generateCaptchaCode(4);
-    setCaptchaCode(newCode);
-    if (captchaCanvasRef.current) {
-      drawCaptchaCanvas(captchaCanvasRef.current, newCode, themeMode);
-    }
-  }, [themeMode]);
-
-  React.useEffect(() => {
-    if (tab === "register" && captchaCanvasRef.current) {
-      drawCaptchaCanvas(captchaCanvasRef.current, captchaCode, themeMode);
-    }
-  }, [tab, captchaCode, themeMode]);
-
-  useEffect(() => {
-    if (authModalOpen) {
-      fetchPublicEmailConfig();
-    }
-  }, [authModalOpen]);
-
-  useEffect(() => {
-    if (emailCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setEmailCooldown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [emailCooldown]);
-
-  const emailDomain = regEmail.includes("@") ? regEmail.split("@")[1].trim().toLowerCase() : "";
-  const isEmailDomainValid =
-    !publicEmailConfig.whitelistEnabled ||
-    !publicEmailConfig.whitelistDomains?.length ||
-    !emailDomain ||
-    publicEmailConfig.whitelistDomains.includes(emailDomain);
-
-  const handleSendEmailCode = async () => {
-    setRegError("");
-    setRegSuccess("");
-    const cleanEmail = regEmail.trim().toLowerCase();
-    if (!cleanEmail) {
-      setRegError("请先输入注册电子邮箱");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      setRegError("请输入格式正确的电子邮箱（如 creator@163.com）");
-      return;
-    }
-    const domain = cleanEmail.split("@")[1];
-    if (publicEmailConfig.whitelistEnabled && publicEmailConfig.whitelistDomains?.length) {
-      const allowed = publicEmailConfig.whitelistDomains.some(
-        (d) => d && d.trim().toLowerCase() === domain
-      );
-      if (!allowed) {
-        setRegError(`邮箱域名 @${domain} 未在允许注册名单内。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`);
-        return;
-      }
-    }
-
-    setIsSendingCode(true);
-    const res = await sendVerificationCode(cleanEmail, "register");
-    setIsSendingCode(false);
-
-    if (res.success) {
-      setRegSuccess(res.message);
-      setEmailCooldown(60);
-    } else {
-      setRegError(res.message);
-    }
-  };
+  }, [authModalTab, authModalOpen]);
 
   // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editBio, setEditBio] = useState("");
-  const [editAvatar, setEditAvatar] = useState(AVATAR_OPTIONS[0]);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editAvatar, setEditAvatar] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
 
   // Change Password State
@@ -179,131 +68,15 @@ export const AuthModal: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       setEditName(currentUser.name || "");
-      setEditRole(currentUser.role || "");
+      setEditRole(currentUser.role || "创作者");
       setEditBio(currentUser.bio || "");
-      setEditAvatar(currentUser.avatar || AVATAR_OPTIONS[0]);
+      setEditAvatar(currentUser.avatar || "🎨");
     }
   }, [currentUser]);
 
-  if (!authModalOpen) return null;
-
-  // Handle Login Submit
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    setLoginSuccess("");
-    if (!loginUsername.trim()) {
-      setLoginError("请输入登录账号 / 用户名");
-      return;
-    }
-    if (!loginPassword.trim()) {
-      setLoginError("请输入登录密码");
-      return;
-    }
-
-    setIsLoggingIn(true);
-    const res = await login(loginUsername.trim(), loginPassword.trim());
-    setIsLoggingIn(false);
-
-    if (res.success) {
-      setLoginSuccess(res.message);
-      setTimeout(() => {
-        setAuthModalOpen(false);
-        setLoginUsername("");
-        setLoginPassword("");
-        setLoginSuccess("");
-      }, 700);
-    } else {
-      setLoginError(res.message);
-    }
-  };
-
-  // Handle Register Submit
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setRegError("");
-    setRegSuccess("");
-
-    const cleanEmail = regEmail.trim().toLowerCase();
-    if (!cleanEmail) {
-      setRegError("请输入注册电子邮箱");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      setRegError("请输入有效的电子邮箱地址");
-      return;
-    }
-
-    const domain = cleanEmail.split("@")[1];
-    if (publicEmailConfig.whitelistEnabled && publicEmailConfig.whitelistDomains?.length) {
-      const allowed = publicEmailConfig.whitelistDomains.some(
-        (d) => d && d.trim().toLowerCase() === domain
-      );
-      if (!allowed) {
-        setRegError(`邮箱域名 @${domain} 未在允许注册名单内。目前仅支持日常常用邮箱（如 QQ、163、Gmail、Outlook 等）`);
-        return;
-      }
-    }
-
-    if (publicEmailConfig.enabled && !regEmailCode.trim()) {
-      setRegError("请输入收到的 6 位邮箱验证码");
-      return;
-    }
-
-    if (!regPassword.trim() || regPassword.trim().length < 4) {
-      setRegError("密码长度至少 4 位");
-      return;
-    }
-    if (regPassword.trim() !== regConfirmPassword.trim()) {
-      setRegError("两次输入的密码不一致，请核对");
-      return;
-    }
-
-    if (!regCaptcha.trim()) {
-      setRegError("请输入防刷安全验证码");
-      return;
-    }
-
-    if (regCaptcha.trim().toUpperCase() !== captchaCode.toUpperCase()) {
-      setRegError("防刷验证码输入错误，已自动刷新，请重新输入");
-      setRegCaptcha("");
-      refreshCaptcha();
-      return;
-    }
-
-    setIsRegistering(true);
-    const effectiveUsername = regUsername.trim() || cleanEmail.split("@")[0].trim();
-    const effectiveName = regName.trim() || effectiveUsername;
-    const randomAvatar = CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱";
-    const res = await register({
-      email: cleanEmail,
-      code: regEmailCode.trim(),
-      username: effectiveUsername,
-      name: effectiveName,
-      password: regPassword.trim(),
-      avatar: randomAvatar,
-      role: "创作者",
-      bio: "专注高定排版与艺术创作",
-    });
-    setIsRegistering(false);
-
-    if (res.success) {
-      setRegSuccess(res.message);
-      setTimeout(() => {
-        setAuthModalOpen(false);
-        setRegEmail("");
-        setRegEmailCode("");
-        setRegUsername("");
-        setRegPassword("");
-        setRegConfirmPassword("");
-        setRegName("");
-        setRegSuccess("");
-      }, 800);
-    } else {
-      setRegError(res.message);
-    }
-  };
+  if (!authModalOpen || !isAuthenticated || !currentUser) {
+    return null;
+  }
 
   // Handle Profile Update Submit
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -366,18 +139,14 @@ export const AuthModal: React.FC = () => {
         <div className="p-4 sm:p-4.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/90">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-stone-800 to-stone-700 flex items-center justify-center text-amber-300 border border-amber-500/40 shadow-sm text-xl">
-              {currentUser ? <AvatarView avatar={currentUser.avatar} size="lg" /> : <Lock className="w-5 h-5 text-amber-300" />}
+              <AvatarView avatar={currentUser.avatar} size="lg" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold tracking-wider text-zinc-900 dark:text-zinc-100">
-                  {tab === "login"
-                    ? "账号密码登录"
-                    : tab === "register"
-                    ? "注册新账号"
-                    : tab === "changePassword"
+                  {tab === "changePassword"
                     ? "安全中心 • 修改登录密码"
-                    : "个人中心与数据隔离"}
+                    : "个人中心与账号设置"}
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1 font-semibold">
                   <ShieldCheck className="w-3 h-3 text-amber-600 dark:text-amber-400" />
@@ -385,18 +154,12 @@ export const AuthModal: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
-                {currentUser && isAuthenticated ? (
-                  <>
-                    当前登录：
-                    <span className="text-amber-700 dark:text-amber-400 font-bold">{currentUser.name}</span>
-                    <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 ml-1">
-                      (@{currentUser.username})
-                    </span>{" "}
-                    • 素材库与作品库严格私有隔离
-                  </>
-                ) : (
-                  "支持账号密码登录与新用户注册，多用户私有素材与作品完全独立隔离"
-                )}
+                当前登录：
+                <span className="text-amber-700 dark:text-amber-400 font-bold">{currentUser.name}</span>
+                <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 ml-1">
+                  (@{currentUser.username})
+                </span>{" "}
+                • 素材库与作品库严格私有隔离
               </p>
             </div>
           </div>
@@ -410,388 +173,49 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-zinc-900/60 px-3 sm:px-4 pt-2 gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-          {isAuthenticated && currentUser ? (
-            <>
-              <button
-                onClick={() => setTab("profile")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "profile"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>个人中心 ({currentUser.name.split(" ")[0]})</span>
-              </button>
-              <button
-                onClick={() => setTab("login")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "login"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>切换其他账号登录</span>
-              </button>
-              <button
-                onClick={() => setTab("register")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "register"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>注册新账号</span>
-              </button>
-              <button
-                onClick={() => setTab("changePassword")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "changePassword"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>修改密码</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => setTab("login")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "login"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>账号密码登录</span>
-              </button>
-              <button
-                onClick={() => setTab("register")}
-                className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
-                  tab === "register"
-                    ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
-                    : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>注册新账号</span>
-              </button>
-            </>
-          )}
+        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-zinc-900/60 px-3 sm:px-4 pt-2 gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setTab("profile")}
+              className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+                tab === "profile"
+                  ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
+                  : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>个人中心 ({currentUser.name.split(" ")[0]})</span>
+            </button>
+            <button
+              onClick={() => setTab("changePassword")}
+              className={`pb-2.5 px-3 text-xs flex items-center gap-1.5 transition-all border-b-2 cursor-pointer ${
+                tab === "changePassword"
+                  ? "border-amber-600 dark:border-amber-400 text-amber-700 dark:text-amber-300 font-bold"
+                  : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium"
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>修改密码</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => {
+              setAuthModalOpen(false);
+              navigateToHomeAuth("login");
+            }}
+            className="pb-2.5 px-2.5 text-xs flex items-center gap-1.5 text-zinc-500 hover:text-amber-700 dark:hover:text-amber-400 font-medium transition-colors cursor-pointer"
+            title="前往首页切换其他账号登录"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>切换其他账号</span>
+          </button>
         </div>
 
-        {/* Content Area */}
-        <div className="p-5 sm:p-6 flex-1 overflow-y-auto">
-          {/* TAB 1: LOGIN */}
-          {tab === "login" && (
-            <div className="space-y-4 max-w-md mx-auto py-2">
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                {loginError && (
-                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                    <span>{loginError}</span>
-                  </div>
-                )}
-                {loginSuccess && (
-                  <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
-                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>{loginSuccess}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    账号 / 用户名
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-zinc-500 dark:text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="请输入登录账号 / 用户名"
-                      value={loginUsername}
-                      onChange={(e) => setLoginUsername(e.target.value)}
-                      className="w-full pl-10 pr-3.5 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:focus:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none transition-colors font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    登录密码
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-zinc-500 dark:text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showLoginPassword ? "text" : "password"}
-                      required
-                      placeholder="请输入登录密码"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2.5 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:focus:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-white dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none transition-colors font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 p-0.5 cursor-pointer"
-                      title={showLoginPassword ? "隐藏密码" : "显示密码"}
-                    >
-                      {showLoginPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="accent"
-                  disabled={isLoggingIn}
-                  className="w-full py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 mt-2 bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-white transition-all cursor-pointer"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>{isLoggingIn ? "正在安全验证登录..." : "登 录 账 号"}</span>
-                </Button>
-              </form>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => setTab("register")}
-                  className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                >
-                  <span>还没有专属账号？立即注册新账号</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: REGISTER */}
-          {tab === "register" && (
-            <div className="space-y-4 max-w-md mx-auto py-1">
-              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                {regError && (
-                  <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                    <span>{regError}</span>
-                  </div>
-                )}
-                {regSuccess && (
-                  <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
-                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>{regSuccess}</span>
-                  </div>
-                )}
-
-                {/* 1. 电子邮箱输入框 & 实时域名白名单检测 */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
-                      注册电子邮箱 (Email) *
-                    </label>
-                    {publicEmailConfig.whitelistEnabled && (
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                        仅限日常常用邮箱
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    placeholder="如 creator@163.com 或 name@gmail.com"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono transition-colors"
-                  />
-                  {regEmail.includes("@") && (
-                    <div className="mt-1 text-[11px] font-mono">
-                      {isEmailDomainValid ? (
-                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <Check className="w-3 h-3" />
-                          <span>邮箱域名 @{emailDomain} 属于允许注册名单</span>
-                        </span>
-                      ) : (
-                        <span className="text-red-500 dark:text-red-400 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>未在允许注册名单中（支持 @qq.com, @163.com, @gmail.com, @outlook.com 等）</span>
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. 邮箱验证码输入框 + 获取验证码按钮 */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    邮箱验证码 *
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      required={publicEmailConfig.enabled}
-                      placeholder="输入 6 位验证码"
-                      value={regEmailCode}
-                      onChange={(e) => setRegEmailCode(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 placeholder:font-normal placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none tracking-widest"
-                    />
-                    <button
-                      type="button"
-                      disabled={isSendingCode || emailCooldown > 0 || !regEmail.trim()}
-                      onClick={handleSendEmailCode}
-                      className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer shrink-0 shadow-xs"
-                    >
-                      <Mail className={`w-3.5 h-3.5 ${isSendingCode ? "animate-spin" : ""}`} />
-                      <span>
-                        {isSendingCode
-                          ? "发送中..."
-                          : emailCooldown > 0
-                          ? `${emailCooldown}s 后重发`
-                          : "获取验证码"}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
-                    {publicEmailConfig.enabled
-                      ? "验证码将投递至您的邮箱，10 分钟内有效"
-                      : "提示：发信服务暂未开启，若无需验证码可直接注册"}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      登录账号 (选填，默认同邮箱前缀)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={regEmail ? regEmail.split("@")[0] : "如 photo_lin"}
-                      value={regUsername}
-                      onChange={(e) => setRegUsername(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      用户昵称 (Name)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="如 Lin 摄影工作室"
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      设置密码 *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showRegPassword ? "text" : "password"}
-                        required
-                        placeholder="至少 4 位字符"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        className="w-full px-3 pr-8 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegPassword(!showRegPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 p-0.5"
-                      >
-                        {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                      确认密码 *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="再次输入密码"
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none font-mono"
-                    />
-                  </div>
-                </div>
-
-
-
-                {/* Anti-spam Verification Code */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1.5">
-                    防刷安全验证码 * (点击图片换一张)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      placeholder="输入右侧 4 位验证码"
-                      value={regCaptcha}
-                      onChange={(e) => setRegCaptcha(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-zinc-50 hover:bg-white focus:bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 focus:border-amber-600 dark:focus:border-amber-400 rounded-xl text-xs font-mono font-bold text-white dark:text-zinc-100 uppercase tracking-widest placeholder:normal-case placeholder:font-normal placeholder:tracking-normal placeholder:text-zinc-500 dark:placeholder:text-zinc-400 focus:outline-none"
-                    />
-                    <div
-                      onClick={refreshCaptcha}
-                      className="relative cursor-pointer group rounded-xl overflow-hidden border border-zinc-300 dark:border-zinc-600 hover:border-amber-600 transition-colors shrink-0 bg-zinc-100 dark:bg-zinc-950 flex items-center shadow-xs"
-                      title="点击刷新验证码"
-                    >
-                      <canvas
-                        ref={captchaCanvasRef}
-                        width={110}
-                        height={36}
-                        className="block"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-mono text-amber-300 gap-1 pointer-events-none">
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                        <span>换一张</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  variant="accent"
-                  disabled={isRegistering}
-                  className="w-full py-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 mt-2 bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-400 dark:text-white transition-all cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>{isRegistering ? "正在创建隔离账户..." : "注 册 并 自 动 登 录"}</span>
-                </Button>
-              </form>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => setTab("login")}
-                  className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                >
-                  <span>已有账号？返回登录</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: PROFILE & DASHBOARD */}
-          {tab === "profile" && currentUser && (
+        {/* Modal Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+          {/* TAB 1: PROFILE & DASHBOARD */}
+          {tab === "profile" && (
             <div className="space-y-4 max-w-lg mx-auto py-1">
               {profileMsg && (
                 <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
@@ -841,14 +265,19 @@ export const AuthModal: React.FC = () => {
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-xs text-white dark:text-zinc-100"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-xs text-zinc-900 dark:text-zinc-100"
                       />
                     </div>
                     <div>
                       <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
-                        选择头像 (精选卡通形象 / 本地上传)
+                        创作者头衔
                       </label>
-                      <AvatarPicker value={editAvatar} onChange={setEditAvatar} />
+                      <input
+                        type="text"
+                        value={editRole}
+                        onChange={(e) => setEditRole(e.target.value)}
+                        className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-xs text-zinc-900 dark:text-zinc-100"
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block mb-1">
@@ -858,7 +287,7 @@ export const AuthModal: React.FC = () => {
                         type="text"
                         value={editBio}
                         onChange={(e) => setEditBio(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-xs text-white dark:text-zinc-100"
+                        className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-lg text-xs text-zinc-900 dark:text-zinc-100"
                       />
                     </div>
                     <div className="flex gap-2 pt-1">
@@ -979,7 +408,7 @@ export const AuthModal: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 4: CHANGE PASSWORD */}
+          {/* TAB 2: CHANGE PASSWORD */}
           {tab === "changePassword" && (
             <div className="space-y-4 max-w-md mx-auto py-2">
               <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
@@ -1074,9 +503,7 @@ export const AuthModal: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-[11px] font-mono">
-              {currentUser
-                ? `当前账号：${currentUser.name} (@${currentUser.username})`
-                : "未登录状态 • 请登录或注册"}
+              当前账号：{currentUser.name} (@{currentUser.username})
             </span>
           </div>
           <Button

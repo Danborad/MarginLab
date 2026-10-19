@@ -46,6 +46,8 @@ export const LandingHomePage: React.FC = () => {
   const logout = useEditorStore((s) => s.logout);
   const themeMode = useEditorStore((s) => s.themeMode);
   const toggleThemeMode = useEditorStore((s) => s.toggleThemeMode);
+  const landingAuthTab = useEditorStore((s) => s.landingAuthTab);
+  const setLandingAuthTab = useEditorStore((s) => s.setLandingAuthTab);
 
   // 全站备案信息（管理员后台可独立开关）
   const siteFilingConfig = useEditorStore((s) => s.siteFilingConfig);
@@ -55,6 +57,12 @@ export const LandingHomePage: React.FC = () => {
 
   // Tab: "login" vs "register"
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
+
+  useEffect(() => {
+    if (landingAuthTab) {
+      setAuthTab(landingAuthTab);
+    }
+  }, [landingAuthTab]);
 
   // Login Form
   const [loginUsername, setLoginUsername] = useState("");
@@ -341,10 +349,25 @@ export const LandingHomePage: React.FC = () => {
               </button>
 
               <button
+                id="landing-header-login-btn"
+                onClick={() => {
+                  setAuthTab("login");
+                  setLandingAuthTab("login");
+                  const el = document.getElementById("auth-portal");
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white text-[11px] sm:text-xs font-semibold hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-all cursor-pointer whitespace-nowrap"
+              >
+                账号登录
+              </button>
+
+              <button
+                id="landing-header-register-btn"
                 onClick={() => {
                   setAuthTab("register");
+                  setLandingAuthTab("register");
                   const el = document.getElementById("auth-portal");
-                  el?.scrollIntoView({ behavior: "smooth" });
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
                 className="px-3 sm:px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-zinc-950 text-[11px] sm:text-xs font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap"
               >

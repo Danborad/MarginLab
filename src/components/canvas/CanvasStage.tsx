@@ -51,6 +51,7 @@ export const CanvasStage: React.FC = () => {
   const openReplacePhotoModal = useEditorStore((s) => s.openReplacePhotoModal);
   const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
   const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
+  const navigateToHomeAuth = useEditorStore((s) => s.navigateToHomeAuth);
   const openAiStylizeModal = useEditorStore((s) => s.openAiStylizeModal);
   const setGuides = useEditorStore((s) => s.setGuides);
   const clearGuides = useEditorStore((s) => s.clearGuides);
@@ -253,7 +254,7 @@ export const CanvasStage: React.FC = () => {
           selectedIds.forEach((id) => {
             const el = document.elements.find((item) => item.id === id);
             if (el && !el.locked) {
-              updateElement(id, { x: el.x + dx, y: el.y + dy }, false);
+              updateElement(id, { x: el.x + dx, y: el.y + dy }, true);
             }
           });
         }
@@ -483,7 +484,7 @@ export const CanvasStage: React.FC = () => {
         originalWidth: dims.width,
         originalHeight: dims.height,
         crop: undefined,
-      });
+      }, true);
     }
     if (replaceInputRef.current) replaceInputRef.current.value = '';
   };
@@ -561,7 +562,7 @@ export const CanvasStage: React.FC = () => {
                   onDragEnd={handleElementDragEnd}
                   onDoubleClick={() => {
                     if (!isAuthenticated) {
-                      setAuthModalOpen(true, "register");
+                      navigateToHomeAuth("register");
                       return;
                     }
                     setEditingCropId(element.id);
@@ -636,7 +637,7 @@ export const CanvasStage: React.FC = () => {
           <Eye className="w-3.5 h-3.5 text-amber-600" />
           <span>拼图排版只读速览中 · 注册登录开启画布排版与编辑</span>
           <button
-            onClick={() => setAuthModalOpen(true, "register")}
+            onClick={() => navigateToHomeAuth("register")}
             className="ml-1 px-2.5 py-0.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer transition-all active:scale-95"
           >
             立即注册

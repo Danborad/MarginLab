@@ -43,6 +43,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
    const setProjectModalOpen = useEditorStore((s) => s.setProjectModalOpen);
   const setAlbumModalOpen = useEditorStore((s) => s.setAlbumModalOpen);
    const setAuthModalOpen = useEditorStore((s) => s.setAuthModalOpen);
+   const navigateToHomeAuth = useEditorStore((s) => s.navigateToHomeAuth);
    const setCurrentView = useEditorStore((s) => s.setCurrentView);
    const logout = useEditorStore((s) => s.logout);
    const openAiStylizeModal = useEditorStore((s) => s.openAiStylizeModal);
@@ -58,8 +59,8 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
    const undo = useEditorStore((s) => s.undo);
    const redo = useEditorStore((s) => s.redo);
-  const canUndo = useEditorStore((s) => s.canUndo());
-  const canRedo = useEditorStore((s) => s.canRedo());
+  const canUndo = useEditorStore((s) => s.past.length > 0);
+  const canRedo = useEditorStore((s) => s.future.length > 0);
   const zoom = useEditorStore((s) => s.zoom);
   const setZoom = useEditorStore((s) => s.setZoom);
   const setExportModalOpen = useEditorStore((s) => s.setExportModalOpen);
@@ -87,7 +88,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
   const handleQuickSave = async () => {
     if (!currentUser || !isAuthenticated) {
-      setAuthModalOpen(true, "register");
+      navigateToHomeAuth("register");
       return;
     }
     await saveCurrentProject(document.name);
@@ -240,7 +241,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
                <button
                  onClick={() => {
                    setUserMenuOpen(false);
-                   setAuthModalOpen(true, "login");
+                   navigateToHomeAuth("login");
                  }}
                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
                >
@@ -283,7 +284,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
               <span>只读速览</span>
             </div>
             <button
-              onClick={() => setAuthModalOpen(true, "register")}
+              onClick={() => navigateToHomeAuth("register")}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
               title="登录或注册专属个人账号开启完整编辑"
             >
@@ -312,7 +313,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
             <button
               onClick={() => {
                 if (!isAuthenticated) {
-                  setAuthModalOpen(true, "register");
+                  navigateToHomeAuth("register");
                   return;
                 }
                 setProjectModalOpen(true);
@@ -490,7 +491,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
               size="sm"
               onClick={() => {
                 if (!isAuthenticated) {
-                  setAuthModalOpen(true, "register");
+                  navigateToHomeAuth("register");
                   return;
                 }
                 setAutoLayoutModalOpen(true);
@@ -560,7 +561,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
             size="sm"
             onClick={() => {
               if (!isAuthenticated) {
-                setAuthModalOpen(true, "register");
+                navigateToHomeAuth("register");
                 return;
               }
               setExportModalOpen(true);

@@ -506,6 +506,9 @@ export interface EditorState {
   userAccountModalOpen: boolean; // Alias for backward compatibility
   setUserAccountModalOpen: (open: boolean, tab?: AuthTab) => void;
   setAuthModalOpen: (open: boolean, tab?: AuthTab) => void;
+  landingAuthTab: "login" | "register";
+  setLandingAuthTab: (tab: "login" | "register") => void;
+  navigateToHomeAuth: (tab?: "login" | "register") => void;
 
   // Real Auth Actions (Login / Register / Logout / Profile)
   login: (username: string, password: string) => Promise<{ success: boolean; message: string; user?: UserAccount }>;
@@ -835,10 +838,34 @@ const initialDoc: CollageDocument = {
 const initialViewState = getInitialViewState();
 const initialActivePanel = getStoredActivePanel();
 
+let lastHistoryTime = 0;
+
 export const useEditorStore = create<EditorState>((setStore, getStore) => {
-  const pushSnapshot = (currentDoc: CollageDocument) => {
+  const pushSnapshot = (currentDoc: CollageDocument, forceNew = false) => {
+    if (!currentDoc || !Array.isArray(currentDoc.elements)) {
+      return {};
+    }
     const { past } = getStore();
-    const newPast = [...past.slice(-30), JSON.parse(JSON.stringify(currentDoc))];
+    const now = Date.now();
+    const cloned: CollageDocument = JSON.parse(JSON.stringify(currentDoc));
+
+    if (past.length > 0) {
+      const last = past[past.length - 1];
+      if (
+        last.elements.length === cloned.elements.length &&
+        JSON.stringify(last.elements) === JSON.stringify(cloned.elements) &&
+        JSON.stringify(last.canvas) === JSON.stringify(cloned.canvas)
+      ) {
+        return { past, future: [], isDirty: true };
+      }
+    }
+
+    if (!forceNew && now - lastHistoryTime < 300 && past.length > 0) {
+      return { past, future: [], isDirty: true };
+    }
+
+    lastHistoryTime = now;
+    const newPast = [...past.slice(-50), cloned];
     return { past: newPast, future: [], isDirty: true };
   };
 
@@ -852,6 +879,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     authModalOpen: false,
     authModalTab: "login",
     userAccountModalOpen: false,
+    landingAuthTab: "login",
     mediaAssets: [],
 
     document: initialDoc,
@@ -1533,7 +1561,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
      submitCreativeGeneration: async () => {
        const state = getStore();
       if (!state.isAuthenticated) {
-        setStore({ authModalOpen: true, authModalTab: "register" });
+        getStore().navigateToHomeAuth("register");
         return;
       }
        const prompt = state.creativePromptDraft.trim();
@@ -2013,7 +2041,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     generateAiImage: async ({ styleId, customNotes, mood, includeText, specifiedText, sourceImage, aspectRatio } = {}) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
         return { success: false, message: "请注册或登录账号后使用 AI 修图功能" };
      }
       const targetStyleId = styleId || state.selectedAiStyleId || "dreamy_motion_editorial";
@@ -2154,7 +2182,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     openReplacePhotoModal: (elementId) => {
       const state = getStore();
       if (!state.isAuthenticated) {
-        setStore({ authModalOpen: true, authModalTab: "register" });
+        getStore().navigateToHomeAuth("register");
         return;
       }
       const targetId = elementId || state.selectedIds[0] || null;
@@ -2185,7 +2213,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         originalWidth: w,
         originalHeight: h,
         crop: undefined, // reset crop for fresh image
-      });
+      }, true);
 
       setStore({
         replacePhotoModalOpen: false,
@@ -2217,23 +2245,43 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       setStore({ themeMode: "light" });
     },
     enterAsGuest: () => {
-      setStore({ authModalOpen: true, authModalTab: "register" });
+      getStore().navigateToHomeAuth("register");
     },
 
     // Multi-user & Auth Modal Controls
-    setAuthModalOpen: (open, tab) =>
-      setStore({
-        authModalOpen: open,
-        userAccountModalOpen: open,
-        ...(tab ? { authModalTab: tab } : {}),
-      }),
+    setLandingAuthTab: (tab) => setStore({ landingAuthTab: tab }),
 
-    setUserAccountModalOpen: (open, tab) =>
+    navigateToHomeAuth: (tab = "login") => {
+      setStoredView("home");
+      setStore({
+        currentView: "home",
+        landingAuthTab: tab,
+        authModalOpen: false,
+        userAccountModalOpen: false,
+      });
+      setTimeout(() => {
+        const el = document.getElementById("auth-portal");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 80);
+    },
+
+    setAuthModalOpen: (open, tab) => {
+      if (open && (tab === "login" || tab === "register" || !tab)) {
+        getStore().navigateToHomeAuth(tab === "register" ? "register" : "login");
+        return;
+      }
       setStore({
         authModalOpen: open,
         userAccountModalOpen: open,
         ...(tab ? { authModalTab: tab } : {}),
-      }),
+      });
+    },
+
+    setUserAccountModalOpen: (open, tab) => {
+      getStore().setAuthModalOpen(open, tab);
+    },
 
         // Real Authentication: Login with Username & Password
     login: async (username, password) => {
@@ -2743,7 +2791,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     addMediaAssets: async (items) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return [];
      }
       const userId = state.currentUser?.id || "guest_user";
@@ -2833,7 +2881,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     deleteMediaAsset: async (assetId) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return;
      }
       const userId = state.currentUser?.id || "guest_user";
@@ -2856,7 +2904,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     clearAllMediaAssets: async () => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return;
      }
       const userId = state.currentUser?.id || "guest_user";
@@ -2916,7 +2964,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     addElement: (elementData) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return "";
      }
       const historyUpdate = pushSnapshot(state.document);
@@ -2946,7 +2994,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       return id;
     },
 
-    updateElement: (id, updates, pushToHistory = false) => {
+    updateElement: (id, updates, pushToHistory = true) => {
       const state = getStore();
      if (!state.isAuthenticated) {
        return;
@@ -2970,7 +3018,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       debouncedSaveToStorage();
     },
 
-    updateElements: (updatesList, pushToHistory = false) => {
+    updateElements: (updatesList, pushToHistory = true) => {
       const state = getStore();
       const historyUpdate = pushToHistory ? pushSnapshot(state.document) : {};
       const updateMap = new Map(updatesList.map((u) => [u.id, u.updates]));
@@ -2996,7 +3044,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     deleteElements: (ids) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return;
      }
       const targetIds = ids || state.selectedIds;
@@ -3021,7 +3069,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     duplicateElements: (ids) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return;
      }
       const targetIds = ids || state.selectedIds;
@@ -3428,14 +3476,14 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
           ? target.createDocument(currentW, currentH)
           : target.createDocument();
 
+        const historyUpdate = pushSnapshot(state.document, true);
         setStore({
           document: newDoc,
           currentProjectId: null,
           isDirty: true,
           selectedIds: [],
           editingCropId: null,
-          past: [],
-          future: [],
+          ...historyUpdate,
         });
         getStore().saveToStorage();
         return;
@@ -3445,14 +3493,14 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       if (custom) {
         const cloned: CollageDocument = JSON.parse(JSON.stringify(custom.document));
         cloned.id = generateId("doc");
+        const historyUpdate = pushSnapshot(state.document, true);
         setStore({
           document: cloned,
           currentProjectId: null,
           isDirty: true,
           selectedIds: [],
           editingCropId: null,
-          past: [],
-          future: [],
+          ...historyUpdate,
         });
         getStore().saveToStorage();
       }
@@ -3493,7 +3541,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     saveCurrentProject: async (customName) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return state.savedProjects[0] || ({} as any);
      }
       const currentDoc = state.document;
@@ -3549,7 +3597,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     saveAsNewProject: async (name) => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return state.savedProjects[0] || ({} as any);
      }
       const newProjId = generateId("proj");
@@ -3603,7 +3651,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     saveAsCustomTemplate: async (name, description = "用户自制排版模板", category = "我的模板") => {
       const state = getStore();
      if (!state.isAuthenticated) {
-       setStore({ authModalOpen: true, authModalTab: "register" });
+       getStore().navigateToHomeAuth("register");
        return state.customTemplates[0] || ({} as any);
      }
       const templateId = generateId("tpl_custom");

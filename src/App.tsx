@@ -44,12 +44,39 @@ export function App() {
     fetchSiteFilingConfig();
   }, [loadFromStorage, fetchAiHistory, fetchAiConfig, fetchSiteFilingConfig]);
 
+  // 全局回撤与重做快捷键监听 (Ctrl+Z / Cmd+Z / Ctrl+Y / Cmd+Shift+Z)
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable;
+      if (isInput) return;
+
+      const isMeta = e.metaKey || e.ctrlKey;
+      if (isMeta && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        const store = useEditorStore.getState();
+        if (e.shiftKey) {
+          store.redo();
+        } else {
+          store.undo();
+        }
+      } else if (isMeta && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        useEditorStore.getState().redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalShortcuts);
+    return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+  }, []);
+
   // 1. Landing Home View (未登录亦可进入工作台进行只读浏览)
   if (currentView === "home") {
     return (
       <div className="w-screen h-screen overflow-hidden bg-studio-bg select-none">
         <LandingHomePage />
-        <AuthModal />
         <AdminManagementModal />
         <AiSettingsModal />
         <AlbumModal />
