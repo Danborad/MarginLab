@@ -798,18 +798,25 @@ export const ElementPropertyPanel: React.FC = () => {
 
           {/* Background Theme */}
           <div className="space-y-1.5">
-            <label className="text-[11px] font-mono text-studio-muted uppercase">底色模式</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-mono text-studio-muted uppercase">底色模式</label>
+              <span className="text-[10px] text-studio-muted">
+                {(element.bgTheme || 'white') === 'white'
+                  ? '与画布融为一体 (默认)'
+                  : (element.bgTheme === 'transparent' ? '透出底层画面' : '暗黑相纸')}
+              </span>
+            </div>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { id: 'white', label: '纯白卡纸' },
+                { id: 'white', label: '纯白背景' },
+                { id: 'transparent', label: '透明背景' },
                 { id: 'dark', label: '沉稳曜黑' },
-                { id: 'transparent', label: '透明底色' },
               ].map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => updateElement(element.id, { bgTheme: t.id as any })}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-mono border transition-all ${
+                  className={`py-1.5 px-1.5 rounded-lg text-xs font-mono border transition-all text-center ${
                     (element.bgTheme || 'white') === t.id
                       ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
                       : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
@@ -819,6 +826,37 @@ export const ElementPropertyPanel: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* 当选择透明背景时提供深黑/纯白文字切换 */}
+            {element.bgTheme === 'transparent' && (
+              <div className="space-y-1 pt-1 border-t border-studio-border/50">
+                <label className="text-[10px] font-mono text-studio-muted uppercase">透明水印文字色</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => updateElement(element.id, { color: undefined, accentColor: undefined })}
+                    className={`py-1 px-1 rounded-md text-[11px] font-mono border transition-all text-center ${
+                      !element.color || element.color === '#18181B'
+                        ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                        : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+                    }`}
+                  >
+                    深黑文字 (默认)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateElement(element.id, { color: '#FFFFFF', accentColor: '#D4D4D8' })}
+                    className={`py-1 px-1 rounded-md text-[11px] font-mono border transition-all text-center ${
+                      element.color === '#FFFFFF'
+                        ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                        : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+                    }`}
+                  >
+                    纯白文字 (深色底图)
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Padding setting */}

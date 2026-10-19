@@ -8,6 +8,9 @@ export const StickersPanel: React.FC = () => {
   const elements = useEditorStore((s) => s.document.elements);
   const canvas = useEditorStore((s) => s.document.canvas);
   const setWatermarkModalOpen = useEditorStore((s) => s.setWatermarkModalOpen);
+  const selectedIds = useEditorStore((s) => s.selectedIds);
+  const updateElement = useEditorStore((s) => s.updateElement);
+  const [defaultBgTheme, setDefaultBgTheme] = React.useState<'white' | 'transparent'>('white');
 
   const getNowFormatted = () => {
     const now = new Date();
@@ -133,6 +136,8 @@ export const StickersPanel: React.FC = () => {
       }
     }
 
+    const finalBgTheme = w.watermarkStyle === 'film-date' ? 'transparent' : defaultBgTheme;
+
     addElement({
       type: 'sticker',
       name: w.title,
@@ -142,7 +147,7 @@ export const StickersPanel: React.FC = () => {
       dateTime: w.watermarkStyle === 'film-date' ? getDateOnlyFormatted() : getNowFormatted(),
       params: w.params,
       location: w.location,
-      bgTheme: w.bgTheme,
+      bgTheme: finalBgTheme,
       showDevice: true,
       showDateTime: true,
       showParams: true,
@@ -168,6 +173,60 @@ export const StickersPanel: React.FC = () => {
           </h2>
         </div>
         <span className="text-[10px] text-studio-muted font-mono">手机厂商精选</span>
+      </div>
+
+      {/* 水印底色模式快捷选择 */}
+      <div className="p-2.5 rounded-xl bg-studio-card border border-studio-border space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-medium text-studio-text">底色预设模式</span>
+          <span className="text-[10px] text-studio-muted font-mono">
+            {defaultBgTheme === 'white' ? '纯白 (无阴影无缝融合同色画布)' : '透明 (无底色透出底层)'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setDefaultBgTheme('white');
+              const activeId = selectedIds[0];
+              if (activeId) {
+                const sel = elements.find((el) => el.id === activeId);
+                if (sel?.type === 'sticker' && ((sel as any).stickerType === 'camera-watermark' || (sel as any).watermarkStyle)) {
+                  updateElement(activeId, { bgTheme: 'white' });
+                }
+              }
+            }}
+            className={`py-1.5 px-2 rounded-lg text-xs font-mono border transition-all flex items-center justify-center gap-1.5 ${
+              defaultBgTheme === 'white'
+                ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-sm bg-white border border-gray-300 inline-block shrink-0 shadow-xs" />
+            纯白背景 (默认)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDefaultBgTheme('transparent');
+              const activeId = selectedIds[0];
+              if (activeId) {
+                const sel = elements.find((el) => el.id === activeId);
+                if (sel?.type === 'sticker' && ((sel as any).stickerType === 'camera-watermark' || (sel as any).watermarkStyle)) {
+                  updateElement(activeId, { bgTheme: 'transparent' });
+                }
+              }
+            }}
+            className={`py-1.5 px-2 rounded-lg text-xs font-mono border transition-all flex items-center justify-center gap-1.5 ${
+              defaultBgTheme === 'transparent'
+                ? 'border-studio-accent bg-studio-accent/10 text-studio-accent font-semibold'
+                : 'border-studio-border bg-studio-card text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-gray-400 bg-transparent inline-block shrink-0" />
+            透明背景
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2.5">

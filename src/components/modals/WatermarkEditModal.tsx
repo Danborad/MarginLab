@@ -320,12 +320,19 @@ export const WatermarkEditModal: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-900">底色卡纸模式</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-gray-900">底色模式</label>
+                  <span className="text-[11px] text-gray-500">
+                    {(activeSticker.bgTheme || 'white') === 'white'
+                      ? '纯白无阴影直角，与画布融为一体 (默认)'
+                      : (activeSticker.bgTheme === 'transparent' ? '无底色透明，透出底层画面' : '暗色相纸条')}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { id: 'white', label: '纯白卡纸' },
+                    { id: 'white', label: '纯白背景 (同画布)' },
+                    { id: 'transparent', label: '透明背景' },
                     { id: 'dark', label: '沉稳曜黑' },
-                    { id: 'transparent', label: '透明底色' },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -343,6 +350,42 @@ export const WatermarkEditModal: React.FC = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* 当选择透明背景时提供深黑/纯白文字切换 */}
+                {activeSticker.bgTheme === 'transparent' && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-gray-700">透明水印文字色</label>
+                      <span className="text-[10px] text-gray-500">
+                        {activeSticker.color === '#FFFFFF' ? '纯白字符 (适合深色照片背景)' : '深黑字符 (适合浅色底图)'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateElement(activeSticker.id, { color: undefined, accentColor: undefined })}
+                        className={`py-1.5 px-2 rounded-xl text-xs font-medium border transition-all text-center ${
+                          !activeSticker.color || activeSticker.color === '#18181B'
+                            ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        深黑文字 (默认)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateElement(activeSticker.id, { color: '#FFFFFF', accentColor: '#D4D4D8' })}
+                        className={`py-1.5 px-2 rounded-xl text-xs font-medium border transition-all text-center ${
+                          activeSticker.color === '#FFFFFF'
+                            ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        纯白文字 (深色底图)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -269,8 +269,8 @@ export const ExportModal: React.FC = () => {
       } else if (el.type === 'sticker') {
         const isDarkBg = el.bgTheme === 'dark';
         const isTransparent = el.bgTheme === 'transparent';
-        const textColor = isDarkBg ? '#F4F4F5' : '#18181B';
-        const subTextColor = isDarkBg ? '#A1A1AA' : '#71717A';
+        const textColor = el.color || (isDarkBg ? '#F4F4F5' : '#18181B');
+        const subTextColor = el.accentColor || (isDarkBg ? '#A1A1AA' : (textColor === '#FFFFFF' || textColor === '#F4F4F5' ? '#D4D4D8' : '#71717A'));
 
         const showDevice = el.showDevice ?? true;
         const showDateTime = el.showDateTime ?? true;
@@ -281,13 +281,10 @@ export const ExportModal: React.FC = () => {
         const leftX = renderX + padX;
         const rightMargin = renderX + renderW - padX;
 
-        // Background
+        // Background (Flat, seamless integration with canvas)
         if (!isTransparent && (el.stickerType === 'camera-watermark' || el.watermarkStyle)) {
           ctx.fillStyle = isDarkBg ? '#121214' : '#FFFFFF';
-          ctx.beginPath();
-          const radius = Math.round(4 * pixelRatio);
-          ctx.roundRect(renderX, renderY, renderW, renderH, radius);
-          ctx.fill();
+          ctx.fillRect(renderX, renderY, renderW, renderH);
         }
 
         if (el.watermarkStyle === 'leica') {

@@ -61,8 +61,8 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
   const isDarkBg = bgTheme === 'dark';
   const isTransparent = bgTheme === 'transparent';
 
-  const textColor = isDarkBg ? '#F4F4F5' : '#18181B';
-  const subTextColor = isDarkBg ? '#A1A1AA' : '#71717A';
+  const textColor = color || (isDarkBg ? '#F4F4F5' : '#18181B');
+  const subTextColor = accentColor || (isDarkBg ? '#A1A1AA' : (textColor === '#FFFFFF' || textColor === '#F4F4F5' ? '#D4D4D8' : '#71717A'));
 
   const isLegacy =
     stickerType !== 'camera-watermark' &&
@@ -125,11 +125,7 @@ export const StickerElementNode: React.FC<StickerElementNodeProps> = ({
           width={width}
           height={height}
           fill={isTransparent ? 'rgba(0,0,0,0.001)' : isDarkBg ? '#121214' : '#FFFFFF'}
-          cornerRadius={isTransparent ? 0 : 4}
-          shadowColor="#000000"
-          shadowBlur={isTransparent ? 0 : isDarkBg ? 12 : 6}
-          shadowOpacity={isTransparent ? 0 : isDarkBg ? 0.25 : 0.08}
-          shadowOffsetY={isTransparent ? 0 : 2}
+          cornerRadius={0}
           listening={true}
         />
       )}
