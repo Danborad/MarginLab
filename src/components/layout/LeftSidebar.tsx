@@ -79,7 +79,7 @@ export const LeftSidebar: React.FC = () => {
     mobileActiveTab === "ai-create"
       ? "AI 创作工作台 · 自由生图"
       : mobileActiveTab === "ai-retouch"
-      ? "AI 修同款 · 36款修图风格"
+      ? "AI 修同款 · 调色修图风格"
       : mobileActiveTab === "ai-stylize"
       ? "AI 先锋艺术风格化"
       : mobileActiveTab === "album"

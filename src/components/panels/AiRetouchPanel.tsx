@@ -67,7 +67,7 @@ export const AiRetouchPanel: React.FC = () => {
           <div className="flex items-center gap-2">
             <h3 className="text-[15px] font-extrabold text-gray-950">AI 修同款</h3>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold">
-              36款
+              {RETOUCH_STYLES.length}款
             </span>
           </div>
           <p className="text-xs text-gray-500 font-medium mt-0.5">

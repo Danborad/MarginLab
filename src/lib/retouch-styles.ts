@@ -560,7 +560,7 @@ const RAW_RETOUCH_ITEMS: {
 ];
 
 export const RETOUCH_STYLES: RetouchStylePreset[] = RAW_RETOUCH_ITEMS.map((item) => {
-  const imgPath = `/retouch-thumbs/${item.thumbFile}`;
+  const imgPath = `/retouch-thumbs/${item.thumbFile}?v=20261020`;
   return {
     id: item.id,
     order: item.order,
