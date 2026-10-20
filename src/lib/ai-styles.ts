@@ -1230,6 +1230,78 @@ Follow the 5 Core Principles of Reality Restaged:
   "negativePrompt": "commercial ad banner, cheap propaganda poster, random unrelated geometry, distorted face, changing actions, 3d CGI glossy render, watermark, logo, messy scribbles",
   "previewSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 400\" width=\"100%\" height=\"100%\">\n    <rect width=\"300\" height=\"400\" fill=\"#F6F4ED\"/>\n    <rect x=\"20\" y=\"20\" width=\"260\" height=\"170\" fill=\"#18181B\" rx=\"2\"/>\n    <line x1=\"20\" y1=\"198\" x2=\"280\" y2=\"198\" stroke=\"#D1D5DB\" stroke-width=\"0.8\"/>\n    <text x=\"235\" y=\"245\" font-family=\"serif\" font-size=\"22\" font-weight=\"900\" fill=\"#18181B\">行</text>\n    <text x=\"235\" y=\"275\" font-family=\"serif\" font-size=\"22\" font-weight=\"900\" fill=\"#18181B\">風</text>\n    <path d=\"M50 300 Q140 260 210 270 Q240 280 270 260\" stroke=\"#DC2626\" stroke-width=\"4.5\" fill=\"none\"/>\n    <rect x=\"60\" y=\"240\" width=\"70\" height=\"90\" fill=\"#27272A\" opacity=\"0.85\"/>\n    <rect x=\"220\" y=\"356\" width=\"56\" height=\"18\" rx=\"3\" fill=\"#B91C1C\"/>\n    <text x=\"248\" y=\"368\" font-family=\"sans-serif\" font-size=\"8\" font-weight=\"bold\" fill=\"#FEF2F2\" text-anchor=\"middle\">情绪解构</text>\n  </svg>"
 },
+  {
+  "id": "retro_print_illustration",
+  "name": "复古实验平面插画 · Riso印刷",
+  "enName": "23 · Retro Experimental Graphic Print",
+  "category": "vintage",
+  "badge": "Riso复古",
+  "order": 23,
+  "enabled": true,
+  "githubUrl": "https://v.douyin.com/DUwpMYhAtBI/",
+  "coverImage": "/covers/23_retro_print_illustration.jpg",
+  "description": "Riso孔版印刷与丝网印刷质感，粗粝纸张颗粒、旧报纸半色调网点与轻微套色错位。黑米灰打底点缀荧光橙/钴蓝，极简高反差构图与天体几何符号，复古未来主义印刷海报感。",
+  "aspectRatio": "9:16",
+  "tags": [
+    "Riso孔版印刷",
+    "丝网质感",
+    "半色调网点",
+    "复古未来主义",
+    "神秘几何",
+    "高反差海报"
+  ],
+  "promptTemplate": "【复古实验平面插画风格】以原参考图主体的造型特征和固有色彩特征保持不变为核心。呈现Riso孔版印刷与丝网印刷质感：粗粝纸张颗粒、旧报纸半色调网点、复印机噪点、轻微套色错位；重绘参考图配色，黑色、米白、灰色为主，少量点缀荧光橙、柠檬黄、钴蓝与绿色。极简高反差构图，将主体置于画面一角，大面积留白，留白处填充天体与几何图形纹理元素，设计感海报英文大字，运用密集平行线、等高线、波纹、同心圆和几何栅格塑造形体，二维扁平、超现实尺度、复古未来主义、神秘存在主义氛围，非写实摄影，印刷海报感。{moodNotes} {textInstruction}",
+  "negativePrompt": "realistic 3d rendering, glossy photograph, modern gradient, modern digital clean vectors, blurry, low resolution, cheap cartoon, watermark, logo",
+  "previewSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 400\" width=\"100%\" height=\"100%\">\n    <rect width=\"300\" height=\"400\" fill=\"#EAE5D9\"/>\n    <circle cx=\"150\" cy=\"180\" r=\"80\" fill=\"#1C1917\" opacity=\"0.9\"/>\n    <circle cx=\"150\" cy=\"180\" r=\"70\" fill=\"none\" stroke=\"#F97316\" stroke-width=\"3\" stroke-dasharray=\"4,4\"/>\n    <path d=\"M70 260 L230 260 L210 320 L90 320 Z\" fill=\"#1C1917\"/>\n    <text x=\"150\" y=\"360\" font-family=\"'Courier New', monospace\" font-size=\"10\" font-weight=\"bold\" fill=\"#1C1917\" text-anchor=\"middle\" letter-spacing=\"3\">RISO EXPERIMENTAL PRINT</text>\n    <rect x=\"220\" y=\"356\" width=\"56\" height=\"18\" rx=\"3\" fill=\"#EA580C\"/>\n    <text x=\"248\" y=\"368\" font-family=\"sans-serif\" font-size=\"8\" font-weight=\"bold\" fill=\"#FFF7ED\" text-anchor=\"middle\">Riso复古</text>\n  </svg>"
+},
+  {
+  "id": "travel_postcard_collage",
+  "name": "浪漫旅行手账 · 明信片",
+  "enName": "24 · Romantic Travel Postcard Collage",
+  "category": "editorial",
+  "badge": "旅行明信片",
+  "order": 24,
+  "enabled": true,
+  "githubUrl": "https://v.douyin.com/wUYjb9N-hAc/",
+  "coverImage": "/covers/24_travel_postcard_collage.jpg",
+  "description": "上下严格50%分区：上半等比保留原照真实摄影，下半不透明水粉水彩手绘拼贴横向铺满，提取3-4个手绘贴纸、风景邮票、邮戳与植物线条，搭配优雅英文信笺排版。",
+  "aspectRatio": "3:4",
+  "tags": [
+    "旅行手账",
+    "浪漫明信片",
+    "水粉水彩",
+    "手绘拼贴",
+    "风景邮票",
+    "邮戳信笺"
+  ],
+  "promptTemplate": "将上传照片制作成一张独立的{aspectRatioDesc}浪漫旅行手账海报（旅行明信片风格）。画面上方摄影、下方手绘拼贴，严格各占50%。上半部分：完整保留原始照片的主体、构图、比例、色彩与光影，等比缩放居中，必要时左右留暖白边，不裁切主体、不拉伸。下半部分：根据照片重新设计为铺满整个宽度的横向手绘拼贴，保留原照最具辨识度的主体与空间关系，以不透明水粉结合水彩晕染重新绘制，呈现自然笔触、干刷露白与细腻纸纹，通过柔和暖光、局部灯火、轻盈云霞和冷暖层次营造浪漫感。从原照提取3—4个代表性元素制作大小错落的手绘贴纸、局部小画与风景邮票分布在边角，轻轻跨越主景边缘，搭配少量信笺、邮戳及场景植物线条。下半上方配小号优雅衬线英文标题，底部配一句简短手写英文，整体温柔、通透、有旅行书信的情绪。{moodNotes} {textInstruction}",
+  "negativePrompt": "heavy torn paper, jagged edges, 3D embossed relief, strong drop shadows, thick white sticker borders, messy overdecorated collage, giant text, distorted subject, watermark",
+  "previewSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 400\" width=\"100%\" height=\"100%\">\n    <rect width=\"300\" height=\"400\" fill=\"#FAF7F2\"/>\n    <rect x=\"25\" y=\"20\" width=\"250\" height=\"165\" fill=\"#38BDF8\" rx=\"3\" opacity=\"0.85\"/>\n    <line x1=\"20\" y1=\"198\" x2=\"280\" y2=\"198\" stroke=\"#E2E8F0\" stroke-width=\"0.8\" stroke-dasharray=\"3,3\"/>\n    <rect x=\"35\" y=\"215\" width=\"230\" height=\"120\" fill=\"#FDE68A\" rx=\"4\" opacity=\"0.7\"/>\n    <circle cx=\"230\" cy=\"245\" r=\"14\" fill=\"none\" stroke=\"#94A3B8\" stroke-width=\"1.2\"/>\n    <text x=\"230\" y=\"248\" font-family=\"monospace\" font-size=\"6\" fill=\"#64748B\" text-anchor=\"middle\">POST</text>\n    <text x=\"50\" y=\"240\" font-family=\"serif\" font-size=\"10\" font-weight=\"bold\" fill=\"#475569\">POSTCARD FROM JOURNEY</text>\n    <rect x=\"220\" y=\"356\" width=\"56\" height=\"18\" rx=\"3\" fill=\"#0284C7\"/>\n    <text x=\"248\" y=\"368\" font-family=\"sans-serif\" font-size=\"8\" font-weight=\"bold\" fill=\"#F0F9FF\" text-anchor=\"middle\">旅行明信片</text>\n  </svg>"
+},
+  {
+  "id": "out_of_frame_3d",
+  "name": "破框而出 · 2D突破3D海报",
+  "enName": "25 · Breaking Out of Frame 3D Art Poster",
+  "category": "modern",
+  "badge": "破框立体",
+  "order": 25,
+  "enabled": true,
+  "githubUrl": "https://v.douyin.com/JI54THUaubQ/",
+  "coverImage": "/covers/25_out_of_frame_3d.jpg",
+  "description": "2D突破3D视觉奇观：极简相框或拍立得边框中，主体花卉、人物或光影突破平面框体，向画外现实空间生长探出，形成虚实交错、空间穿透的数字雕塑与艺术展海报质感。",
+  "aspectRatio": "auto",
+  "tags": [
+    "2D突破3D",
+    "破框而出",
+    "穿透相框",
+    "数字雕塑",
+    "轻超现实",
+    "艺术展海报"
+  ],
+  "promptTemplate": "以上传的照片为基础，重新创作成一张独立的{aspectRatioDesc}具有“2D突破3D”视觉效果的创意艺术海报（破框而出风格）。核心视觉概念：将原照片中最具辨识度的主体（花朵、植物、人物、建筑或风景），重新设计为从平面相框、画框或拍立得边框中突破而出的形态。主体的一部分停留在框体内部，另一部分自然向外延伸、生长、探出、漂浮到边框之外，制造出“原本属于2D平面的东西突然跨入现实空间”的强烈穿透感。采用竖版海报排版，纯净深灰黑或极简浅色留白背景，中央一个明确的白色极简框架作为视觉容器。主体带有光滑细腻的数字雕塑或半写实立体质感，前后层次分明，枝叶或衣摆跨过边缘投下柔和自然投影，辅以极少灵动光点或飞散碎屑。上方配置简洁现代的大号海报英文字体，整体概念明确、极具视觉记忆点与现代艺术展海报冲击力。{moodNotes} {textInstruction}",
+  "negativePrompt": "flat flat photo, plain bordered photo, messy cluttered background, lack of depth, cartoon anime, clumsy sketch, cheap collage, commercial watermark, logo",
+  "previewSvg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 400\" width=\"100%\" height=\"100%\">\n    <rect width=\"300\" height=\"400\" fill=\"#0F172A\"/>\n    <rect x=\"50\" y=\"70\" width=\"200\" height=\"250\" fill=\"#1E293B\" stroke=\"#FFFFFF\" stroke-width=\"4\" rx=\"4\"/>\n    <circle cx=\"150\" cy=\"180\" r=\"50\" fill=\"#EC4899\" opacity=\"0.8\"/>\n    <path d=\"M120 180 Q100 130 70 110 Q90 150 110 180 Z\" fill=\"#F43F5E\"/>\n    <path d=\"M170 160 Q210 100 240 80 Q210 130 180 170 Z\" fill=\"#FB7185\"/>\n    <text x=\"150\" y=\"50\" font-family=\"'Helvetica Neue', sans-serif\" font-size=\"12\" font-weight=\"bold\" fill=\"#FFFFFF\" text-anchor=\"middle\" letter-spacing=\"4\">BREAKING OUT</text>\n    <rect x=\"220\" y=\"356\" width=\"56\" height=\"18\" rx=\"3\" fill=\"#E11D48\"/>\n    <text x=\"248\" y=\"368\" font-family=\"sans-serif\" font-size=\"8\" font-weight=\"bold\" fill=\"#FFF1F2\" text-anchor=\"middle\">破框立体</text>\n  </svg>"
+},
 ];
 
 export const AI_STYLES = DEFAULT_AI_STYLES;
