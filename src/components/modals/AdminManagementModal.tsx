@@ -64,12 +64,12 @@ const FilingSwitch: React.FC<{
     title={checked ? "已开启" : "已关闭"}
     onClick={() => onChange(!checked)}
     className={`relative w-11 h-6 rounded-full border transition-colors cursor-pointer shrink-0 ${
-      checked ? "bg-amber-500 border-amber-600" : "bg-studio-card border-studio-border"
+      checked ? "bg-zinc-900 border-zinc-950 dark:bg-white dark:border-white" : "bg-zinc-200 border-zinc-300 dark:bg-zinc-800 dark:border-zinc-700"
     }`}
   >
     <span
-      className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all ${
-        checked ? "left-[22px]" : "left-[2px]"
+      className={`absolute top-[2px] w-[18px] h-[18px] rounded-full shadow-xs transition-all ${
+        checked ? "left-[22px] bg-white dark:bg-zinc-950" : "left-[2px] bg-white dark:bg-zinc-400"
       }`}
     />
   </button>
@@ -713,121 +713,111 @@ export const AdminManagementModal: React.FC = () => {
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-4xl bg-studio-sidebar border border-studio-border/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleIn"
+        className="w-full max-w-4xl lg:max-w-5xl bg-studio-sidebar border border-studio-border/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scaleIn"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-studio-border/80 bg-studio-panel flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-inner">
+        {/* Header —— 极简黑白高定风格 */}
+        <div className="px-5 py-4 border-b border-studio-border/80 bg-studio-panel flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-900 dark:text-zinc-100 shadow-xs shrink-0">
               <Crown className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold text-studio-text tracking-wide whitespace-nowrap">
-                  平台管控中心 • 管理员控制台
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-bold text-studio-text tracking-tight whitespace-nowrap">
+                  平台管控中心 · 管理员控制台
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/20 text-amber-600 border border-amber-500/40 whitespace-nowrap shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 whitespace-nowrap shrink-0">
                   超级管理权限
                 </span>
               </div>
-              <p className="text-[11px] text-studio-muted mt-0.5">
-                管理创作者账号与权限封禁，配置全平台全局 AI 图像大模型
+              <p className="text-[11px] text-studio-muted mt-0.5 truncate">
+                管理创作者账号与权限封禁，配置全平台全局 AI 图像大模型与备案发信
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setOpen(false)}
-            className="p-2 rounded-xl bg-studio-card/80 text-studio-muted hover:text-studio-text border border-studio-border/60 hover:border-studio-border transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="text-[11px] text-studio-muted font-mono hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80">
+              <span>当前管理员:</span>
+              <span className="text-studio-text font-semibold">{currentUser?.name}</span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="p-2 rounded-xl bg-studio-card/80 text-studio-muted hover:text-studio-text border border-studio-border/60 hover:border-studio-border transition-colors cursor-pointer"
+              title="关闭控制台"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Tab Navigation —— 标签一律单行显示，窗口变窄时横向滚动而不是换行 */}
-        <div className="px-5 pt-3 border-b border-studio-border/60 bg-studio-panel flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
+        {/* Tab Navigation —— 简约黑白风格，单行平铺，空间充裕不裁切 */}
+        <div className="px-5 pt-2.5 border-b border-studio-border/60 bg-studio-panel flex items-center min-w-0">
+          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar w-full min-w-0">
             <button
               onClick={() => setOpen(true, "users")}
-              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === "users"
-                  ? "border-amber-500 text-amber-600"
+                  ? "border-zinc-900 dark:border-white text-zinc-950 dark:text-white"
                   : "border-transparent text-studio-muted hover:text-studio-text"
               }`}
             >
               <Users className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">
+              <span>
                 创作者账号 ({adminStats.total || adminUsersList.length})
               </span>
             </button>
 
             <button
               onClick={() => setOpen(true, "ai_config")}
-              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === "ai_config"
-                  ? "border-amber-500 text-amber-600"
+                  ? "border-zinc-900 dark:border-white text-zinc-950 dark:text-white"
                   : "border-transparent text-studio-muted hover:text-studio-text"
               }`}
             >
               <Sparkles className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">全局 AI 模型配置</span>
+              <span>全局 AI 模型配置</span>
               {aiConfig?.isConfigured && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-white shrink-0"></span>
               )}
             </button>
 
             <button
               onClick={() => setOpen(true, "styles")}
-              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === "styles"
-                  ? "border-amber-500 text-amber-600"
+                  ? "border-zinc-900 dark:border-white text-zinc-950 dark:text-white"
                   : "border-transparent text-studio-muted hover:text-studio-text"
               }`}
             >
               <Palette className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">风格化模板 ({aiStyles.length})</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-blue-500/20 text-blue-600 border border-blue-500/40 whitespace-nowrap shrink-0">
-                {aiStyles.filter((s) => s.enabled !== false).length} 开启
-              </span>
+              <span>风格化模板 ({aiStyles.length})</span>
             </button>
 
             <button
               onClick={() => setOpen(true, "email")}
-              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === "email"
-                  ? "border-amber-500 text-amber-600"
+                  ? "border-zinc-900 dark:border-white text-zinc-950 dark:text-white"
                   : "border-transparent text-studio-muted hover:text-studio-text"
               }`}
             >
               <Mail className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">发信与邮箱</span>
-              {adminEmailConfig?.enabled && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-500/20 text-emerald-600 border border-emerald-500/40 whitespace-nowrap shrink-0">
-                  SMTP 已开启
-                </span>
-              )}
+              <span>发信与邮箱</span>
             </button>
 
             <button
               onClick={() => setOpen(true, "filing")}
-              className={`pb-3 px-2.5 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 border-b-2 whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 activeTab === "filing"
-                  ? "border-amber-500 text-amber-600"
+                  ? "border-zinc-900 dark:border-white text-zinc-950 dark:text-white"
                   : "border-transparent text-studio-muted hover:text-studio-text"
               }`}
             >
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">备案设置</span>
-              {(siteFilingConfig.icpEnabled || siteFilingConfig.policeEnabled) && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono bg-emerald-500/20 text-emerald-600 border border-emerald-500/40 whitespace-nowrap shrink-0">
-                  {[siteFilingConfig.icpEnabled, siteFilingConfig.policeEnabled].filter(Boolean).length} 开启
-                </span>
-              )}
+              <span>备案设置</span>
             </button>
-          </div>
-
-          <div className="text-[11px] text-studio-muted/80 font-mono hidden xl:block whitespace-nowrap shrink-0">
-            当前管理员: <span className="text-studio-accent font-semibold">{currentUser?.name}</span>
           </div>
         </div>
 
@@ -860,10 +850,10 @@ export const AdminManagementModal: React.FC = () => {
               </div>
             )}
 
-            {/* Metrics Overview Cards */}
+            {/* Metrics Overview Cards —— 简约黑白 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
@@ -875,36 +865,36 @@ export const AdminManagementModal: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-[11px] text-studio-muted font-mono">状态正常</div>
-                  <div className="text-base font-bold text-emerald-600 font-mono">
+                  <div className="text-base font-bold text-studio-text font-mono">
                     {adminStats.activeCount || adminUsersList.filter((u) => u.status !== "banned").length}
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-red-500/15 text-red-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <Ban className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-[11px] text-studio-muted font-mono">已封禁</div>
-                  <div className="text-base font-bold text-red-600 font-mono">
+                  <div className="text-base font-bold text-studio-text font-mono">
                     {adminStats.bannedCount || adminUsersList.filter((u) => u.status === "banned").length}
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-[11px] text-studio-muted font-mono">管理员</div>
-                  <div className="text-base font-bold text-amber-600 font-mono">
+                  <div className="text-base font-bold text-studio-text font-mono">
                     {adminStats.adminCount || adminUsersList.filter((u) => u.isAdmin).length}
                   </div>
                 </div>
@@ -951,8 +941,8 @@ export const AdminManagementModal: React.FC = () => {
                       onClick={() => setFilterType(tab.id as any)}
                       className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                         filterType === tab.id
-                          ? "bg-studio-accent text-white font-semibold"
-                          : "text-studio-muted hover:text-gray-950"
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 font-semibold"
+                          : "text-studio-muted hover:text-studio-text"
                       }`}
                     >
                       {tab.label}
@@ -1108,7 +1098,7 @@ export const AdminManagementModal: React.FC = () => {
                         <div className="relative">
                           <AvatarView avatar={user.avatar} size="md" />
                           {user.isAdmin && (
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center text-[9px] shadow font-bold">
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center text-[9px] shadow font-bold">
                               👑
                             </span>
                           )}
@@ -1120,7 +1110,7 @@ export const AdminManagementModal: React.FC = () => {
                               {user.name}
                             </span>
                             {isCurrent && (
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-studio-accent/20 text-white border border-studio-accent/30">
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 font-medium">
                                 当前登录
                               </span>
                             )}
@@ -1129,7 +1119,7 @@ export const AdminManagementModal: React.FC = () => {
                                 <Ban className="w-2.5 h-2.5" /> 已封禁
                               </span>
                             ) : (
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                                 正常
                               </span>
                             )}
@@ -1171,7 +1161,7 @@ export const AdminManagementModal: React.FC = () => {
                           className="px-2.5 py-1.5 rounded-lg bg-studio-card/80 hover:bg-studio-card border border-studio-border/60 hover:border-studio-border text-[11px] text-studio-text flex items-center gap-1 transition-colors cursor-pointer"
                           title="重置登录密码"
                         >
-                          <Key className="w-3 h-3 text-amber-600" />
+                          <Key className="w-3 h-3 text-studio-muted" />
                           <span>重设密码</span>
                         </button>
 
@@ -1182,7 +1172,7 @@ export const AdminManagementModal: React.FC = () => {
                             onClick={() => handleToggleAdminRole(user)}
                             className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                               user.isAdmin
-                                ? "bg-amber-100 border-amber-500/30 text-amber-600 hover:bg-amber-500/25"
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border-zinc-900 dark:border-white"
                                 : "bg-studio-card/80 border-studio-border/60 text-studio-muted hover:text-studio-text"
                             }`}
                             title={user.isAdmin ? "撤销管理员权限" : "赋予管理员权限"}
@@ -1199,8 +1189,8 @@ export const AdminManagementModal: React.FC = () => {
                             onClick={() => handleToggleStatus(user)}
                             className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                               isBanned
-                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/25"
-                                : "bg-red-500/15 border-red-500/30 text-red-600 hover:bg-red-500/25"
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border-zinc-900 dark:border-white"
+                                : "bg-studio-card/80 border-studio-border/60 text-studio-muted hover:text-red-600 hover:border-red-300"
                             }`}
                             title={isBanned ? "解封账号" : "封禁账号"}
                           >
@@ -1232,21 +1222,21 @@ export const AdminManagementModal: React.FC = () => {
         {/* Tab 2: GLOBAL AI MODEL CONFIGURATION */}
         {activeTab === "ai_config" && (
           <form onSubmit={handleSaveAi} className="flex-1 overflow-y-auto p-5 space-y-4">
-            {/* Global Notice Banner */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200/90 leading-relaxed flex items-start gap-3">
-              <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+            {/* Global Notice Banner —— 简约黑白 */}
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0 mt-0.5">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <div className="font-semibold text-amber-600 text-xs mb-1 flex items-center gap-2">
+                <div className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs mb-1 flex items-center gap-2">
                   <span>全平台统一 AI 图像引擎（OpenAI / image2 兼容协议）</span>
                   {aiConfig?.isConfigured && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                       ✓ 平台已就绪
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-amber-200/80">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   由管理员在此统一部署 OpenAI / image2 图像大模型配置及 API Key。配置完成后，所有创作者可直接在排版画布与「风格化」面板中一键调用高定海报风格复刻，无需用户自行提供密钥。
                 </p>
               </div>
@@ -1529,10 +1519,10 @@ export const AdminManagementModal: React.FC = () => {
               </div>
             )}
 
-            {/* Metrics Overview Cards */}
+            {/* Metrics Overview Cards —— 简约黑白 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <Palette className="w-4 h-4" />
                 </div>
                 <div>
@@ -1544,19 +1534,19 @@ export const AdminManagementModal: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <Eye className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-[11px] text-studio-muted font-mono">开启展示（用户可见）</div>
-                  <div className="text-base font-bold text-emerald-600 font-mono">
+                  <div className="text-base font-bold text-studio-text font-mono">
                     {aiStyles.filter((s) => s.enabled !== false).length}
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-zinc-500/15 text-studio-muted flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <EyeOff className="w-4 h-4" />
                 </div>
                 <div>
@@ -1568,12 +1558,12 @@ export const AdminManagementModal: React.FC = () => {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border/70 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
                   <div className="text-[11px] text-studio-muted font-mono">官方复刻标杆</div>
-                  <div className="text-base font-bold text-amber-600 font-mono truncate">
+                  <div className="text-base font-bold text-studio-text font-mono truncate">
                     s21 梦幻动态
                   </div>
                 </div>
@@ -1711,7 +1701,7 @@ export const AdminManagementModal: React.FC = () => {
                         )}
 
                         {style.badge && (
-                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-amber-500/90 text-black text-[9px] font-bold font-mono">
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-zinc-900/90 text-white dark:bg-white/90 dark:text-zinc-950 text-[9px] font-bold font-mono">
                             {style.badge}
                           </div>
                         )}
@@ -1732,13 +1722,13 @@ export const AdminManagementModal: React.FC = () => {
                           </span>
 
                           {isEnabled ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-600 border border-emerald-500/40 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-white"></span>
                               已开启（创作者可见）
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-studio-panel text-studio-muted border border-gray-200 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-zinc-50 dark:bg-zinc-900 text-zinc-400 border border-zinc-200 dark:border-zinc-800 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
                               已停用（创作者不可见）
                             </span>
                           )}
@@ -1798,19 +1788,19 @@ export const AdminManagementModal: React.FC = () => {
                         onClick={() => handleToggleStyleStatus(style)}
                         className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                           isEnabled
-                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/25"
-                            : "bg-studio-panel border-studio-border text-studio-muted hover:text-studio-text"
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border-zinc-900 dark:border-white shadow-xs"
+                            : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                         }`}
                         title={isEnabled ? "点击停用此风格" : "点击开启此风格"}
                       >
                         {isEnabled ? (
                           <>
-                            <ToggleRight className="w-4 h-4 text-emerald-600" />
+                            <ToggleRight className="w-4 h-4 text-white dark:text-zinc-950" />
                             <span>开启中</span>
                           </>
                         ) : (
                           <>
-                            <ToggleLeft className="w-4 h-4 text-studio-muted" />
+                            <ToggleLeft className="w-4 h-4 text-zinc-400" />
                             <span>已停用</span>
                           </>
                         )}
@@ -1844,11 +1834,11 @@ export const AdminManagementModal: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 4: 备案信息设置（ICP 备案 / 公安部备案号，各自独立开关） */}
+        {/* Tab 4: 备案信息设置（ICP 备案 / 公安部备案号，各自独立开关） —— 简约黑白 */}
         {activeTab === "filing" && (
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 pb-12">
             <div className="p-3.5 rounded-xl bg-studio-panel border border-studio-border flex items-start gap-3">
-              <ShieldCheck className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-studio-text mt-0.5 shrink-0" />
               <div className="text-[11px] text-studio-muted leading-relaxed">
                 ICP 备案与公安部备案号各带一个<span className="text-studio-text font-semibold">独立开关</span>：
                 开关打开且填写了号码，才会显示在网站页脚；两项互不影响，可只开其中一项，关闭后立刻从页脚隐藏。
@@ -1876,7 +1866,7 @@ export const AdminManagementModal: React.FC = () => {
             <div className="bg-studio-panel border border-studio-border rounded-xl overflow-hidden">
               <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-studio-border/60">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                     <Globe className="w-4 h-4" />
                   </span>
                   <div className="min-w-0">
@@ -1886,8 +1876,8 @@ export const AdminManagementModal: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span
-                    className={`text-[10px] font-mono font-semibold ${
-                      icpEnabled ? "text-emerald-600" : "text-studio-muted"
+                    className={`text-[10px] font-mono font-medium ${
+                      icpEnabled ? "text-studio-text font-semibold" : "text-studio-muted"
                     }`}
                   >
                     {icpEnabled ? "已开启" : "已关闭"}
@@ -1923,17 +1913,16 @@ export const AdminManagementModal: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between gap-3 pt-1">
                   <span className="text-[10px] text-studio-muted whitespace-nowrap">页脚点击备案号将跳转到该链接</span>
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    className="cursor-pointer"
+                  <button
+                    type="button"
                     disabled={filingSaving === "icp"}
                     onClick={() =>
                       persistFiling("icp", { icpEnabled, icpNumber, icpLink }, "ICP 备案信息已保存")
                     }
+                    className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-xs active:scale-98"
                   >
                     {filingSaving === "icp" ? "保存中..." : "保存 ICP 备案"}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1942,7 +1931,7 @@ export const AdminManagementModal: React.FC = () => {
             <div className="bg-studio-panel border border-studio-border rounded-xl overflow-hidden">
               <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-studio-border/60">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                     <Shield className="w-4 h-4" />
                   </span>
                   <div className="min-w-0">
@@ -1952,8 +1941,8 @@ export const AdminManagementModal: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span
-                    className={`text-[10px] font-mono font-semibold ${
-                      policeEnabled ? "text-emerald-600" : "text-studio-muted"
+                    className={`text-[10px] font-mono font-medium ${
+                      policeEnabled ? "text-studio-text font-semibold" : "text-studio-muted"
                     }`}
                   >
                     {policeEnabled ? "已开启" : "已关闭"}
@@ -2003,10 +1992,8 @@ export const AdminManagementModal: React.FC = () => {
                   <span className="text-[10px] text-studio-muted whitespace-nowrap">
                     与 ICP 备案互不影响，可单独开启 / 关闭
                   </span>
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    className="cursor-pointer"
+                  <button
+                    type="button"
                     disabled={filingSaving === "police"}
                     onClick={() =>
                       persistFiling(
@@ -2015,9 +2002,10 @@ export const AdminManagementModal: React.FC = () => {
                         "公安部备案信息已保存"
                       )
                     }
+                    className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950 text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-xs active:scale-98"
                   >
                     {filingSaving === "police" ? "保存中..." : "保存公安备案"}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2082,7 +2070,7 @@ export const AdminManagementModal: React.FC = () => {
             <div className="bg-studio-panel border border-studio-border rounded-2xl overflow-hidden shadow-xs">
               <div className="px-5 py-4 border-b border-studio-border bg-studio-sidebar/50 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 flex items-center justify-center shrink-0">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
@@ -2097,8 +2085,8 @@ export const AdminManagementModal: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <span
-                    className={`text-[11px] font-mono font-semibold ${
-                      emailEnabled ? "text-emerald-600" : "text-studio-muted"
+                    className={`text-[11px] font-mono font-medium ${
+                      emailEnabled ? "text-studio-text font-semibold" : "text-studio-muted"
                     }`}
                   >
                     {emailEnabled ? "发信已启用" : "已停用"}
@@ -2320,7 +2308,7 @@ export const AdminManagementModal: React.FC = () => {
                     variant="accent"
                     disabled={savingEmail}
                     onClick={handleSaveEmailConfig}
-                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all"
+                    className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all"
                   >
                     <Check className="w-4 h-4" />
                     <span>{savingEmail ? "正在保存发信设置..." : "保存发信邮箱配置"}</span>
@@ -2395,7 +2383,7 @@ export const AdminManagementModal: React.FC = () => {
                     variant="accent"
                     disabled={savingEmail}
                     onClick={handleSaveEmailConfig}
-                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-md transition-all shrink-0"
+                    className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950 font-bold rounded-xl text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all shrink-0"
                   >
                     <Check className="w-4 h-4" />
                     <span>{savingEmail ? "保存中..." : "保存白名单配置"}</span>
@@ -2813,7 +2801,7 @@ export const AdminManagementModal: React.FC = () => {
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
                     confirmDialog.confirmVariant === "danger"
                       ? "bg-red-500/15 border-red-500/30 text-red-600"
-                      : "bg-amber-100 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                      : "bg-zinc-100 border-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
                   }`}
                 >
                   <AlertCircle className="w-5 h-5" />
@@ -2846,7 +2834,7 @@ export const AdminManagementModal: React.FC = () => {
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm ${
                     confirmDialog.confirmVariant === "danger"
                       ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-white"
+                      : "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-100 dark:text-zinc-950"
                   }`}
                 >
                   {confirmDialog.confirmLabel || "确认执行"}
