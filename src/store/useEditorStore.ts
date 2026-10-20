@@ -1,7 +1,7 @@
 import { Album, AlbumSpreadPage, AlbumCoverConfig, AlbumTheme, AlbumPageLayout, AlbumPageSide, AlbumBackCover } from '../types/album';
 import { getStoredAlbums, saveStoredAlbums, createSpreadFromTemplate, createSpreadFromAssets } from '../lib/default-albums';
 import { create } from "zustand";
-import { get, set } from "idb-keyval";
+import { get, set, del, keys } from "idb-keyval";
 import {
   CollageDocument,
   CollageElement,
@@ -66,14 +66,14 @@ import type { SiteFilingConfig, EmailConfig, PublicEmailConfig } from "../lib/ap
 import { DEFAULT_SITE_FILING_CONFIG } from "../lib/api";
 import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
  
- // Multi-user & Auth Storage Keys (Strictly isolated per registered user)
- const STORAGE_ACCOUNTS_KEY = "atelier_registered_accounts_v4";
- const STORAGE_ACTIVE_USER_ID_KEY = "atelier_active_user_id_v4";
+ // Multi-user & Auth Storage Keys (Strictly isolated per registered user, upgraded to v5 clean state)
+ const STORAGE_ACCOUNTS_KEY = "marginlab_registered_accounts_v5";
+ const STORAGE_ACTIVE_USER_ID_KEY = "marginlab_active_user_id_v5";
  
- const getStorageUserDocKey = (userId: string) => `atelier_user_${userId}_current_doc_v4`;
- const getStorageUserProjectsKey = (userId: string) => `atelier_user_${userId}_saved_projects_v4`;
- const getStorageUserTemplatesKey = (userId: string) => `atelier_user_${userId}_custom_templates_v4`;
- const getStorageUserMediaKey = (userId: string) => `atelier_user_${userId}_media_assets_v4`;
+ const getStorageUserDocKey = (userId: string) => `marginlab_user_${userId}_current_doc_v5`;
+ const getStorageUserProjectsKey = (userId: string) => `marginlab_user_${userId}_saved_projects_v5`;
+ const getStorageUserTemplatesKey = (userId: string) => `marginlab_user_${userId}_custom_templates_v5`;
+ const getStorageUserMediaKey = (userId: string) => `marginlab_user_${userId}_media_assets_v5`;
  
  // Default demo accounts (Pre-configured for instant access / testing)
  export const DEFAULT_ACCOUNTS: UserAccount[] = [
@@ -193,16 +193,6 @@ export const getLocalStoredAccounts = (): UserAccount[] => {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return mergeAccounts(DEFAULT_ACCOUNTS, parsed);
-      }
-    }
-    // Check backwards migration keys
-    for (const oldKey of ["atelier_registered_accounts_v3", "atelier_registered_accounts_v2", "atelier_registered_accounts"]) {
-      const oldRaw = typeof localStorage !== "undefined" ? localStorage.getItem(oldKey) : null;
-      if (oldRaw) {
-        const oldParsed = JSON.parse(oldRaw);
-        if (Array.isArray(oldParsed) && oldParsed.length > 0) {
-          return mergeAccounts(DEFAULT_ACCOUNTS, oldParsed);
-        }
       }
     }
   } catch (e) {}
@@ -2398,24 +2388,15 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         const localMedia = (await get<UserMediaAsset[]>(getStorageUserMediaKey(user.id))) || [];
         const validLocalMedia = Array.isArray(localMedia) ? localMedia : [];
 
-        // Bidirectional merge by ID: preserve both server and local assets
-        const mediaMap = new Map<string, UserMediaAsset>();
-        for (const m of validLocalMedia) {
-          if (m && m.id) mediaMap.set(m.id, m);
-        }
-        for (const m of targetMedia) {
-          if (m && m.id) mediaMap.set(m.id, m);
-        }
-        const mergedMedia = Array.from(mediaMap.values());
-        targetMedia = mergedMedia;
-
-        // If local had unsynced assets that were not on server, push them to server now!
-        if (validLocalMedia.length > 0 && mergedMedia.length > (remoteData?.mediaAssets?.length || 0)) {
-          apiSaveUserMedia(user.id, mergedMedia).catch(() => {});
+        // Authoritative server data with offline fallback
+        if (remoteData && Array.isArray(remoteData.mediaAssets)) {
+          targetMedia = remoteData.mediaAssets;
+        } else {
+          targetMedia = validLocalMedia;
         }
 
         // Cache to current browser IndexedDB
-        await set(getStorageUserMediaKey(user.id), mergedMedia);
+        await set(getStorageUserMediaKey(user.id), targetMedia);
       } catch (err) {
         console.warn("Login isolated data load notice:", err);
       }
@@ -2716,20 +2697,12 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
         const localMedia = (await get<UserMediaAsset[]>(getStorageUserMediaKey(targetUserId))) || [];
         const validLocal = Array.isArray(localMedia) ? localMedia : [];
-        const mediaMap = new Map<string, UserMediaAsset>();
-        for (const a of validLocal) {
-          if (a && a.id) mediaMap.set(a.id, a);
+        if (remoteData && Array.isArray(remoteData.mediaAssets)) {
+          targetMedia = remoteData.mediaAssets;
+        } else {
+          targetMedia = validLocal;
         }
-        for (const a of targetMedia) {
-          if (a && a.id) mediaMap.set(a.id, a);
-        }
-        const mergedMedia = Array.from(mediaMap.values());
-        targetMedia = mergedMedia;
-
-        if (validLocal.length > 0 && mergedMedia.length > (remoteData?.mediaAssets?.length || 0)) {
-          apiSaveUserMedia(targetUserId, mergedMedia).catch(() => {});
-        }
-        await set(getStorageUserMediaKey(targetUserId), mergedMedia);
+        await set(getStorageUserMediaKey(targetUserId), targetMedia);
 
         const newDoc =
           targetDoc && targetDoc.canvas && Array.isArray(targetDoc.elements)
@@ -3915,6 +3888,35 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
     loadFromStorage: async () => {
       applyThemeClass(getStoredTheme());
       try {
+        // Clean legacy v1-v4 orphaned local storage keys and IndexedDB keys
+        try {
+          const legacyStorageKeys = [
+            "atelier_registered_accounts_v4",
+            "atelier_registered_accounts_v3",
+            "atelier_registered_accounts_v2",
+            "atelier_registered_accounts",
+            "atelier_active_user_id_v4",
+            "atelier_active_user_id",
+            "atelier_user_albums_v9",
+            "atelier_user_albums_v8",
+            "atelier_creative_history_v3",
+            "atelier_creative_history_v2",
+            "atelier_ai_queue"
+          ];
+          if (typeof localStorage !== "undefined") {
+            for (const k of legacyStorageKeys) {
+              try { localStorage.removeItem(k); } catch (e) {}
+            }
+          }
+          keys().then((allKeys) => {
+            for (const k of allKeys) {
+              if (typeof k === "string" && (k.startsWith("atelier_") || k.includes("_v4") || k.includes("_v3"))) {
+                del(k).catch(() => {});
+              }
+            }
+          }).catch(() => {});
+        } catch (e) {}
+
         const localAccs = getLocalStoredAccounts();
         let idbAccs: UserAccount[] = [];
         try {
@@ -4000,19 +4002,14 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
             const lm = (await get<UserMediaAsset[]>(getStorageUserMediaKey(activeUser.id))) || [];
             const validLocal = Array.isArray(lm) ? lm : [];
-            const mediaMap = new Map<string, UserMediaAsset>();
-            for (const a of validLocal) {
-              if (a && a.id) mediaMap.set(a.id, a);
+            // Authoritative server data with offline fallback
+            if (mediaAssets.length > 0 || (validLocal.length === 0)) {
+              // Server is authoritative (clean or populated)
+              await set(getStorageUserMediaKey(activeUser.id), mediaAssets);
+            } else {
+              // Offline fallback
+              mediaAssets = validLocal;
             }
-            for (const a of mediaAssets) {
-              if (a && a.id) mediaMap.set(a.id, a);
-            }
-            const mergedMedia = Array.from(mediaMap.values());
-            if (validLocal.length > 0 && mergedMedia.length > mediaAssets.length) {
-              apiSaveUserMedia(activeUser.id, mergedMedia).catch(() => {});
-            }
-            await set(getStorageUserMediaKey(activeUser.id), mergedMedia);
-            mediaAssets = mergedMedia;
           } catch (e) {}
 
           const currentSavedView = getStoredView();
