@@ -12,10 +12,15 @@ server_data/
 .DS_Store
 Thumbs.db
 
-# 本地截图 / QA 产物 / 生成物
+# 本地截图 / QA 产物 / 生成物 / 媒体测试文件
 screenshots/
 generated-images/
 public/qa/
+public/prototypes/
+test_screen_*.png
+test_verify_*.png
+qa-*.html
+*.mp4
 
 # 环境变量
 .env
