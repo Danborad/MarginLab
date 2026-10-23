@@ -3353,7 +3353,25 @@ server.on("error", (err) => {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`  Running fallback on http://0.0.0.0:${PORT}`);
     });
-  } else {
-    console.error("Server error:", err);
+    return;
   }
+  // 端口被占用 / 监听失败时直接退出，交给 systemd 的 Restart=always 重新拉起，
+  // 避免出现「进程还活着但 3001 没人监听」的僵尸状态。
+  console.error("[FATAL] Server listen failed:", err);
+  process.exit(1);
+});
+
+// 监听句柄意外关闭时也退出，让守护进程重建，而不是静默失联。
+server.on("close", () => {
+  console.warn("[FATAL] HTTP server closed, exiting for supervisor restart");
+  process.exit(0);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] uncaughtException:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("[FATAL] unhandledRejection:", err);
+  process.exit(1);
 });
