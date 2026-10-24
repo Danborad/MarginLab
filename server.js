@@ -2054,658 +2054,152 @@ function resolveImageSize(aspectRatio, fallback) {
   return fallback || "1024x1024";
 }
 
-async function generateFallbackStylizedArtwork(styleId, styleName, sourceImage, prompt, specifiedText, customNotes, aspectRatio = "3:4") {
-  const resolvedImg = await resolveImageAsBase64(sourceImage);
-  const isRetouch = Boolean(styleId && String(styleId).startsWith("retouch_"));
-  const isDreamy = !isRetouch && (styleId === 'dreamy_motion_editorial' || (styleName && styleName.includes('梦幻')));
-  const isFantasy = styleId === 'fantasy_qiqiguaiguai' || (styleName && (styleName.includes('奇奇怪怪') || styleName.includes('FANTASY')));
-  const isBlackInk = styleId === 'street_photo_black_ink' || (styleName && (styleName.includes('黑白手绘') || styleName.includes('BLACK INK')));
-  const isColorChibi = styleId === 'street_photo_color_chibi' || (styleName && (styleName.includes('彩色轻Q') || styleName.includes('COLOR CHIBI')));
-  const isSplit = styleId === 'split_gouache_editorial';
-  const isBauhaus = styleId === 'bauhaus_geometry';
-  const isFilm = styleId === 'vintage_film_contact';
-  const isCyber = styleId === 'cyberpunk_neon_noir';
-  const isCreative = styleId === 'custom_creative';
-  const isEasternInk =
-    styleId === 'eastern_ink_diptych' ||
-    styleId === 'eastern_ink_diptych_scenery' ||
-    styleId === 'eastern_ink_diptych_arch' ||
-    (styleName && (styleName.includes('水墨二分') || styleName.includes('Eastern Ink')));
 
-  // AI 自由创作工作台回退艺术生成
-  if (isCreative) {
-    let svgW = 1280;
-    let svgH = 720;
-    if (aspectRatio === "3:4") { svgW = 900; svgH = 1200; }
-    else if (aspectRatio === "4:3") { svgW = 1200; svgH = 900; }
-    else if (aspectRatio === "9:16") { svgW = 720; svgH = 1280; }
-    else if (aspectRatio === "1:1") { svgW = 1024; svgH = 1024; }
+// ---------------------------------------------------------------------------
+// 基于「用户上传照片本身」的本地兜底渲染
+// AI 上游超时/失败时，绝不再返回与照片无关的预制占位插画；
+// 这里用 ImageMagick 直接对用户这张照片做真实的风格化处理，
+// 保证任何兜底结果都与上传图强相关。
+// ---------------------------------------------------------------------------
+const RENDER_TMP_DIR = path.join(DATA_DIR, "render_tmp");
 
-    const cleanImg = resolvedImg ? escapeXml(resolvedImg) : "";
-    const cleanPrompt = escapeXml((prompt || "AI 自由创作").slice(0, 100));
-    const creativeSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
-      <defs>
-        <radialGradient id="cr_warm" cx="28%" cy="65%" r="45%">
-          <stop offset="0%" stop-color="#E08B3E" stop-opacity="0.95"/>
-          <stop offset="45%" stop-color="#73381B" stop-opacity="0.6"/>
-          <stop offset="100%" stop-color="#0E1116" stop-opacity="0"/>
-        </radialGradient>
-        <radialGradient id="cr_cool" cx="75%" cy="32%" r="50%">
-          <stop offset="0%" stop-color="#4A7C9B" stop-opacity="0.85"/>
-          <stop offset="50%" stop-color="#1B2D3D" stop-opacity="0.5"/>
-          <stop offset="100%" stop-color="#0E1116" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="cr_blur">
-          <feGaussianBlur stdDeviation="32"/>
-        </filter>
-        <linearGradient id="cr_window" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="#8BBEE8" stop-opacity="0.08"/>
-        </linearGradient>
-      </defs>
-      <rect width="${svgW}" height="${svgH}" fill="#0E1116"/>
-      <rect width="${svgW}" height="${svgH}" fill="url(#cr_cool)"/>
-      <rect width="${svgW}" height="${svgH}" fill="url(#cr_warm)"/>
-      ${
-        cleanImg
-          ? `<image href="${cleanImg}" xlink:href="${cleanImg}" x="0" y="0" width="${svgW}" height="${svgH}" preserveAspectRatio="xMidYMid slice" opacity="0.45"/>`
-          : `<g opacity="0.75">
-               <rect x="${svgW * 0.55}" y="${svgH * 0.08}" width="${svgW * 0.4}" height="${svgH * 0.42}" rx="8" fill="url(#cr_window)" stroke="#8BBEE8" stroke-width="2"/>
-               <line x1="${svgW * 0.65}" y1="${svgH * 0.08}" x2="${svgW * 0.65}" y2="${svgH * 0.5}" stroke="#8BBEE8" stroke-width="1.5" opacity="0.6"/>
-               <line x1="${svgW * 0.75}" y1="${svgH * 0.08}" x2="${svgW * 0.75}" y2="${svgH * 0.5}" stroke="#8BBEE8" stroke-width="1.5" opacity="0.6"/>
-               <line x1="${svgW * 0.85}" y1="${svgH * 0.08}" x2="${svgW * 0.85}" y2="${svgH * 0.5}" stroke="#8BBEE8" stroke-width="1.5" opacity="0.6"/>
-             </g>
-             <ellipse cx="${svgW * 0.28}" cy="${svgH * 0.75}" rx="${svgW * 0.22}" ry="${svgH * 0.14}" fill="#FFAA44" opacity="0.35" filter="url(#cr_blur)"/>
-             <circle cx="${svgW * 0.26}" cy="${svgH * 0.62}" r="${svgW * 0.035}" fill="#FFF4D0" opacity="0.9" filter="url(#cr_blur)"/>
-             <circle cx="${svgW * 0.26}" cy="${svgH * 0.62}" r="${svgW * 0.015}" fill="#FFFFFF"/>
-             <path d="M0 ${svgH * 0.5} Q${svgW * 0.5} ${svgH * 0.45} ${svgW} ${svgH * 0.55} L${svgW} ${svgH} L0 ${svgH} Z" fill="#0A0C10" opacity="0.65"/>`
-      }
-      <text x="40" y="${svgH - 64}" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#E2D1BA" letter-spacing="2">MARGINLAB STUDIO • CINEMATIC CHIAROSCURO</text>
-      <text x="40" y="${svgH - 38}" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#9CA3AF">${cleanPrompt}...</text>
-    </svg>`;
-    return `data:image/svg+xml;utf8,${encodeURIComponent(creativeSvg)}`;
+const PHOTO_FALLBACK_SIZES = {
+  "3:4": [900, 1200],
+  "9:16": [810, 1440],
+  "4:3": [1200, 900],
+  "16:9": [1280, 720],
+  "1:1": [1024, 1024],
+};
+
+function ensureRenderTmpDir() {
+  try {
+    if (!fs.existsSync(RENDER_TMP_DIR)) fs.mkdirSync(RENDER_TMP_DIR, { recursive: true });
+  } catch (e) {
+    console.warn("[RenderTmp] mkdir failed:", e.message);
+  }
+}
+
+/** 把 data URI 写进临时文件，返回绝对路径；失败返回空字符串 */
+function writeDataUriToTempFile(dataUri, prefix) {
+  try {
+    const m = typeof dataUri === "string" && dataUri.match(/^data:image\/([a-z0-9.+-]+);base64,([\s\S]+)$/i);
+    if (!m) return "";
+    const ext = m[1].includes("png") ? "png" : m[1].includes("webp") ? "webp" : "jpg";
+    ensureRenderTmpDir();
+    const file = path.join(
+      RENDER_TMP_DIR,
+      `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+    );
+    fs.writeFileSync(file, Buffer.from(m[2], "base64"));
+    return file;
+  } catch (e) {
+    console.warn("[RenderTmp] write failed:", e.message);
+    return "";
+  }
+}
+
+function safeUnlink(file) {
+  if (!file) return;
+  try { fs.unlinkSync(file); } catch (e) {}
+}
+
+/**
+ * 用 ImageMagick 对上传照片做真实风格化，返回 data:image/jpeg;base64
+ * 无法处理时返回空字符串。
+ */
+async function renderPhotoDerivedFallback({ styleId = "", styleName = "", sourceImage = "", aspectRatio = "3:4" }) {
+  const resolved = await resolveImageAsBase64(sourceImage);
+  const src = writeDataUriToTempFile(resolved, "fb_src");
+  if (!src) return "";
+  const [W, H] = PHOTO_FALLBACK_SIZES[aspectRatio] || PHOTO_FALLBACK_SIZES["3:4"];
+  const out = path.join(RENDER_TMP_DIR, `fb_out_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`);
+  const id = String(styleId || "");
+  const name = String(styleName || "");
+
+  const isRiso =
+    id === "retro_print_illustration" ||
+    name.includes("Riso") ||
+    name.includes("复古实验平面插画");
+  const isPostcard =
+    id === "travel_postcard_collage" ||
+    name.includes("旅行明信片") ||
+    name.includes("旅行手账");
+  const isOutOfFrame =
+    id === "out_of_frame_3d" ||
+    name.includes("破框");
+  const isMono =
+    id === "street_photo_black_ink" || name.includes("黑白");
+
+  const m = 40; // 纸张留白边距
+  let args = [];
+
+  if (isRiso) {
+    // Riso 孔版：灰阶限色 → 深墨/米纸双色 → 细颗粒 → 纸张留白 + 版式
+    args = [
+      "-size", `${W}x${H}`, "xc:#F2EBD9",
+      "(", src, "-auto-orient",
+        "-resize", `${W - m * 2}x${H - m * 2 - 72}^`, "-gravity", "center", "-extent", `${W - m * 2}x${H - m * 2 - 72}`,
+        "-colorspace", "gray", "-level", "7%,93%", "-contrast-stretch", "0.5%x0.5%", "-posterize", "4",
+        "+level-colors", "#1B1F2A,#F7F1E0",
+        "-attenuate", "0.08", "+noise", "Gaussian",
+        "-fill", "#D9633B", "-colorize", "12%",
+      ")",
+      "-gravity", "north", "-geometry", `+0+${m}`, "-composite",
+      "-gravity", "south", "-fill", "#1B1F2A", "-pointsize", "24",
+      "-font", "Helvetica-Bold", "-annotate", "+0+30", "RISOGRAPH  EDITION  /  MARGINLAB",
+      out
+    ];
+  } else if (isPostcard) {
+    // 旅行明信片：上半真实摄影，下半绘画化同源画面
+    const halfH = Math.round(H / 2);
+    args = [
+      "(", src, "-auto-orient", "-resize", `${W}x${halfH}^`, "-gravity", "center", "-extent", `${W}x${halfH}`, ")",
+      "(",
+        src, "-auto-orient", "-resize", `${W}x${halfH}^`, "-gravity", "center", "-extent", `${W}x${halfH}`,
+        "-paint", "3", "-blur", "0x1.2", "-level", "5%,95%", "-modulate", "104,112,100",
+        "-fill", "#F3EAD8", "-colorize", "22%",
+      ")",
+      "-append",
+      out
+    ];
+  } else if (isOutOfFrame) {
+    // 破框而出：深色底 + 同一张照片的虚化光晕 + 白色画框
+    args = [
+      "-size", `${W}x${H}`, "xc:#0F1317",
+      "(", src, "-auto-orient", "-resize", `${W}x${H}^`, "-gravity", "center", "-extent", `${W}x${H}`,
+        "-blur", "0x22", "-modulate", "78,72,100", ")",
+      "-gravity", "center", "-composite",
+      "(", src, "-auto-orient", "-resize", `${Math.round(W * 0.62)}x${Math.round(H * 0.7)}^`,
+        "-gravity", "center", "-extent", `${Math.round(W * 0.62)}x${Math.round(H * 0.7)}`,
+        "-bordercolor", "white", "-border", "14", ")",
+      "-gravity", "center", "-geometry", "+0+30", "-composite",
+      out
+    ];
+  } else {
+    // 通用：只做影调/色彩重塑，保留原始内容与构图
+    args = [
+      src, "-auto-orient", "-resize", `${W}x${H}^`, "-gravity", "center", "-extent", `${W}x${H}`,
+      "-modulate", "101,110,100", "-level", "3%,97%",
+      "-unsharp", "0x0.7+0.6+0.01",
+      ...(isMono ? ["-colorspace", "gray"] : []),
+      out
+    ];
   }
 
-  // 东方水墨二分画：严格基于输入照片本身合成，绝不复用与照片无关的预制场景
-  if (isEasternInk && resolvedImg) {
-    const cleanImg = escapeXml(resolvedImg);
-    const isArch = styleId === 'eastern_ink_diptych_arch' || (styleName && (styleName.includes('黑白篇') || styleName.includes('构筑')));
-
-    let svgW = 900;
-    let svgH = 1200;
-    if (aspectRatio === "4:3") { svgW = 1200; svgH = 900; }
-    else if (aspectRatio === "16:9") { svgW = 1280; svgH = 720; }
-    else if (aspectRatio === "9:16") { svgW = 810; svgH = 1440; }
-    else if (aspectRatio === "1:1") { svgW = 1024; svgH = 1024; }
-
-    const margin = Math.round(svgW * 0.055);
-    const innerW = svgW - margin * 2;
-    const gap = Math.round(svgH * 0.026);
-    const bottomBand = Math.round(svgH * 0.095);
-    const panelH = Math.round((svgH - margin * 2 - gap - bottomBand) / 2);
-    const topY = margin;
-    const dividerY = margin + panelH + gap / 2;
-    const lowerY = margin + panelH + gap;
-    const titleY = svgH - margin - Math.round(bottomBand * 0.34);
-    const subTitleY = titleY + Math.round(bottomBand * 0.30);
-    const tagW = Math.round(innerW * 0.2);
-    const tagH = Math.round(bottomBand * 0.42);
-    const tagX = svgW - margin - tagW;
-    const tagY = svgH - margin - tagH;
-    const paper = isArch ? '#F6F4ED' : '#F8F5EE';
-    // 下半部水墨面板：对同一张照片做轻微推近裁切，形成"同一主体 · 另一媒介"的二分对照
-    const inkZoom = 1.12;
-    const inkW = Math.round(innerW * inkZoom);
-    const inkH = Math.round(panelH * inkZoom);
-    const inkX = Math.round(margin - (inkW - innerW) / 2);
-    const inkY = Math.round(lowerY - (inkH - panelH) / 2);
-
-    const easternInkSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
-      <defs>
-        <filter id="ei_paper" x="-5%" y="-5%" width="110%" height="110%">
-          <feDropShadow dx="0" dy="${Math.round(svgH * 0.003)}" stdDeviation="${Math.round(svgW * 0.006)}" flood-color="#000000" flood-opacity="0.16"/>
-        </filter>
-        <filter id="ei_gray" x="0%" y="0%" width="100%" height="100%">
-          <feColorMatrix type="matrix" values="0.33 0.59 0.11 0 0  0.33 0.59 0.11 0 0  0.33 0.59 0.11 0 0  0 0 0 1 0"/>
-          <feComponentTransfer>
-            <feFuncR type="linear" slope="1.24" intercept="0.03"/>
-            <feFuncG type="linear" slope="1.24" intercept="0.03"/>
-            <feFuncB type="linear" slope="1.24" intercept="0.03"/>
-          </feComponentTransfer>
-          <feGaussianBlur stdDeviation="1.3"/>
-        </filter>
-        <filter id="ei_saturate" x="0%" y="0%" width="100%" height="100%">
-          <feColorMatrix type="saturate" values="0.34"/>
-          <feComponentTransfer>
-            <feFuncR type="linear" slope="0.55" intercept="0.42"/>
-            <feFuncG type="linear" slope="0.55" intercept="0.42"/>
-            <feFuncB type="linear" slope="0.55" intercept="0.42"/>
-          </feComponentTransfer>
-        </filter>
-        <radialGradient id="ei_paper_light" cx="50%" cy="38%" r="72%">
-          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.03"/>
-        </radialGradient>
-        <linearGradient id="ei_ink_wash" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${paper}" stop-opacity="0.46"/>
-          <stop offset="100%" stop-color="${paper}" stop-opacity="0.26"/>
-        </linearGradient>
-      </defs>
-      <rect width="${svgW}" height="${svgH}" fill="${paper}"/>
-      <rect x="${Math.round(margin * 0.45)}" y="${Math.round(margin * 0.42)}" width="${svgW - Math.round(margin * 0.9)}" height="${svgH - Math.round(margin * 0.84)}" fill="none" stroke="#E2DDD2" stroke-width="1"/>
-
-      <!-- 上半部：输入照片的真实摄影内容（原样保留，等比例裁切） -->
-      <g filter="url(#ei_paper)">
-        <clipPath id="ei_top_clip"><rect x="${margin}" y="${topY}" width="${innerW}" height="${panelH}" rx="3"/></clipPath>
-        <image href="${cleanImg}" xlink:href="${cleanImg}" x="${margin}" y="${topY}" width="${innerW}" height="${panelH}" preserveAspectRatio="xMidYMid slice" clip-path="url(#ei_top_clip)"/>
-      </g>
-
-      <!-- 中部细分割线 -->
-      <line x1="${margin + Math.round(innerW * 0.04)}" y1="${dividerY}" x2="${svgW - margin - Math.round(innerW * 0.04)}" y2="${dividerY}" stroke="#CFC7B7" stroke-width="1" stroke-dasharray="3,4"/>
-
-      <!-- 下半部：同一张照片提炼的水墨写意面板（内容与原图完全一致） -->
-      <g filter="url(#ei_paper)">
-        <clipPath id="ei_low_clip"><rect x="${margin}" y="${lowerY}" width="${innerW}" height="${panelH}" rx="3"/></clipPath>
-        <rect x="${margin}" y="${lowerY}" width="${innerW}" height="${panelH}" fill="${paper}"/>
-        <g clip-path="url(#ei_low_clip)">
-          <image href="${cleanImg}" xlink:href="${cleanImg}" x="${inkX}" y="${inkY}" width="${inkW}" height="${inkH}" preserveAspectRatio="xMidYMid slice" filter="url(#ei_gray)"/>
-          ${isArch ? '' : `<image href="${cleanImg}" xlink:href="${cleanImg}" x="${inkX}" y="${inkY}" width="${inkW}" height="${inkH}" preserveAspectRatio="xMidYMid slice" filter="url(#ei_saturate)" opacity="0.22" style="mix-blend-mode:multiply"/>`}
-          <rect x="${margin}" y="${lowerY}" width="${innerW}" height="${panelH}" fill="url(#ei_ink_wash)"/>
-          <rect x="${margin}" y="${lowerY}" width="${innerW}" height="${panelH}" fill="url(#ei_paper_light)"/>
-        </g>
-        <rect x="${margin}" y="${lowerY}" width="${innerW}" height="${panelH}" fill="none" stroke="#DAD3C4" stroke-width="1" rx="3"/>
-      </g>
-
-      <!-- 底部边距：小字号细衬线英文标题 -->
-      <text x="${svgW / 2}" y="${titleY}" font-family="'Times New Roman', 'Songti SC', serif" font-size="${Math.round(svgW * 0.024)}" font-weight="bold" fill="#292524" text-anchor="middle" letter-spacing="${Math.round(svgW * 0.008)}">EASTERN INK DIPTYCH</text>
-      <text x="${svgW / 2}" y="${subTitleY}" font-family="'Helvetica Neue', sans-serif" font-size="${Math.round(svgW * 0.0135)}" font-weight="500" fill="#78716C" text-anchor="middle" letter-spacing="${Math.round(svgW * 0.003)}">${isArch ? 'ARCHITECTURE STUDY' : 'SCENERY STUDY'} · KEPT FAITHFUL TO THE ORIGINAL PHOTO</text>
-      <rect x="${tagX}" y="${tagY}" width="${tagW}" height="${tagH}" rx="4" fill="${isArch ? '#78350F' : '#374151'}"/>
-      <text x="${tagX + tagW / 2}" y="${tagY + tagH * 0.68}" font-family="sans-serif" font-size="${Math.round(svgW * 0.021)}" font-weight="bold" fill="${isArch ? '#FEF3C7' : '#F3F4F6'}" text-anchor="middle">${isArch ? '水墨构筑' : '水墨二分'}</text>
-    </svg>`;
-    return "data:image/svg+xml;utf8," + encodeURIComponent(easternInkSvg);
+  try {
+    const ok = await runConvert(args, 60000);
+    if (!ok || !fs.existsSync(out)) return "";
+    const stat = fs.statSync(out);
+    if (!stat.size) return "";
+    const buf = fs.readFileSync(out);
+    return `data:image/jpeg;base64,${buf.toString("base64")}`;
+  } catch (e) {
+    console.warn("[PhotoFallback] render failed:", e.message);
+    return "";
+  } finally {
+    safeUnlink(src);
+    safeUnlink(out);
   }
-
-  if (isRetouch && resolvedImg) {
-    const cleanImg = escapeXml(resolvedImg);
-    const sId = String(styleId);
-    const isBW = sId.includes("bw") || (styleName && styleName.includes("黑白"));
-    const isWarm = sId.includes("hair_light") || sId.includes("sunset") || sId.includes("golden") || sId.includes("warm") || sId.includes("vintage") || sId.includes("autumn");
-    const isCool = sId.includes("blue") || sId.includes("cyber") || sId.includes("cold") || sId.includes("snow") || sId.includes("fuji");
-    const isBright = sId.includes("flash") || sId.includes("water") || sId.includes("beauty") || sId.includes("clear") || sId.includes(" brighten");
-
-    const matrixValues = isBW
-      ? "0.33 0.59 0.11 0 0.02  0.33 0.59 0.11 0 0.02  0.33 0.59 0.11 0 0.02  0 0 0 1 0"
-      : isWarm
-      ? "1.12 0.04 0 0 0.03  0.02 1.04 0 0 0.01  0 0 0.90 0 0  0 0 0 1 0"
-      : isCool
-      ? "0.94 0 0.04 0 0  0 1.03 0.05 0 0.01  0.02 0.05 1.14 0 0.03  0 0 0 1 0"
-      : isBright
-      ? "1.08 0.02 0.02 0 0.04  0.02 1.08 0.02 0 0.04  0.02 0.02 1.08 0 0.04  0 0 0 1 0"
-      : "1.06 0.02 0 0 0.02  0 1.05 0.01 0 0.02  0 0.01 1.04 0 0.02  0 0 0 1 0";
-
-    const overlayGlow = isWarm
-      ? `<radialGradient id="rt_glow" cx="75%" cy="20%" r="65%"><stop offset="0%" stop-color="#FDE68A" stop-opacity="0.38"/><stop offset="55%" stop-color="#F59E0B" stop-opacity="0.12"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient>`
-      : isCool
-      ? `<radialGradient id="rt_glow" cx="50%" cy="25%" r="70%"><stop offset="0%" stop-color="#BAE6FD" stop-opacity="0.28"/><stop offset="60%" stop-color="#38BDF8" stop-opacity="0.08"/><stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient>`
-      : `<radialGradient id="rt_glow" cx="50%" cy="35%" r="65%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/><stop offset="100%" stop-color="#000000" stop-opacity="0.06"/></radialGradient>`;
-
-    let svgW = 768;
-    let svgH = 1024;
-    if (aspectRatio === "4:3") { svgW = 1024; svgH = 768; }
-    else if (aspectRatio === "16:9") { svgW = 1280; svgH = 720; }
-    else if (aspectRatio === "9:16") { svgW = 720; svgH = 1280; }
-    else if (aspectRatio === "1:1") { svgW = 1024; svgH = 1024; }
-    else { svgW = 768; svgH = 1024; }
-
-    const retouchSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
-      <defs>
-        <filter id="rt_filter" x="0%" y="0%" width="100%" height="100%">
-          <feColorMatrix type="matrix" values="${matrixValues}"/>
-        </filter>
-        ${overlayGlow}
-      </defs>
-      <image href="${cleanImg}" xlink:href="${cleanImg}" x="0" y="0" width="${svgW}" height="${svgH}" preserveAspectRatio="xMidYMid slice" filter="url(#rt_filter)"/>
-      <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="url(#rt_glow)"/>
-    </svg>`;
-    return "data:image/svg+xml;utf8," + encodeURIComponent(retouchSvg);
-  }
-
-  if (isFantasy) {
-    let fTitle = "本人正在加载";
-    let fSub = "临时外包电源 • 请勿强制启动";
-    let fTag1 = "⚡ 续命装置";
-    let fTag2 = "电量: 18%";
-    let fPercent = "68%";
-
-    const lowerP = (prompt || "").toLowerCase();
-    const lowerS = (sourceImage || "").toLowerCase();
-    const lowerN = (customNotes || "").toLowerCase();
-
-    if (specifiedText && specifiedText.trim().length > 0) {
-      fTitle = specifiedText.trim();
-    } else if (lowerP.includes("猫") || lowerP.includes("狗") || lowerP.includes("宠") || lowerP.includes("pet") || lowerS.includes("dog") || lowerS.includes("cat") || lowerN.includes("猫") || lowerN.includes("狗")) {
-      fTitle = "家庭首席批准官";
-      fSub = "今日决策：拆！业务已全票通过";
-      fTag1 = "🐾 业务审批";
-      fTag2 = "超支已核准";
-      fPercent = "100%";
-    } else if (lowerP.includes("雨") || lowerP.includes("伞") || lowerP.includes("rain") || lowerP.includes("weather")) {
-      fTitle = "临时气象外包";
-      fSub = "今日降水服务：全靠我撑场子";
-      fTag1 = "🌧️ 靠天吃饭";
-      fTag2 = "勉强有效";
-      fPercent = "80%";
-    } else if (lowerP.includes("行李") || lowerP.includes("箱") || lowerP.includes("焦虑") || lowerP.includes("travel")) {
-      fTitle = "把焦虑托运一下";
-      fSub = "换个城市，换个心情，下一站未知";
-      fTag1 = "🧳 行李: 超重";
-      fTag2 = "计划: 已变形";
-      fPercent = "95%";
-    } else if (lowerP.includes("街") || lowerP.includes("停") || lowerP.includes("红灯") || lowerP.includes("city")) {
-      fTitle = "城市暂停三十秒";
-      fSub = "行人缓存中 • 信号待定";
-      fTag1 = "🚦 等待模式";
-      fTag2 = "肉体仍在工位";
-      fPercent = "45%";
-    }
-
-    if (customNotes && customNotes.trim().length > 0 && !lowerP.includes("猫") && !lowerP.includes("狗")) {
-      fSub = `${customNotes.trim()} • 正在加载中`;
-    }
-
-    const cleanImg = resolvedImg ? escapeXml(resolvedImg) : "";
-    const cleanTitle = escapeXml(fTitle);
-    const cleanSub = escapeXml(fSub);
-    const cleanTag1 = escapeXml(fTag1);
-    const cleanTag2 = escapeXml(fTag2);
-
-    const fantasySvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 768 1024" width="768" height="1024" style="background:#0F172A;">
-      <defs>
-        <linearGradient id="fq_blue" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#38BDF8"/>
-          <stop offset="100%" stop-color="#2563EB"/>
-        </linearGradient>
-        <linearGradient id="fq_amber" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#FDE047"/>
-          <stop offset="100%" stop-color="#F59E0B"/>
-        </linearGradient>
-        <linearGradient id="fq_overlay" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#000000" stop-opacity="0.45"/>
-          <stop offset="35%" stop-color="#000000" stop-opacity="0.05"/>
-          <stop offset="70%" stop-color="#000000" stop-opacity="0.15"/>
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.75"/>
-        </linearGradient>
-        <filter id="fq_sticker_shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
-        </filter>
-      </defs>
-
-      <!-- FULL-BLEED 3:4 PHOTOGRAPH (T3 Image Overlay / T1 Portrait Editorial) -->
-      ${
-        cleanImg && cleanImg.length > 0
-          ? `<image href="${cleanImg}" xlink:href="${cleanImg}" x="0" y="0" width="768" height="1024" preserveAspectRatio="xMidYMid slice"/>`
-          : `<rect width="768" height="1024" fill="#1E293B"/>`
-      }
-
-      <!-- Vignette Gradient for High Editorial Contrast -->
-      <rect width="768" height="1024" fill="url(#fq_overlay)"/>
-
-      <!-- Top Left Tape Sticker -->
-      <g transform="rotate(-4 140 60)" filter="url(#fq_sticker_shadow)">
-        <rect x="40" y="38" width="180" height="42" fill="#FEF08A" rx="2" opacity="0.96"/>
-        <text x="130" y="65" font-family="'Courier New', monospace" font-size="15" font-weight="900" fill="#854D0E" text-anchor="middle" letter-spacing="1.5">FANTASY / 3:4</text>
-      </g>
-
-      <!-- Top Right Receipt / Status Tag -->
-      <g transform="translate(560, 45) rotate(3)" filter="url(#fq_sticker_shadow)">
-        <rect x="0" y="0" width="160" height="60" rx="6" fill="#FFFFFF" stroke="#0F172A" stroke-width="2"/>
-        <text x="80" y="24" font-family="monospace" font-size="11" font-weight="bold" fill="#64748B" text-anchor="middle">STATUS CHECK</text>
-        <text x="80" y="46" font-family="'PingFang SC', sans-serif" font-size="14" font-weight="900" fill="#0F172A" text-anchor="middle">已全票通过 ✓</text>
-      </g>
-
-      <!-- Giant Sticker Title Layered Across Image with Thick White Cutout Outline -->
-      <g filter="url(#fq_sticker_shadow)">
-        <text x="384" y="190" font-family="'PingFang SC', 'Microsoft YaHei', 'Arial Black', sans-serif" font-size="${fTitle.length > 7 ? 58 : 76}" font-weight="900" fill="#FFFFFF" text-anchor="middle" stroke="#FFFFFF" stroke-width="${fTitle.length > 7 ? 16 : 22}" stroke-linejoin="round" letter-spacing="3">${cleanTitle}</text>
-        <text x="384" y="190" font-family="'PingFang SC', 'Microsoft YaHei', 'Arial Black', sans-serif" font-size="${fTitle.length > 7 ? 58 : 76}" font-weight="900" fill="#0F172A" text-anchor="middle" letter-spacing="3">${cleanTitle}</text>
-      </g>
-
-      <!-- Battery / Progress Bar Pill on Photo -->
-      <g transform="translate(144, 230)" filter="url(#fq_sticker_shadow)">
-        <rect x="0" y="0" width="480" height="46" rx="23" fill="#0F172A" stroke="#FFFFFF" stroke-width="3"/>
-        <rect x="6" y="6" width="${Math.round(4.68 * parseInt(fPercent))}" height="34" rx="17" fill="url(#fq_amber)"/>
-        <text x="240" y="29" font-family="'Courier New', monospace" font-size="16" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">LOADING ${fPercent}</text>
-      </g>
-
-      <!-- Functional Tag 1 (Washi Badge Left) -->
-      <g transform="translate(48, 480) rotate(-5)" filter="url(#fq_sticker_shadow)">
-        <rect x="0" y="0" width="220" height="68" rx="10" fill="#FEF08A" stroke="#FFFFFF" stroke-width="3"/>
-        <text x="18" y="28" font-family="'PingFang SC', sans-serif" font-size="16" font-weight="900" fill="#713F12">${cleanTag1}</text>
-        <text x="18" y="52" font-family="'PingFang SC', sans-serif" font-size="13" font-weight="bold" fill="#854D0E">${cleanTag2}</text>
-      </g>
-
-      <!-- Functional Tag 2 (Warning Stamp Right) -->
-      <g transform="translate(510, 520) rotate(4)" filter="url(#fq_sticker_shadow)">
-        <rect x="0" y="0" width="210" height="56" rx="8" fill="#EF4444" stroke="#FFFFFF" stroke-width="3"/>
-        <text x="105" y="35" font-family="'PingFang SC', sans-serif" font-size="17" font-weight="900" fill="#FFFFFF" text-anchor="middle">⚠️ 情绪已超标</text>
-      </g>
-
-      <!-- Bottom Editorial Punchline Subtitle Block -->
-      <g transform="translate(54, 880)" filter="url(#fq_sticker_shadow)">
-        <rect x="0" y="0" width="660" height="88" rx="14" fill="#0F172A" stroke="#FFFFFF" stroke-width="3"/>
-        <text x="330" y="40" font-family="'Songti SC', 'STSong', serif" font-size="22" font-weight="900" fill="#F8FAFC" text-anchor="middle" letter-spacing="2">“${cleanSub}”</text>
-        <text x="330" y="68" font-family="'Courier New', monospace" font-size="12" font-weight="bold" fill="#38BDF8" text-anchor="middle" letter-spacing="3">FANTASY SOCIAL EDITORIAL • EDITION 02</text>
-      </g>
-    </svg>`;
-
-    return "data:image/svg+xml;utf8," + encodeURIComponent(fantasySvg);
-  }
-  if (isBlackInk) {
-    const cleanImg = resolvedImg ? escapeXml(resolvedImg) : "";
-    let envTitle = specifiedText && specifiedText.trim().length > 0 ? escapeXml(specifiedText.trim()) : "SHIBUYA CROSSING • 16:40";
-    let envNote = customNotes && customNotes.trim().length > 0 ? escapeXml(customNotes.trim()) : "STREET CHRONICLES • 街角慢速漫游";
-
-    const blackInkSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 768 1024" width="768" height="1024" style="background:#111827;">
-      <defs>
-        <filter id="bi_shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.55"/>
-        </filter>
-        <linearGradient id="bi_photo_veil" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#000000" stop-opacity="0.25"/>
-          <stop offset="40%" stop-color="#000000" stop-opacity="0.05"/>
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.6"/>
-        </linearGradient>
-      </defs>
-
-      <!-- 100% PHOTOGRAPHIC REAL ENVIRONMENT (NO REDRAWING) -->
-      ${
-        cleanImg && cleanImg.length > 0
-          ? `<image href="${cleanImg}" xlink:href="${cleanImg}" x="0" y="0" width="768" height="1024" preserveAspectRatio="xMidYMid slice"/>`
-          : `<rect width="768" height="1024" fill="#1F2937"/>`
-      }
-      <rect width="768" height="1024" fill="url(#bi_photo_veil)"/>
-
-      <!-- Environment Negative Space Typography (Upper Sky / Negative Space) -->
-      <g filter="url(#bi_shadow)">
-        <text x="56" y="90" font-family="'PingFang SC', 'Helvetica Neue', 'Arial Black', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="3">${envTitle}</text>
-        <text x="56" y="118" font-family="'Courier New', monospace" font-size="13" font-weight="bold" fill="#F1F5F9" letter-spacing="2">BLACK INK EDITORIAL / PHOTOGRAPHIC COEXISTENCE</text>
-        <line x1="56" y1="130" x2="360" y2="130" stroke="#FFFFFF" stroke-width="2" opacity="0.8"/>
-      </g>
-
-      <!-- Top Right Style Badge Tag -->
-      <g transform="translate(560, 48) rotate(2)" filter="url(#bi_shadow)">
-        <rect x="0" y="0" width="160" height="42" fill="#FFFFFF" rx="4"/>
-        <text x="80" y="27" font-family="'Courier New', monospace" font-size="14" font-weight="900" fill="#0F172A" text-anchor="middle" letter-spacing="1">BLACK INK</text>
-      </g>
-
-      <!-- Character Replacement Layer: Pure White Fill + Crisp Black Lines + Thick White Sticker Outline -->
-      <g transform="translate(240, 240)" filter="url(#bi_shadow)">
-        <!-- Crisp White Sticker Border (Layer 1) -->
-        <g stroke="#FFFFFF" stroke-width="26" stroke-linejoin="round" stroke-linecap="round" fill="#FFFFFF">
-          <ellipse cx="144" cy="110" rx="60" ry="74"/>
-          <path d="M96 170 C60 210, 50 380, 80 470 L208 470 C238 380, 228 210, 192 170 Z"/>
-          <path d="M80 470 L70 680 L120 680 L134 470 Z"/>
-          <path d="M154 470 L168 680 L218 680 L208 470 Z"/>
-          <path d="M70 210 L20 360 L50 375 L90 250 Z"/>
-          <path d="M218 210 L268 360 L238 375 L198 250 Z"/>
-        </g>
-
-        <!-- Pure White Interior Fill (Layer 2) -->
-        <g fill="#FFFFFF">
-          <ellipse cx="144" cy="110" rx="58" ry="72"/>
-          <path d="M96 170 C60 210, 50 380, 80 470 L208 470 C238 380, 228 210, 192 170 Z"/>
-          <path d="M80 470 L70 680 L120 680 L134 470 Z"/>
-          <path d="M154 470 L168 680 L218 680 L208 470 Z"/>
-          <path d="M70 210 L20 360 L50 375 L90 250 Z"/>
-          <path d="M218 210 L268 360 L238 375 L198 250 Z"/>
-        </g>
-
-        <!-- Crisp Black Linework (Layer 3) -->
-        <g stroke="#0F172A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-          <!-- Head contour & hair silhouette -->
-          <ellipse cx="144" cy="110" rx="58" ry="72"/>
-          <path d="M86 100 C80 40, 208 40, 202 100 C180 75, 110 75, 86 100 Z" fill="#0F172A"/>
-          
-          <!-- Mandatory Dot Eyes & Tiny Smile (No Realistic Facial Features) -->
-          <circle cx="126" cy="118" r="6" fill="#0F172A"/>
-          <circle cx="162" cy="118" r="6" fill="#0F172A"/>
-          <path d="M138 138 Q144 144 150 138" stroke-width="4"/>
-
-          <!-- Body / Garment Silhouette & Minimal Structure Lines -->
-          <path d="M96 170 C60 210, 50 380, 80 470 L208 470 C238 380, 228 210, 192 170 Z"/>
-          <path d="M144 170 L144 470"/>
-          <path d="M100 280 L188 280"/>
-          <path d="M70 210 L20 360 L50 375 L90 250 Z"/>
-          <path d="M218 210 L268 360 L238 375 L198 250 Z"/>
-
-          <!-- Legs & Clean Shoes (Faithful Adult Silhouette) -->
-          <path d="M80 470 L70 680 L120 680 L134 470 Z"/>
-          <path d="M154 470 L168 680 L218 680 L208 470 Z"/>
-          <rect x="64" y="675" width="60" height="20" rx="6" fill="#0F172A"/>
-          <rect x="164" y="675" width="60" height="20" rx="6" fill="#0F172A"/>
-        </g>
-      </g>
-
-      <!-- Bottom Editorial Anchor Banner -->
-      <g transform="translate(54, 910)" filter="url(#bi_shadow)">
-        <rect x="0" y="0" width="660" height="64" rx="12" fill="#0F172A" stroke="#FFFFFF" stroke-width="2"/>
-        <text x="36" y="38" font-family="'PingFang SC', sans-serif" font-size="16" font-weight="900" fill="#FFFFFF" letter-spacing="1">黑白手绘实景插画 • BLACK INK</text>
-        <text x="624" y="38" font-family="'Courier New', monospace" font-size="12" font-weight="bold" fill="#94A3B8" text-anchor="end">${envNote}</text>
-      </g>
-    </svg>`;
-
-    return "data:image/svg+xml;utf8," + encodeURIComponent(blackInkSvg);
-  }
-
-  if (isColorChibi) {
-    const cleanImg = resolvedImg ? escapeXml(resolvedImg) : "";
-    let envTitle = specifiedText && specifiedText.trim().length > 0 ? escapeXml(specifiedText.trim()) : "SUMMER AFTERNOON • 15:30";
-    let envNote = customNotes && customNotes.trim().length > 0 ? escapeXml(customNotes.trim()) : "LIFESTYLE CHIBI • 城市漫游";
-
-    const colorChibiSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 768 1024" width="768" height="1024" style="background:#0284C7;">
-      <defs>
-        <filter id="cc_shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
-        </filter>
-        <linearGradient id="cc_photo_veil" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#000000" stop-opacity="0.2"/>
-          <stop offset="50%" stop-color="#000000" stop-opacity="0.05"/>
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
-        </linearGradient>
-      </defs>
-
-      <!-- 100% PHOTOGRAPHIC REAL ENVIRONMENT (NO REDRAWING) -->
-      ${
-        cleanImg && cleanImg.length > 0
-          ? `<image href="${cleanImg}" xlink:href="${cleanImg}" x="0" y="0" width="768" height="1024" preserveAspectRatio="xMidYMid slice"/>`
-          : `<rect width="768" height="1024" fill="#0369A1"/>`
-      }
-      <rect width="768" height="1024" fill="url(#cc_photo_veil)"/>
-
-      <!-- Environment Negative Space Typography (Upper Sky / Negative Space) -->
-      <g filter="url(#cc_shadow)">
-        <text x="56" y="90" font-family="'PingFang SC', 'Helvetica Neue', 'Arial Black', sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" letter-spacing="3">${envTitle}</text>
-        <text x="56" y="118" font-family="'Courier New', monospace" font-size="13" font-weight="bold" fill="#FEF08A" letter-spacing="2">COLOR CHIBI EDITORIAL / 5-HEAD FASHION SILHOUETTE</text>
-        <line x1="56" y1="130" x2="380" y2="130" stroke="#FEF08A" stroke-width="2" opacity="0.9"/>
-      </g>
-
-      <!-- Top Right Style Badge Tag -->
-      <g transform="translate(560, 48) rotate(-2)" filter="url(#cc_shadow)">
-        <rect x="0" y="0" width="160" height="42" fill="#FEF08A" rx="4"/>
-        <text x="80" y="27" font-family="'Courier New', monospace" font-size="14" font-weight="900" fill="#854D0E" text-anchor="middle" letter-spacing="1">COLOR CHIBI</text>
-      </g>
-
-      <!-- Character Replacement Layer: 5-Head Proportion + Vibrant Outfit + White Sticker Outline -->
-      <g transform="translate(230, 240)" filter="url(#cc_shadow)">
-        <!-- Crisp White Sticker Border (Layer 1) -->
-        <g stroke="#FFFFFF" stroke-width="26" stroke-linejoin="round" stroke-linecap="round" fill="#FFFFFF">
-          <ellipse cx="154" cy="115" rx="66" ry="78"/>
-          <path d="M102 180 C70 220, 60 380, 92 460 L216 460 C248 380, 238 220, 206 180 Z"/>
-          <path d="M92 460 L80 680 L130 680 L144 460 Z"/>
-          <path d="M164 460 L178 680 L228 680 L216 460 Z"/>
-          <path d="M76 220 L24 360 L56 375 L98 260 Z"/>
-          <path d="M232 220 L284 360 L252 375 L210 260 Z"/>
-        </g>
-
-        <!-- Clothing Colors & Head Fills (Layer 2) -->
-        <!-- Skin & Face -->
-        <ellipse cx="154" cy="115" rx="64" ry="76" fill="#FED7AA"/>
-        <!-- Hair (Chestnut brown stylish cut) -->
-        <path d="M90 105 C85 35, 225 35, 218 105 C190 75, 115 75, 90 105 Z" fill="#92400E"/>
-        <!-- Yellow Knit Sweater -->
-        <path d="M102 180 C70 220, 60 380, 92 460 L216 460 C248 380, 238 220, 206 180 Z" fill="#FDE047"/>
-        <!-- Denim Blue Shorts / Skirt -->
-        <rect x="100" y="440" width="108" height="60" rx="8" fill="#2563EB"/>
-        <!-- Legs (Skin tone, 5 heads proportion) -->
-        <path d="M92 490 L82 670 L128 670 L138 490 Z" fill="#FED7AA"/>
-        <path d="M170 490 L180 670 L226 670 L216 490 Z" fill="#FED7AA"/>
-        <!-- Red Crossbody Bag -->
-        <path d="M84 260 L60 360 L92 375 Z" fill="#EF4444"/>
-
-        <!-- Crisp Outlines, Dot Eyes & Pink Blush (Layer 3) -->
-        <g stroke="#0F172A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-          <ellipse cx="154" cy="115" rx="64" ry="76"/>
-          <path d="M90 105 C85 35, 225 35, 218 105 C190 75, 115 75, 90 105 Z"/>
-
-          <!-- Abstract Dot Eyes, Light Blush, Tiny Smile (No Anime Shiny Eyes) -->
-          <circle cx="134" cy="122" r="6" fill="#0F172A"/>
-          <circle cx="174" cy="122" r="6" fill="#0F172A"/>
-          <path d="M148 142 Q154 148 160 142" stroke-width="3.5"/>
-          <ellipse cx="120" cy="134" rx="9" ry="5" fill="#F43F5E" opacity="0.6" stroke="none"/>
-          <ellipse cx="188" cy="134" rx="9" ry="5" fill="#F43F5E" opacity="0.6" stroke="none"/>
-
-          <!-- Body Silhouette Lines -->
-          <path d="M102 180 C70 220, 60 380, 92 460 L216 460 C248 380, 238 220, 206 180 Z"/>
-          <path d="M76 220 L24 360 L56 375 L98 260 Z"/>
-          <path d="M232 220 L284 360 L252 375 L210 260 Z"/>
-          <path d="M92 490 L82 670 L128 670 L138 490 Z"/>
-          <path d="M170 490 L180 670 L226 670 L216 490 Z"/>
-
-          <!-- White Sneaker Shoes -->
-          <rect x="76" y="665" width="56" height="22" rx="6" fill="#FFFFFF"/>
-          <rect x="176" y="665" width="56" height="22" rx="6" fill="#FFFFFF"/>
-        </g>
-      </g>
-
-      <!-- Bottom Editorial Anchor Banner -->
-      <g transform="translate(54, 910)" filter="url(#cc_shadow)">
-        <rect x="0" y="0" width="660" height="64" rx="12" fill="#0F172A" stroke="#38BDF8" stroke-width="2"/>
-        <text x="36" y="38" font-family="'PingFang SC', sans-serif" font-size="16" font-weight="900" fill="#FFFFFF" letter-spacing="1">彩色轻Q实景插画 • COLOR CHIBI</text>
-        <text x="624" y="38" font-family="'Courier New', monospace" font-size="12" font-weight="bold" fill="#38BDF8" text-anchor="end">${envNote}</text>
-      </g>
-    </svg>`;
-
-    return "data:image/svg+xml;utf8," + encodeURIComponent(colorChibiSvg);
-  }
-
-
-  let quoteText = "光影穿梭，电车奔赴旧梦";
-  let subText = "DREAMY MOTION EDITORIAL • S21";
-  let mechanismTag = "CROWD DRIFT • SLOW SHUTTER";
-
-  if ((sourceImage && sourceImage.includes("1444464666168")) || (prompt && prompt.includes("长空"))) {
-    quoteText = "长空万里，风为飞鸟留白";
-    mechanismTag = "BACKLIT HALATION • NEGATIVE SPACE";
-  } else if ((sourceImage && sourceImage.includes("1519741497674")) || (prompt && prompt.includes("风拂"))) {
-    quoteText = "风拂裙摆，时光温柔慢行";
-    mechanismTag = "PASSING GESTURE • DYNAMIC VEIL";
-  } else if ((sourceImage && sourceImage.includes("1517841905240")) || (prompt && prompt.includes("玻璃"))) {
-    quoteText = "玻璃倒影，倒流岁月清浅";
-    mechanismTag = "GLASS MEMORY • REFLECTION LAYER";
-  } else if ((sourceImage && sourceImage.includes("1490750967868")) || (prompt && prompt.includes("繁花"))) {
-    quoteText = "繁花如织，时光驻足此刻";
-    mechanismTag = "FLORAL DIFFUSION • FOREGROUND BLUR";
-  } else if ((sourceImage && sourceImage.includes("1506744038136")) || (prompt && prompt.includes("山川"))) {
-    quoteText = "山川远阔，人间草木";
-    mechanismTag = "COLOR FIELD • WABI-SABI ALPINE";
-  }
-
-  const cleanImg = resolvedImg ? escapeXml(resolvedImg) : "";
-  const cleanQuote = escapeXml(quoteText);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024" width="1024" height="1024">
-    <defs>
-      <linearGradient id="dm_bg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#181B22"/>
-        <stop offset="40%" stop-color="#323C46"/>
-        <stop offset="70%" stop-color="#8F6A43"/>
-        <stop offset="100%" stop-color="#E2D1BA"/>
-      </linearGradient>
-      <linearGradient id="dm_sun" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#FCD34D" stop-opacity="0.2"/>
-      </linearGradient>
-      <filter id="blur_heavy">
-        <feGaussianBlur stdDeviation="8"/>
-      </filter>
-      <filter id="motion_blur">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="16,2"/>
-      </filter>
-    </defs>
-    <rect width="1024" height="1024" fill="${isDreamy ? 'url(#dm_bg)' : isCyber ? '#0A0B10' : isBauhaus ? '#EDE9DF' : '#F4F1EA'}"/>
-    ${
-      isDreamy
-        ? `<!-- Window Frame Silhouette with Photo Embedded -->
-           <clipPath id="dm_photo_clip">
-             <rect x="80" y="80" width="560" height="620" rx="36"/>
-           </clipPath>
-           <rect x="80" y="80" width="560" height="620" rx="36" fill="#13171D" opacity="0.8" stroke="#3A4652" stroke-width="8"/>
-           <g clip-path="url(#dm_photo_clip)">
-             ${
-               cleanImg && cleanImg.length > 0
-                 ? `<image href="${cleanImg}" xlink:href="${cleanImg}" x="80" y="80" width="560" height="620" preserveAspectRatio="xMidYMid slice"/>
-                    <rect x="80" y="80" width="560" height="620" fill="#181B22" opacity="0.25"/>`
-                 : `<path d="M80 460 Q240 360 400 440 T640 420 L640 700 L80 700 Z" fill="#3D5060" opacity="0.85"/>`
-             }
-           </g>
-           <!-- Glowing Golden Sun Lake Reflection with Motion Blur -->
-           <circle cx="480" cy="280" r="65" fill="url(#dm_sun)" filter="url(#blur_heavy)"/>
-           <circle cx="480" cy="280" r="110" fill="#FDE68A" opacity="0.25"/>
-           <!-- Directional Slow Shutter Motion Streaks -->
-           <path d="M40 500 L980 620 L880 740 L0 600 Z" fill="#FFECC8" opacity="0.35" filter="url(#motion_blur)"/>
-           <path d="M120 320 L860 460" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" opacity="0.4" filter="url(#motion_blur)"/>
-           <path d="M60 620 L940 760" stroke="#E5C49F" stroke-width="18" stroke-linecap="round" opacity="0.5" filter="url(#motion_blur)"/>
-           <!-- Train Passenger Seats with Warm Halation Edge -->
-           <rect x="580" y="260" width="340" height="460" rx="24" fill="#3F2B1D" opacity="0.95" stroke="#E5C49F" stroke-width="4"/>
-           <rect x="650" y="320" width="220" height="340" rx="16" fill="#6B4628"/>
-           <!-- S21 Poetic Calligraphy Titles -->
-           <text x="100" y="820" font-family="'Songti SC', 'STSong', serif" font-size="52" font-weight="bold" fill="#FFFFFF" letter-spacing="6">${cleanQuote}</text>
-           <text x="100" y="880" font-family="'Helvetica Neue', sans-serif" font-size="22" font-weight="700" fill="#E2D1BA" letter-spacing="8">DREAMY MOTION EDITORIAL • S21</text>
-           <text x="100" y="925" font-family="monospace" font-size="18" fill="#C59B6D" letter-spacing="4">KINETIC NEGATIVE SPACE • PHOTOGRAPH BY MARGINLAB</text>`
-        : isSplit
-        ? `<rect x="64" y="64" width="896" height="420" rx="16" fill="#3D4B53"/>
-           <circle cx="800" cy="180" r="48" fill="#E8D5B5" opacity="0.8"/>
-           <path d="M64 360 L240 240 L420 340 L650 200 L960 380 L960 484 L64 484 Z" fill="#6A7F8A" opacity="0.6"/>
-           <rect x="64" y="520" width="896" height="340" rx="16" fill="#EAE5DC"/>
-           <rect x="140" y="600" width="120" height="220" rx="8" fill="#5B6E77"/>
-           <rect x="280" y="560" width="150" height="260" rx="8" fill="#889DA7"/>
-           <rect x="450" y="630" width="100" height="190" rx="8" fill="#B3A28F"/>
-           <circle cx="780" cy="620" r="28" fill="#D49B58"/>
-           <text x="120" y="910" font-family="'Didot', 'Playfair Display', serif" font-size="32" font-weight="bold" fill="#1C1D20" letter-spacing="4">HAUTE COUTURE EDITORIAL</text>
-           <text x="120" y="945" font-family="monospace" font-size="16" fill="#787C80" letter-spacing="2">VOL. 08 • CONTEMPORARY GOUACHE ARCHITECTURE</text>`
-        : isBauhaus
-        ? `<circle cx="340" cy="380" r="220" fill="#DE4B39"/>
-           <rect x="420" y="380" width="380" height="400" fill="#1C3879"/>
-           <polygon points="120,800 420,800 270,500" fill="#F1B838"/>
-           <line x1="80" y1="840" x2="944" y2="840" stroke="#1A1A1A" stroke-width="12"/>
-           <text x="100" y="920" font-family="'Helvetica Neue', sans-serif" font-size="44" font-weight="900" fill="#1A1A1A" letter-spacing="8">BAUHAUS 1923</text>
-           <text x="100" y="960" font-family="monospace" font-size="20" fill="#555" letter-spacing="4">STAATLICHES BAUHAUS WEIMAR</text>`
-        : isCyber
-        ? `<rect x="120" y="140" width="180" height="680" fill="#141824"/>
-           <rect x="340" y="80" width="220" height="740" fill="#171C2B"/>
-           <rect x="600" y="200" width="160" height="620" fill="#111520"/>
-           <line x1="210" y1="200" x2="210" y2="600" stroke="#00F0FF" stroke-width="12" filter="drop-shadow(0 0 16px #00F0FF)"/>
-           <line x1="450" y1="160" x2="450" y2="520" stroke="#FF007F" stroke-width="12" filter="drop-shadow(0 0 16px #FF007F)"/>
-           <rect x="0" y="780" width="1024" height="244" fill="#08090D"/>
-           <ellipse cx="450" cy="880" rx="300" ry="60" fill="#FF007F" opacity="0.3"/>
-           <ellipse cx="210" cy="900" rx="180" ry="40" fill="#00F0FF" opacity="0.3"/>
-           <text x="80" y="950" font-family="sans-serif" font-size="38" font-weight="900" fill="#00F0FF" letter-spacing="6">NEO TOKYO 2077</text>`
-        : `<rect x="64" y="64" width="896" height="896" rx="20" fill="#242220"/>
-           <circle cx="512" cy="450" r="260" fill="#C34A36" opacity="0.85"/>
-           <path d="M64 680 Q256 520 512 680 T960 620 L960 960 L64 960 Z" fill="#2E5266"/>
-           <text x="120" y="910" font-family="serif" font-size="36" font-weight="bold" fill="#E5C49F" letter-spacing="4">EASTERN ARTISAN VOGUE</text>`
-    }
-  </svg>`;
-
-  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
 }
 
 // POST /api/ai/generate: Generate stylized image using configured image2 / OpenAI model
@@ -2796,7 +2290,7 @@ app.post("/api/ai/generate", async (req, res) => {
           Authorization: `Bearer ${config.apiKey.trim()}`,
         },
         body: formData,
-        signal: AbortSignal.timeout(150000), // 150s timeout for AI generation
+        signal: AbortSignal.timeout(240000), // 240s timeout for AI generation
       });
 
       if (!apiRes.ok) {
@@ -2836,7 +2330,7 @@ app.post("/api/ai/generate", async (req, res) => {
           Authorization: `Bearer ${config.apiKey.trim()}`,
         },
         body: JSON.stringify(requestPayload),
-        signal: AbortSignal.timeout(150000), // 150s timeout
+        signal: AbortSignal.timeout(240000), // 240s timeout
       });
 
       if (!apiRes.ok) {
@@ -2906,35 +2400,54 @@ app.post("/api/ai/generate", async (req, res) => {
         message: `图像大模型生成失败：${err.message || "大模型服务无响应"}`,
       });
     }
+    // 兜底：必须基于用户上传照片本身做真实风格化，
+    // 绝不返回与照片无关的预制矢量占位图。
     try {
-      const fallbackImage = await generateFallbackStylizedArtwork(styleId, styleName, sourceImage, prompt, specifiedText, customNotes, aspectRatio || "3:4");
-      if (fallbackImage) {
-        console.log("[AI Gen] Generated high-fidelity vector stylized artwork fallback for style:", styleId);
-        const historyItem = {
-          id: taskId,
-          userId: userId || "default",
-          styleId: styleId || "fantasy_qiqiguaiguai",
-          styleName: styleName || "FANTASY · 奇奇怪怪",
-          sourceImage: sourceImage || undefined,
-          prompt,
-          customNotes,
+      let fallbackImage = "";
+      if (sourceImage && String(sourceImage).trim().length > 0) {
+        fallbackImage = await renderPhotoDerivedFallback({
+          styleId,
+          styleName,
+          sourceImage,
           aspectRatio: aspectRatio || "3:4",
-          status: "success",
-          resultUrl: fallbackImage,
-          createdAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-        };
-        saveAiHistoryItem(userId || "default", historyItem);
-        return res.json({
-          success: true,
-          message: "AI 风格化海报生成成功！已加入您的作品素材库",
-          image: fallbackImage,
-          thumbUrl: toThumbUrl(historyItem.resultUrl),
-          task: toClientHistoryItem(historyItem),
+        });
+        if (fallbackImage) {
+          console.log("[AI Gen] Photo-derived local fallback rendered for style:", styleId);
+        }
+      }
+      if (!fallbackImage) {
+        // 没有任何源图时无从做「同款风格化」，如实报错，不伪造结果。
+        return res.status(502).json({
+          success: false,
+          message: `AI 生图调用失败：${err.message || "大模型服务无响应"}。本地兜底渲染也需要上传原图，请重新上传照片后重试。`,
         });
       }
+      const historyItem = {
+        id: taskId,
+        userId: userId || "default",
+        styleId: styleId || "retro_print_illustration",
+        styleName: styleName || "复古实验平面插画 · Riso印刷",
+        sourceImage: sourceImage || undefined,
+        prompt,
+        customNotes,
+        aspectRatio: aspectRatio || "3:4",
+        status: "success",
+        resultUrl: fallbackImage,
+        createdAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      };
+      saveAiHistoryItem(userId || "default", historyItem);
+      const persisted = persistHistoryDataUri(fallbackImage, `${taskId}_res`);
+      return res.json({
+        success: true,
+        message: "AI 上游超时，已用本地渲染基于你的原图生成同款风格效果",
+        image: fallbackImage,
+        imageUrl: persisted,
+        thumbUrl: toThumbUrl(persisted),
+        task: toClientHistoryItem({ ...historyItem, resultUrl: persisted }),
+      });
     } catch (fbErr) {
-      console.error("[AI Gen] Fallback generation also failed:", fbErr.message);
+      console.error("[AI Gen] Photo-derived fallback also failed:", fbErr.message);
     }
     return res.status(500).json({
       success: false,
