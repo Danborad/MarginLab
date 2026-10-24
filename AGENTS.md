@@ -124,3 +124,16 @@
 - 没有源图时**如实返回 502 错误**，不要伪造成功；前端只展示失败态并允许重试。
 - 上游超时统一 **240s**（`gpt-image-2.5` 实测 56~150s，150s 会误杀真实任务）。
   超时/失败才走兜底，且响应里明确告知「已用本地渲染基于你的原图生成」。
+
+## 源图解析约定（2026-10-24 用户反馈：点击生成不生成，日志报「无法解析源图片数据」）
+
+- 前端传上来的 `sourceImage` **不止 `data:` 一种形态**，实际上传/图库选择后落盘的是短 URL：
+  `/api/user-media/<userId>/<file>`、缩略图包装链 `/api/thumb?w=480&src=...`、
+  历史资产 `/api/ai/history-assets/<file>`、public 静态资源 `/covers/...`、
+  以及本机绝对地址 `http://192.168.31.63:3001/api/user-media/...`。
+- **所有入口必须走统一的 `resolveSourceImageBuffer()`**（`server.js`），它按顺序处理：
+  data URI → `/api/thumb` 递归拆包 → 绝对地址（先读盘再走网络）→ 站内相对地址读盘 →
+  本机 HTTP 兜底。绝不允许再写「只认 data:」的分支判断，否则用户从图库选图必然失败。
+- SVG（历史里的矢量海报）要先用 ImageMagick 转 PNG 再送给上游，上游只接受位图。
+- 以后新增任何图片来源（新静态目录、新 CDN、对象存储），只需在
+  `resolveLocalImagePath` / `resolvePublicAssetPath` 里加一条规则即可，其它代码不用动。

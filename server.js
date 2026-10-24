@@ -468,6 +468,115 @@ function toThumbUrl(publicUrl, size = THUMB_MAX_EDGE) {
   return `/api/thumb?w=${size}&src=${encodeURIComponent(publicUrl)}`;
 }
 
+/** 站内 public/ 下的静态资源（封面、修图缩略图、画册样张） */
+function resolvePublicAssetPath(publicUrl) {
+  if (typeof publicUrl !== "string") return null;
+  let p = publicUrl.split("?")[0];
+  try { p = decodeURIComponent(p); } catch (e) {}
+  const m = p.match(/^\/(covers|retouch-thumbs|album_samples|creative-samples)\/([\w.\-]+(?:\/[\w.\-]+)*)$/);
+  if (!m) return null;
+  const abs = path.join(__dirname, "public", m[1], m[2]);
+  const root = path.join(__dirname, "public") + path.sep;
+  if (!abs.startsWith(root)) return null;
+  return fs.existsSync(abs) ? abs : null;
+}
+
+/** 读本地图片为 Buffer；SVG 走 ImageMagick 转 PNG（上游只接受位图） */
+async function readLocalImageAsBuffer(absPath) {
+  try {
+    const ext = path.extname(absPath).toLowerCase();
+    if (ext === ".svg") {
+      ensureRenderTmpDir();
+      const png = path.join(RENDER_TMP_DIR, `svg2png_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`);
+      const ok = await runConvert(["-background", "white", "-density", "144", absPath, "-flatten", png], 30000);
+      if (ok && fs.existsSync(png)) {
+        const buf = fs.readFileSync(png);
+        safeUnlink(png);
+        return { buffer: buf, mime: "image/png", ext: ".png" };
+      }
+      return null;
+    }
+    const mime =
+      ext === ".png" ? "image/png"
+      : ext === ".webp" ? "image/webp"
+      : ext === ".gif" ? "image/gif"
+      : "image/jpeg";
+    return { buffer: fs.readFileSync(absPath), mime, ext: ext || ".jpg" };
+  } catch (e) {
+    console.warn("[readLocalImageAsBuffer] failed:", e.message);
+    return null;
+  }
+}
+
+/**
+ * 把前端传来的 sourceImage 统一解析成 Buffer。
+ * 支持：data URI、/api/thumb?...&src=...、/api/user-media/...、
+ *       /api/ai/history-assets/...、public 静态资源、外链 URL、本站绝对地址。
+ */
+async function resolveSourceImageBuffer(sourceImage) {
+  if (!sourceImage || typeof sourceImage !== "string") return null;
+  const src = sourceImage.trim();
+  if (!src) return null;
+
+  // 1) data URI
+  if (src.startsWith("data:")) {
+    const m = src.match(/^data:([^;]+);base64,([\s\S]+)$/);
+    if (!m) return null;
+    return { buffer: Buffer.from(m[2], "base64"), mime: m[1], ext: ".png" };
+  }
+
+  // 2) 缩略图接口：递归取内部 src
+  if (src.startsWith("/api/thumb")) {
+    try {
+      const u = new URL(src, "http://localhost");
+      const inner = u.searchParams.get("src");
+      if (inner) return await resolveSourceImageBuffer(inner);
+    } catch (e) {}
+    return null;
+  }
+
+  // 3) 绝对地址：先尝试当成本站资源直接读盘，读不到再走网络
+  if (/^https?:\/\//i.test(src)) {
+    try {
+      const u = new URL(src);
+      const localFromAbs =
+        resolveLocalImagePath(u.pathname) || resolvePublicAssetPath(u.pathname);
+      if (localFromAbs && fs.existsSync(localFromAbs)) {
+        return await readLocalImageAsBuffer(localFromAbs);
+      }
+      const res = await fetch(src, { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) return null;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const ct = res.headers.get("content-type") || "image/jpeg";
+      return { buffer: buf, mime: ct.split(";")[0], ext: ".jpg" };
+    } catch (e) {
+      console.warn("[resolveSourceImageBuffer] remote fetch failed:", e.message);
+      return null;
+    }
+  }
+
+  // 4) 站内相对地址 → 直接读盘
+  const localPath = resolveLocalImagePath(src) || resolvePublicAssetPath(src);
+  if (localPath && fs.existsSync(localPath)) {
+    return await readLocalImageAsBuffer(localPath);
+  }
+
+  // 5) 兜底：走本机 HTTP 取一次
+  if (src.startsWith("/")) {
+    try {
+      const res = await fetch(`http://127.0.0.1:${PORT}${src}`, { signal: AbortSignal.timeout(20000) });
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        const ct = res.headers.get("content-type") || "image/jpeg";
+        return { buffer: buf, mime: ct.split(";")[0], ext: ".jpg" };
+      }
+    } catch (e) {
+      console.warn("[resolveSourceImageBuffer] self fetch failed:", e.message);
+    }
+  }
+  return null;
+}
+
 /** 把 data URI 落盘为真实文件，返回文件名（失败返回 null） */
 function persistDataUriToFile(uri, dir, baseName) {
   if (typeof uri !== "string" || !uri.startsWith("data:")) return null;
@@ -2006,32 +2115,9 @@ function escapeXml(str) {
 async function resolveImageAsBase64(imgUrl) {
   if (!imgUrl || typeof imgUrl !== "string") return "";
   if (imgUrl.startsWith("data:")) return imgUrl;
-  if (imgUrl.startsWith("/api/ai/history-assets/")) {
-    try {
-      const localFile = path.join(AI_HISTORY_ASSETS_DIR, path.basename(imgUrl));
-      if (fs.existsSync(localFile)) {
-        const ext = path.extname(localFile).toLowerCase();
-        if (ext === ".svg") {
-          return "data:image/svg+xml;utf8," + encodeURIComponent(fs.readFileSync(localFile, "utf8"));
-        }
-        const mime = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
-        return `data:${mime};base64,${fs.readFileSync(localFile).toString("base64")}`;
-      }
-    } catch (e) {
-      console.warn("[resolveImageAsBase64] Local file read notice:", e.message);
-    }
-  }
-  if (imgUrl.startsWith("http://") || imgUrl.startsWith("https://")) {
-    try {
-      const res = await fetch(imgUrl, { signal: AbortSignal.timeout(8000) });
-      if (res.ok) {
-        const buf = await res.arrayBuffer();
-        const mime = res.headers.get("content-type") || "image/jpeg";
-        return `data:${mime};base64,${Buffer.from(buf).toString("base64")}`;
-      }
-    } catch (e) {
-      console.warn("[resolveImageAsBase64] Notice:", e.message);
-    }
+  const resolved = await resolveSourceImageBuffer(imgUrl);
+  if (resolved && resolved.buffer && resolved.buffer.length > 0) {
+    return `data:${resolved.mime || "image/jpeg"};base64,${resolved.buffer.toString("base64")}`;
   }
   return imgUrl;
 }
@@ -2233,41 +2319,15 @@ app.post("/api/ai/generate", async (req, res) => {
     // If sourceImage is provided, use /v1/images/edits with multipart form data
     if (sourceImage && sourceImage.trim().length > 0) {
       console.log("[AI Gen] Source image detected, calling /v1/images/edits for image-to-image stylization...");
-      
-      let imageBlob = null;
-      let imageFilename = "source.jpg";
 
-      if (sourceImage.startsWith("data:")) {
-        const matches = sourceImage.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches) {
-          const mimeType = matches[1];
-          const buffer = Buffer.from(matches[2], "base64");
-          const ext = mimeType.includes("png") ? "png" : "jpg";
-          imageBlob = new Blob([buffer], { type: mimeType });
-          imageFilename = `source.${ext}`;
-        }
-      } else if (sourceImage.startsWith("/api/ai/history-assets/")) {
-        const localFile = path.join(AI_HISTORY_ASSETS_DIR, path.basename(sourceImage));
-        if (fs.existsSync(localFile)) {
-          const ext = path.extname(localFile).toLowerCase();
-          const mimeType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
-          const buffer = fs.readFileSync(localFile);
-          imageBlob = new Blob([buffer], { type: mimeType });
-          imageFilename = `source${ext || ".jpg"}`;
-        }
-      } else if (sourceImage.startsWith("http://") || sourceImage.startsWith("https://")) {
-        const imgRes = await fetch(sourceImage, { signal: AbortSignal.timeout(15000) });
-        if (!imgRes.ok) throw new Error(`获取源图片失败 (HTTP ${imgRes.status})`);
-        const arrayBuf = await imgRes.arrayBuffer();
-        const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-        const ext = contentType.includes("png") ? "png" : "jpg";
-        imageBlob = new Blob([arrayBuf], { type: contentType });
-        imageFilename = `source.${ext}`;
-      }
-
-      if (!imageBlob) {
+      // 统一解析：data URI / /api/user-media/... / /api/ai/history-assets/... /
+      //           /api/thumb?...&src=... / public 静态资源 / 外链 —— 全部还原成二进制
+      const resolved = await resolveSourceImageBuffer(sourceImage);
+      if (!resolved || !resolved.buffer || resolved.buffer.length === 0) {
         throw new Error("无法解析源图片数据，请重新选择或上传照片");
       }
+      const imageBlob = new Blob([resolved.buffer], { type: resolved.mime || "image/jpeg" });
+      const imageFilename = `source${resolved.ext || ".jpg"}`;
 
       const formData = new FormData();
       formData.append("model", config.model || "gpt-image-2");
