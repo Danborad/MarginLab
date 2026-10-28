@@ -17,6 +17,9 @@ import {
   User,
   AlertCircle,
   Crown,
+  Upload,
+  Coins,
+  HardDrive,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 
@@ -33,6 +36,10 @@ export const AuthModal: React.FC = () => {
   const updateUserProfile = useEditorStore((s) => s.updateUserProfile);
   const changePassword = useEditorStore((s) => s.changePassword);
 
+  const userAssets = useEditorStore((s) => s.userAssets);
+  const uploadAvatar = useEditorStore((s) => s.uploadAvatar);
+  const fetchUserAssets = useEditorStore((s) => s.fetchUserAssets);
+
   const savedProjects = useEditorStore((s) => s.savedProjects);
   const customTemplates = useEditorStore((s) => s.customTemplates);
   const mediaAssets = useEditorStore((s) => s.mediaAssets);
@@ -40,6 +47,10 @@ export const AuthModal: React.FC = () => {
   const [tab, setTab] = useState<"profile" | "changePassword">(
     authModalTab === "changePassword" ? "changePassword" : "profile"
   );
+
+  useEffect(() => {
+    if (authModalOpen && isAuthenticated) fetchUserAssets().catch(() => {});
+  }, [authModalOpen, isAuthenticated, fetchUserAssets]);
 
   useEffect(() => {
     if (authModalTab === "changePassword") {
@@ -56,6 +67,8 @@ export const AuthModal: React.FC = () => {
   const [editBio, setEditBio] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   // Change Password State
   const [oldPassword, setOldPassword] = useState("");
@@ -77,6 +90,57 @@ export const AuthModal: React.FC = () => {
   if (!authModalOpen || !isAuthenticated || !currentUser) {
     return null;
   }
+
+  /** 上传自定义头像：居中裁方形 256px → 上传 → 刷新全局头像 */
+  const handleAvatarFile = async (file: File) => {
+    setAvatarError("");
+    if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
+      setAvatarError("仅支持 JPG / PNG / WebP");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setAvatarError("图片不能超过 8MB");
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("读取失败"));
+        reader.readAsDataURL(file);
+      });
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error("图片解析失败"));
+        i.src = dataUrl;
+      });
+      const size = 256;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("画布不可用");
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+      const out = canvas.toDataURL("image/jpeg", 0.9);
+      const res = await uploadAvatar(out);
+      if (res.success) {
+        setEditAvatar(res.message ? "" : "");
+        setProfileMsg("头像已更新");
+        setTimeout(() => setProfileMsg(""), 2000);
+      } else {
+        setAvatarError(res.message);
+      }
+    } catch (err: any) {
+      setAvatarError(err.message || "头像上传失败");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   // Handle Profile Update Submit
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -224,13 +288,40 @@ export const AuthModal: React.FC = () => {
                 </div>
               )}
 
+              {avatarError && (
+                <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{avatarError}</span>
+                </div>
+              )}
+
               {/* User Card */}
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-800 border border-amber-500/40 flex items-center justify-center text-2xl shadow-xs">
+                    <label
+                      className="relative w-12 h-12 rounded-full bg-white dark:bg-zinc-800 border border-amber-500/40 flex items-center justify-center text-2xl shadow-xs overflow-hidden cursor-pointer group shrink-0"
+                      title="点击上传自定义头像（JPG/PNG/WebP）"
+                    >
                       <AvatarView avatar={currentUser.avatar} size="xl" />
-                    </div>
+                      <span className="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span className="text-[8px] font-bold mt-0.5">
+                          {avatarUploading ? "上传中" : "更换"}
+                        </span>
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={avatarUploading}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleAvatarFile(f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
@@ -314,6 +405,45 @@ export const AuthModal: React.FC = () => {
 
                 {/* Storage Isolation Overview */}
                 <div className="space-y-2 pt-2">
+                  {/* 积分 & 云存储（2026-10 重构） */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Coins className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold">
+                          算力积分
+                        </span>
+                      </div>
+                      <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {userAssets?.points ?? 0}
+                      </div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold">
+                          <HardDrive className="w-3.5 h-3.5" />
+                          云存储
+                        </span>
+                        <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+                          {((userAssets?.storageUsed || 0) / 1073741824).toFixed(2)}G /
+                          {((userAssets?.storageQuota || 0) / 1073741824).toFixed(1)}G
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            (userAssets?.storagePercent || 0) >= 90 ? "bg-amber-500" : "bg-emerald-500"
+                          }`}
+                          style={{ width: `${Math.min(100, userAssets?.storagePercent || 0)}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[9px] text-zinc-500 dark:text-zinc-400">
+                        已用 {userAssets?.storagePercent ?? 0}%
+                        {(userAssets?.storagePercent || 0) >= 90 ? " · 空间紧张" : ""}
+                      </p>
+                    </div>
+                  </div>
+
                   <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block font-bold">
                     当前账号专属私有资产统计
                   </span>
