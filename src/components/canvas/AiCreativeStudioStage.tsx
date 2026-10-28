@@ -213,7 +213,7 @@ export const AiCreativeStudioStage: React.FC = () => {
   const currentRatioMeta = RATIO_OPTIONS.find((r) => r.id === creativeAspectRatio) || RATIO_OPTIONS[0];
 
   return (
-    <div className="flex-1 w-full h-full bg-[#fbfbfb] flex flex-col overflow-hidden relative select-none">
+    <div className="flex-1 w-full h-full bg-studio-canvas-bg flex flex-col overflow-hidden relative select-none">
       {/* 顶部会话栏：标题与新建聊天按钮 */}
       <div className="w-full bg-white border-b border-gray-200/80 px-4 sm:px-8 py-2.5 flex items-center justify-between z-20 shrink-0">
         <div className="flex items-center gap-2">
