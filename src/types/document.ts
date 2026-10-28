@@ -236,4 +236,7 @@ export interface UserMediaAsset {
    points?: number;
    storageQuota?: number;
    lastCheckInDate?: string;
+   // 管理后台派生字段（非持久化，由 /api/admin/users 计算返回）
+   storageUsed?: number;
+   storagePercent?: number;
  }

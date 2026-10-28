@@ -1807,15 +1807,18 @@ function requireAdmin(req, res, next) {
 
 // GET /api/admin/users: Fetch all users with usage statistics
 app.get("/api/admin/users", requireAdmin, (req, res) => {
-  const users = readUsers();
+  const users = readUsers().map((u) => ensureUserAssets({ ...u }));
   const enrichedUsers = users.map((u) => {
     const data = readUserData(u.id);
     const aiHist = readAiHistory(u.id);
+    const used = getUserStorageUsed(u.id);
     return {
       ...u,
       savedProjectsCount: Array.isArray(data.savedProjects) ? data.savedProjects.length : 0,
       mediaAssetsCount: Array.isArray(data.mediaAssets) ? data.mediaAssets.length : 0,
       aiHistoryCount: aiHist.length,
+      storageUsed: used,
+      storagePercent: u.storageQuota > 0 ? Math.min(100, Math.round((used / u.storageQuota) * 1000) / 10) : 0,
     };
   });
 

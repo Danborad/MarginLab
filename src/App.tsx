@@ -10,6 +10,7 @@ import { AiCreativeStudioStage } from "./components/canvas/AiCreativeStudioStage
 import { AlbumStudioStage } from "./components/canvas/AlbumStudioStage";
 import { MediaGalleryStudioStage } from "./components/canvas/MediaGalleryStudioStage";
 import { LandingHomePage } from "./components/home/LandingHomePage";
+import { AdminDashboardPage } from "./components/admin/AdminDashboardPage";
 
 // Global Modals
 import { AuthModal } from "./components/modals/AuthModal";
@@ -27,6 +28,7 @@ import { WatermarkEditModal } from "./components/modals/WatermarkEditModal";
 
 export function App() {
   (window as any).__store = useEditorStore;
+  const pathname = typeof window !== "undefined" ? window.location.pathname.replace(/\/+$/, "") : "";
 
   const currentView = useEditorStore((s) => s.currentView);
   const isAuthenticated = useEditorStore((s) => s.isAuthenticated);
@@ -71,6 +73,11 @@ export function App() {
     window.addEventListener("keydown", handleGlobalShortcuts);
     return () => window.removeEventListener("keydown", handleGlobalShortcuts);
   }, []);
+
+  // 0. Admin Dashboard（独立全屏路由 /admin，2026-10 重构）
+  if (pathname === "/admin") {
+    return <AdminDashboardPage />;
+  }
 
   // 1. Landing Home View (未登录亦可进入工作台进行只读浏览)
   if (currentView === "home") {
