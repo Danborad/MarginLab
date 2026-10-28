@@ -2,58 +2,101 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   留白集 MarginLab · 设计 Token（Dark UI + 极光氛围）
+   参考 即梦 AI / 可灵 Kling 的大厂官网视觉语言。
+   注意：这些变量是 hex / rgba 原值，Tailwind 的透明度修饰符（bg-studio-card/60）
+   不会生效（静默失效），需要半透明请直接用 rgba() 或新增变量。
+   =========================================================================== */
+
 :root {
-  --studio-bg: #FFFFFF;
-  --studio-sidebar: #FFFFFF;
-  --studio-panel: #FFFFFF;
-  --studio-card: #FFFFFF;
-  --studio-border: #E5E7EB;
-  --studio-border-subtle: #F3F4F6;
-  --studio-text: #111827;
-  --studio-muted: #6B7280;
-  --studio-hover: #F9FAFB;
-  --studio-accent: #111827;
-  --studio-accent-hover: #000000;
-  --studio-accent-crimson: #DC2626;
-  --studio-accent-olive: #16A34A;
-  --studio-canvas-bg: #FFFFFF;
+  /* 底层背景：曜石黑 → 深空灰 */
+  --studio-bg: #0a0b0e;
+  --studio-sidebar: #0e1016;
+  --studio-panel: #12141a;
+  --studio-card: #171a21;
+  --studio-canvas-bg: #0b0d11;
+
+  /* 描边：极细半透明高光 */
+  --studio-border: rgba(255, 255, 255, 0.08);
+  --studio-border-subtle: rgba(255, 255, 255, 0.05);
+
+  /* 文本 */
+  --studio-text: #f4f6fa;
+  --studio-muted: #9ba3b4;
+  --studio-dim: #6b7385;
+
+  /* 交互 */
+  --studio-hover: rgba(255, 255, 255, 0.06);
+  --studio-hover-strong: rgba(255, 255, 255, 0.1);
+
+  /* 强调色：极光绿 */
+  --studio-accent: #22c55e;
+  --studio-accent-hover: #16a34a;
+  --studio-accent-bright: #00e676;
+  --studio-accent-crimson: #ef4444;
+  --studio-accent-olive: #22c55e;
+
+  /* 磨砂玻璃 */
+  --studio-glass: rgba(255, 255, 255, 0.04);
+  --studio-glass-strong: rgba(255, 255, 255, 0.08);
+
+  /* 阴影 */
+  --studio-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.7);
+  --studio-glow: 0 0 32px -6px rgba(34, 197, 94, 0.45);
 }
 
+/* 浅色主题保留为可选（后续如需「高定纸感」模式仍可用） */
 html.light {
-  --studio-bg: #FFFFFF;
-  --studio-sidebar: #FFFFFF;
-  --studio-panel: #FFFFFF;
-  --studio-card: #FFFFFF;
-  --studio-border: #E5E7EB;
-  --studio-border-subtle: #F3F4F6;
+  --studio-bg: #ffffff;
+  --studio-sidebar: #ffffff;
+  --studio-panel: #ffffff;
+  --studio-card: #ffffff;
+  --studio-canvas-bg: #ffffff;
+  --studio-border: #e5e7eb;
+  --studio-border-subtle: #f3f4f6;
   --studio-text: #111827;
-  --studio-muted: #6B7280;
-  --studio-hover: #F9FAFB;
+  --studio-muted: #6b7280;
+  --studio-dim: #9ca3af;
+  --studio-hover: #f9fafb;
+  --studio-hover-strong: #f3f4f6;
   --studio-accent: #111827;
   --studio-accent-hover: #000000;
-  --studio-accent-crimson: #DC2626;
-  --studio-accent-olive: #16A34A;
-  --studio-canvas-bg: #FFFFFF;
+  --studio-accent-bright: #16a34a;
+  --studio-accent-crimson: #dc2626;
+  --studio-accent-olive: #16a34a;
+  --studio-glass: #ffffff;
+  --studio-glass-strong: #f9fafb;
+  --studio-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.18);
+  --studio-glow: 0 0 25px -5px rgba(229, 196, 159, 0.2);
 }
 
 @layer base {
   * {
     border-color: var(--studio-border);
   }
-  
+
+  html {
+    color-scheme: dark;
+  }
+
+  html.light {
+    color-scheme: light;
+  }
+
   body {
-    background-color: #FFFFFF;
-    color: #111827;
+    background-color: var(--studio-bg);
+    color: var(--studio-text);
     user-select: none;
     -webkit-user-select: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Custom clean minimal scrollbar */
+  /* 暗色滚动条 */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -61,12 +104,155 @@ html.light {
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #E5E7EB;
+    background: rgba(255, 255, 255, 0.14);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #D1D5DB;
+    background: rgba(255, 255, 255, 0.26);
+  }
+
+  html.light ::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+  }
+
+  html.light ::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db;
+  }
+
+  ::selection {
+    background: rgba(34, 197, 94, 0.3);
+    color: #ffffff;
+  }
+
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--studio-dim);
+  }
+}
+
+/* ===========================================================================
+   组件工具类：磨砂玻璃容器 / 极光描边 / 强调按钮
+   =========================================================================== */
+@layer components {
+  /* 标准磨砂玻璃面板（侧栏、参数面板、卡片容器） */
+  .glass-panel {
+    background-color: var(--studio-glass);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--studio-border);
+  }
+
+  /* 更强的玻璃层（浮层、弹卡、抽屉） */
+  .glass-float {
+    background-color: rgba(18, 20, 26, 0.92);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid var(--studio-border);
+    box-shadow: var(--studio-shadow);
+  }
+
+  /* 顶部极光氛围背景 */
+  .aurora-bg {
+    position: relative;
+  }
+
+  .aurora-bg::before {
+    content: "";
+    position: absolute;
+    inset: -20% -10% auto -10%;
+    height: 70%;
+    pointer-events: none;
+    background:
+      radial-gradient(60% 50% at 18% 0%, rgba(13, 37, 76, 0.9) 0%, transparent 62%),
+      radial-gradient(50% 45% at 82% 8%, rgba(139, 92, 246, 0.34) 0%, transparent 64%),
+      radial-gradient(45% 40% at 50% 0%, rgba(34, 211, 238, 0.2) 0%, transparent 68%);
+    filter: blur(40px);
+    z-index: 0;
+  }
+
+  .aurora-bg > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 强调按钮：极光绿 */
+  .btn-aurora {
+    background: linear-gradient(135deg, #22c55e 0%, #00e676 100%);
+    color: #04120a;
+    font-weight: 700;
+    border-radius: 12px;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  }
+
+  .btn-aurora:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 0 28px -4px rgba(34, 197, 94, 0.55);
+  }
+
+  .btn-aurora:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  .btn-aurora:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+  }
+
+  /* 次级按钮：玻璃描边 */
+  .btn-glass {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--studio-border);
+    color: var(--studio-text);
+    border-radius: 12px;
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+  }
+
+  .btn-glass:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* 悬停时描边转为极光色 */
+  .hover-aurora {
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  }
+
+  .hover-aurora:hover {
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.16), 0 0 24px -8px rgba(34, 197, 94, 0.4);
+  }
+
+  /* 顶部细极光线 */
+  .aurora-hairline {
+    background-image: linear-gradient(
+      90deg,
+      rgba(34, 197, 94, 0) 0%,
+      rgba(34, 197, 94, 0.5) 50%,
+      rgba(34, 197, 94, 0) 100%
+    );
+  }
+
+  /* 深色无边框输入框（登录表单、参数输入） */
+  .input-dark {
+    background-color: #1e2028;
+    border: 1px solid transparent;
+    color: var(--studio-text);
+    border-radius: 12px;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+  }
+
+  .input-dark:focus {
+    outline: none;
+    border-color: rgba(34, 197, 94, 0.55);
+    background-color: #22252e;
   }
 }
 
@@ -77,4 +263,334 @@ html.light {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* 极光呼吸动画（登录页背景、生成中状态） */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(2%, -1.5%, 0) scale(1.06);
+    opacity: 1;
+  }
+}
+
+.animate-aurora {
+  animation: aurora-drift 14s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fade-in 0.22s ease-out both;
+}
+
+/* ===========================================================================
+   暗色皮肤兼容层（Dark Skin Shim）
+   ---------------------------------------------------------------------------
+   现状：82 个组件里有 67 个仍写着 bg-white / text-gray-900 / border-gray-200 这类
+   浅色硬编码类名。逐个人工改造风险极高且容易漏。
+   做法：在 html.dark 下把这些「最常见的浅色工具类」统一重映射到暗色 token，
+   一次换皮、全站一致；新代码一律用 studio-* token 或 glass-* 组件类。
+   需要保持纯白的区域（画布纸张、PDF 预览）加 .preserve-light 即可豁免。
+   注意：本段用「未分层」CSS 写在文件末尾，天然优先于 @layer utilities 里的同名类。
+   =========================================================================== */
+
+html.dark .preserve-light,
+html.dark .preserve-light * {
+  color-scheme: light;
+}
+
+/* ---------- 背景 ---------- */
+html.dark .bg-white,
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80 {
+  background-color: var(--studio-card);
+}
+
+html.dark .bg-white\/70,
+html.dark .bg-white\/60,
+html.dark .bg-white\/50 {
+  background-color: rgba(23, 26, 33, 0.72);
+}
+
+html.dark .bg-gray-50,
+html.dark .bg-zinc-50,
+html.dark .bg-slate-50,
+html.dark .bg-stone-50,
+html.dark .bg-neutral-50 {
+  background-color: var(--studio-panel);
+}
+
+html.dark .bg-gray-100,
+html.dark .bg-zinc-100,
+html.dark .bg-slate-100,
+html.dark .bg-stone-100,
+html.dark .bg-neutral-100 {
+  background-color: var(--studio-hover);
+}
+
+html.dark .bg-gray-200,
+html.dark .bg-zinc-200 {
+  background-color: var(--studio-hover-strong);
+}
+
+html.dark .bg-gray-300,
+html.dark .bg-zinc-300 {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* 已经在用的深色底微调，让层次更贴合曜石黑体系 */
+html.dark .bg-zinc-950,
+html.dark .bg-zinc-900 {
+  background-color: var(--studio-panel);
+}
+
+html.dark .bg-zinc-800 {
+  background-color: var(--studio-card);
+}
+
+/* ---------- 文本 ---------- */
+html.dark .text-gray-950,
+html.dark .text-gray-900,
+html.dark .text-zinc-950,
+html.dark .text-zinc-900,
+html.dark .text-slate-900,
+html.dark .text-black {
+  color: var(--studio-text);
+}
+
+html.dark .text-gray-800,
+html.dark .text-zinc-800,
+html.dark .text-slate-800 {
+  color: #e6eaf2;
+}
+
+html.dark .text-gray-700,
+html.dark .text-zinc-700,
+html.dark .text-slate-700 {
+  color: #c9d0dd;
+}
+
+html.dark .text-gray-600,
+html.dark .text-zinc-600,
+html.dark .text-slate-600 {
+  color: var(--studio-muted);
+}
+
+html.dark .text-gray-500,
+html.dark .text-zinc-500,
+html.dark .text-slate-500 {
+  color: var(--studio-muted);
+}
+
+html.dark .text-gray-400,
+html.dark .text-zinc-400,
+html.dark .text-slate-400 {
+  color: var(--studio-dim);
+}
+
+/* ---------- 描边 ---------- */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300,
+html.dark .border-zinc-100,
+html.dark .border-zinc-200,
+html.dark .border-zinc-300,
+html.dark .border-slate-200,
+html.dark .border-stone-200 {
+  border-color: var(--studio-border);
+}
+
+html.dark .border-zinc-800,
+html.dark .border-zinc-700,
+html.dark .border-gray-800 {
+  border-color: var(--studio-border);
+}
+
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--studio-border);
+}
+
+/* ---------- 悬停态 ---------- */
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover,
+html.dark .hover\:bg-zinc-50:hover,
+html.dark .hover\:bg-zinc-100:hover,
+html.dark .hover\:bg-zinc-800:hover {
+  background-color: var(--studio-hover);
+}
+
+html.dark .hover\:bg-gray-200:hover,
+html.dark .hover\:bg-zinc-200:hover {
+  background-color: var(--studio-hover-strong);
+}
+
+html.dark .hover\:text-gray-950:hover,
+html.dark .hover\:text-gray-900:hover,
+html.dark .hover\:text-zinc-900:hover,
+html.dark .hover\:text-black:hover {
+  color: var(--studio-text);
+}
+
+html.dark .hover\:border-gray-200:hover,
+html.dark .hover\:border-gray-300:hover,
+html.dark .hover\:border-zinc-300:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ---------- 选中 / 激活 ---------- */
+html.dark .ring-gray-200,
+html.dark .ring-gray-300 {
+  --tw-ring-color: var(--studio-border);
+}
+
+html.dark .ring-gray-950,
+html.dark .ring-gray-900,
+html.dark .ring-zinc-900 {
+  --tw-ring-color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- 输入框（未显式用 input-dark 的旧表单） ---------- */
+html.dark input:not([type="checkbox"]):not([type="radio"]):not(.preserve-light *),
+html.dark textarea:not(.preserve-light *),
+html.dark select:not(.preserve-light *) {
+  background-color: #1e2028;
+  color: var(--studio-text);
+  border-color: var(--studio-border);
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"])::placeholder,
+html.dark textarea::placeholder {
+  color: var(--studio-dim);
+}
+
+
+/* ---------- 半透明浅色变体（用属性选择器覆盖任意透明度值） ---------- */
+html.dark [class*="bg-gray-50/"],
+html.dark [class*="bg-zinc-50/"],
+html.dark [class*="bg-slate-50/"],
+html.dark [class*="bg-stone-50/"],
+html.dark [class*="bg-neutral-50/"] {
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
+html.dark [class*="bg-gray-100/"],
+html.dark [class*="bg-zinc-100/"],
+html.dark [class*="bg-slate-100/"] {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+html.dark [class*="bg-gray-200/"],
+html.dark [class*="bg-zinc-200/"] {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 只覆盖「当容器底」用的高不透明度白色；bg-white/5~25 多为图片上的提亮叠层，保持原样 */
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/85,
+html.dark .bg-white\/80,
+html.dark .bg-white\/70 {
+  background-color: rgba(23, 26, 33, 0.9);
+}
+
+html.dark [class*="bg-zinc-900/"],
+html.dark [class*="bg-zinc-950/"] {
+  background-color: rgba(18, 20, 26, 0.92);
+}
+
+/* ---------- 语义色：状态提示条 / 标签在暗色下改为低透明底色 ---------- */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-100 {
+  background-color: rgba(34, 197, 94, 0.14);
+}
+html.dark .bg-amber-50,
+html.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.16);
+}
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.16);
+}
+html.dark .bg-red-50,
+html.dark .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.16);
+}
+
+html.dark .text-emerald-700,
+html.dark .text-emerald-800 {
+  color: #4ade80;
+}
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900 {
+  color: #fbbf24;
+}
+html.dark .text-blue-700,
+html.dark .text-blue-800 {
+  color: #60a5fa;
+}
+html.dark .text-red-700,
+html.dark .text-red-800 {
+  color: #f87171;
+}
+
+html.dark .border-emerald-200,
+html.dark .border-emerald-300 {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+html.dark .border-amber-200,
+html.dark .border-amber-300 {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+html.dark .border-blue-200,
+html.dark .border-blue-300 {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+html.dark .border-red-200,
+html.dark .border-red-300 {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* ---------- 阴影：暗色下统一收敛为玻璃阴影 ---------- */
+html.dark .shadow-xs,
+html.dark .shadow-2xs,
+html.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+}
+html.dark .shadow,
+html.dark .shadow-md {
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.65);
+}
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  box-shadow: 0 16px 44px -14px rgba(0, 0, 0, 0.75);
+}
+html.dark .shadow-2xl {
+  box-shadow: 0 32px 80px -24px rgba(0, 0, 0, 0.85);
+}
+
+/* ---------- 表格 ---------- */
+html.dark table {
+  color: var(--studio-text);
+}
+
+html.dark thead th {
+  color: var(--studio-muted);
 }

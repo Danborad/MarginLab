@@ -390,8 +390,12 @@ export const createCreativeFallbackArtwork = async (
 
 const STORAGE_THEME_KEY = "atelier_theme_mode_v7";
 export const getStoredTheme = (): ThemeMode => {
-  // 工作台统一为纯白极简视觉，恒定浅色
-  return "light";
+  // 2026-10 重构：全站默认深色暗房风格（Dark UI + 极光氛围）
+  try {
+    const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_THEME_KEY) : null;
+    if (saved === "light" || saved === "dark") return saved as ThemeMode;
+  } catch (e) {}
+  return "dark";
 };
 
 export const applyThemeClass = (mode: ThemeMode) => {
@@ -2227,12 +2231,13 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       setStore({ themeMode: mode });
     },
     toggleThemeMode: () => {
-      // 纯白极简工作台：恒定浅色，不再切换到深色
+      // 深色暗房（默认） ⇄ 高定纸感浅色，双向切换
+      const next: ThemeMode = getStore().themeMode === "dark" ? "light" : "dark";
       try {
-        localStorage.setItem(STORAGE_THEME_KEY, "light");
+        localStorage.setItem(STORAGE_THEME_KEY, next);
       } catch (e) {}
-      applyThemeClass("light");
-      setStore({ themeMode: "light" });
+      applyThemeClass(next);
+      setStore({ themeMode: next });
     },
     enterAsGuest: () => {
       getStore().navigateToHomeAuth("register");

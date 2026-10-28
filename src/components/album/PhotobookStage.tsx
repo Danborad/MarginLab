@@ -45,30 +45,13 @@ export interface PhotobookStageProps {
 
 /* ── 主题桌面背景 ──────────────────────────────────────────────── */
 const THEME_SKIN: Record<AlbumTheme, { bg: string; isLight: boolean }> = {
-  indigo: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
-  slate: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
-  dark: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
-  neutral: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
-  burgundy: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
-  forest: {
-    bg: '#FFFFFF',
-    isLight: true,
-  },
+  // 2026-10 重构：书页仍是米白纸张，但「书桌/舞台」统一为暗色，避免整块白底刺眼
+  indigo: { bg: '#0B0D11', isLight: false },
+  slate: { bg: '#0B0D11', isLight: false },
+  dark: { bg: '#0B0D11', isLight: false },
+  neutral: { bg: '#0B0D11', isLight: false },
+  burgundy: { bg: '#0B0D11', isLight: false },
+  forest: { bg: '#0B0D11', isLight: false },
 };
 
 const THEME_COLOR: Record<AlbumTheme, string> = {
@@ -295,14 +278,15 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
   /* ── 主题样式 ─────────────────────────────────────────────── */
   const skin = THEME_SKIN[album.theme || 'indigo'] ?? THEME_SKIN.indigo;
   const isLight = skin.isLight;
-  const currentThemeCls = isLight ? 'text-zinc-900' : 'text-gray-900';
-  const subTextCls = isLight ? 'text-zinc-600' : 'text-gray-500';
+  // 舞台统一为暗色，工具条走磨砂玻璃，书页本身仍保留米白纸张
+  const currentThemeCls = isLight ? 'text-zinc-900' : 'text-white';
+  const subTextCls = isLight ? 'text-zinc-600' : 'text-white/55';
   const frostedPillCls = isLight
     ? 'bg-white border border-black/10 shadow-lg text-zinc-900'
-    : 'bg-white border border-gray-200 shadow-2xl text-gray-900';
+    : 'glass-float text-white';
   const toolBtnCls = isLight
     ? 'bg-black/5 hover:bg-black/10 text-zinc-700 hover:text-white'
-    : 'bg-white/20 hover:bg-white/35 text-gray-900';
+    : 'bg-white/10 hover:bg-white/20 text-white';
 
   /* ── 从头翻开画册 (彻底重置至封面 -1 并更新状态) ────────── */
   const handleRestart = useCallback(() => {
