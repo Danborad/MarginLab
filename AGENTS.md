@@ -137,3 +137,18 @@
 - SVG（历史里的矢量海报）要先用 ImageMagick 转 PNG 再送给上游，上游只接受位图。
 - 以后新增任何图片来源（新静态目录、新 CDN、对象存储），只需在
   `resolveLocalImagePath` / `resolvePublicAssetPath` 里加一条规则即可，其它代码不用动。
+
+## 重构进行中的约定（2026-10-28 起，PRD 见 `REFACTOR_PLAN.md`）
+
+- **视觉体系已切换为 Dark UI + 极光氛围**（参考即梦 / 可灵）：
+  主背景 `#0A0B0E`，容器 `rgba(255,255,255,0.04~0.08)` + `backdrop-blur(16px)`，
+  描边 `1px rgba(255,255,255,0.08)`，强调色极光绿 `#22C55E`。
+  **这条覆盖了早先「禁止毛玻璃」的约定**，浮层请用 `.glass-float` / `.glass-panel`。
+- 新增组件一律用 `aurora-*` 色板、`.btn-aurora` / `.btn-glass` / `.input-dark` / `.hover-aurora`。
+- 存量组件的浅色硬编码（`bg-white` / `text-gray-900` / `border-gray-200` 等）由
+  `src/index.css` 末尾的「暗色皮肤兼容层」统一重映射；**不要为改色去逐个改 67 个老组件**。
+  真正需要保持纯白的区域（画布纸张、PDF 预览）加 `.preserve-light`。
+- 路由：`/admin` 为独立全屏管理后台（`AdminDashboardPage`），未登录或非管理员会被踢回首页。
+- 资产体系：用户记录新增 `points / storageQuota / lastCheckInDate`；老账号读取时由
+  `ensureUserAssets()` 自动补默认值。积分流水存 `server_data/points_log/<userId>.json`。
+- AI 生图**先预扣积分 → 成功确认 / 失败原路退还**，任何新增的失败分支都必须记得退分。
