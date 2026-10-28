@@ -328,11 +328,11 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
       style={{ background: skin.bg }}
     >
       {/* ── 顶部控制栏 ─────────────────────────────────────── */}
-      <div className="relative z-30 px-4 sm:px-6 pt-3 pb-2 flex items-center justify-between shrink-0 gap-3">
-        <div className={`flex items-center gap-1 p-1 rounded-xl ${frostedPillCls}`}>
+      <div className="relative z-30 px-4 sm:px-6 pt-3 pb-2 flex flex-wrap items-center justify-between shrink-0 gap-x-2 gap-y-1.5 sm:gap-3">
+        <div className={`flex items-center gap-1 p-1 rounded-xl shrink-0 ${frostedPillCls}`}>
           <button
             onClick={() => setViewMode('book')}
-            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer whitespace-nowrap ${
               viewMode === 'book'
                 ? isLight
                   ? 'bg-white text-zinc-900 shadow-sm'
@@ -347,7 +347,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
           </button>
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer whitespace-nowrap ${
               viewMode === 'grid'
                 ? isLight
                   ? 'bg-white text-zinc-900 shadow-sm'
@@ -362,7 +362,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
           </button>
         </div>
 
-        <div className="flex flex-col items-center justify-center text-center min-w-0">
+        <div className="order-last basis-full lg:order-none lg:basis-auto lg:flex-1 flex flex-col items-center justify-center text-center min-w-0 px-1">
           {isEditingTitle ? (
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl ${frostedPillCls}`}>
               <input
@@ -393,10 +393,10 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                 }
                 setIsEditingTitle(true);
               }}
-              className="group flex items-center gap-1.5 cursor-pointer max-w-[46vw]"
+              className="group flex items-center justify-center gap-1.5 cursor-pointer w-full min-w-0"
               title={isAuthenticated ? "点击编辑相册标题" : "当前为只读模式"}
             >
-              <h2 className={`text-base sm:text-lg font-serif font-bold tracking-wider truncate ${currentThemeCls}`}>
+              <h2 className={`text-sm sm:text-lg font-serif font-bold tracking-wider truncate min-w-0 ${currentThemeCls}`}>
                 {album.title || '艺术相册'}
               </h2>
               <Edit2
@@ -407,14 +407,14 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             </div>
           )}
 
-          <div className={`flex items-center gap-1.5 text-[11px] font-sans mt-0.5 ${subTextCls}`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <span>{pageLabel}</span>
-            <span className="ml-1 opacity-70 hidden sm:inline">· 拖动或点击翻页</span>
+          <div className={`flex items-center gap-1.5 text-[11px] font-sans mt-0.5 max-w-full min-w-0 ${subTextCls}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+            <span className="truncate whitespace-nowrap">{pageLabel}</span>
+            <span className="ml-1 opacity-70 hidden lg:inline whitespace-nowrap shrink-0">· 拖动或点击翻页</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {!isAuthenticated && (
             <button
               onClick={() => setAuthModalOpen(true, "login")}

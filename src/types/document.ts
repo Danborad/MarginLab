@@ -232,4 +232,8 @@ export interface UserMediaAsset {
    savedProjectsCount?: number;
    mediaAssetsCount?: number;
    aiHistoryCount?: number;
+   // ── 资产（2026-10 重构：积分算力 + 云存储配额）──
+   points?: number;
+   storageQuota?: number;
+   lastCheckInDate?: string;
  }

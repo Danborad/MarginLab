@@ -27,6 +27,11 @@ import { useEditorStore } from "../../store/useEditorStore";
    ShieldCheck,
   Sun,
   Moon,
+  Coins,
+  CalendarCheck,
+  HardDrive,
+  CheckCircle2,
+  History,
  } from "lucide-react";
  import { Button } from "../ui/Button";
  import { AvatarView } from "../ui/AvatarView";
@@ -69,12 +74,37 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
   const setAutoLayoutModalOpen = useEditorStore((s) => s.setAutoLayoutModalOpen);
   const themeMode = useEditorStore((s) => s.themeMode);
   const toggleThemeMode = useEditorStore((s) => s.toggleThemeMode);
+  const userAssets = useEditorStore((s) => s.userAssets);
+  const pointsLog = useEditorStore((s) => s.pointsLog);
+  const fetchUserAssets = useEditorStore((s) => s.fetchUserAssets);
+  const fetchPointsLog = useEditorStore((s) => s.fetchPointsLog);
+  const checkIn = useEditorStore((s) => s.checkIn);
 
   const [justSaved, setJustSaved] = useState(false);
+  const [pointsPanelOpen, setPointsPanelOpen] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInToast, setCheckInToast] = useState("");
+  const pointsPanelRef = React.useRef<HTMLDivElement>(null);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      fetchUserAssets().catch(() => {});
+    }
+  }, [isAuthenticated, currentUser?.id, fetchUserAssets]);
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (pointsPanelRef.current && !pointsPanelRef.current.contains(e.target as Node)) {
+        setPointsPanelOpen(false);
+      }
+    };
+    window.document.addEventListener("mousedown", handler);
+    return () => window.document.removeEventListener("mousedown", handler);
+  }, []);
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -177,6 +207,38 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
                  </div>
                </div>
  
+               {/* 云存储使用进度（2026-10 重构） */}
+               <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border mb-1">
+                 <div className="flex items-center justify-between mb-1.5">
+                   <span className="flex items-center gap-1 text-[11px] font-bold text-studio-text">
+                     <HardDrive className="w-3.5 h-3.5 text-studio-muted" />
+                     云存储空间
+                   </span>
+                   <span className="text-[10px] font-mono text-studio-muted">
+                     {((userAssets?.storageUsed || 0) / 1073741824).toFixed(2)}G /{" "}
+                     {((userAssets?.storageQuota || 0) / 1073741824).toFixed(1)}G
+                   </span>
+                 </div>
+                 <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                   <div
+                     className={`h-full rounded-full transition-all ${
+                       (userAssets?.storagePercent || 0) >= 90
+                         ? "bg-amber-400"
+                         : (userAssets?.storagePercent || 0) >= 100
+                         ? "bg-rose-500"
+                         : "bg-emerald-500"
+                     }`}
+                     style={{ width: `${Math.min(100, userAssets?.storagePercent || 0)}%` }}
+                   />
+                 </div>
+                 <p className="mt-1 text-[10px] text-studio-dim">
+                   已用 {userAssets?.storagePercent ?? 0}%
+                   {(userAssets?.storagePercent || 0) >= 90
+                     ? " · 空间紧张，请清理旧图"
+                     : " · 上传素材与 AI 成片均计入"}
+                 </p>
+               </div>
+
                {/* Admin Control Center Option (Only for Admins) */}
                {currentUser.isAdmin && (
                  <>
@@ -514,6 +576,97 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           <Keyboard className="w-4 h-4" />
         </Button>
 
+        {/* ── 用户状态栏：签到 / 积分（2026-10 重构） ── */}
+        {isAuthenticated && currentUser && (
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            {/* 每日签到 */}
+            <button
+              onClick={async () => {
+                if (checkingIn) return;
+                if (userAssets?.checkedInToday) {
+                  setCheckInToast("今天已经签到过啦，明天再来");
+                  setTimeout(() => setCheckInToast(""), 2200);
+                  return;
+                }
+                setCheckingIn(true);
+                const res = await checkIn();
+                setCheckingIn(false);
+                setCheckInToast(res.message);
+                setTimeout(() => setCheckInToast(""), 2600);
+              }}
+              disabled={checkingIn}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                userAssets?.checkedInToday
+                  ? "bg-studio-card border-studio-border text-studio-muted cursor-default"
+                  : "border-emerald-500/45 bg-emerald-500/12 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400/70"
+              }`}
+              title={userAssets?.checkedInToday ? "今日已签到" : "点击签到领取算力积分"}
+            >
+              <CalendarCheck className="w-3.5 h-3.5" />
+              <span>{checkingIn ? "签到中…" : userAssets?.checkedInToday ? "今日已签" : "每日签到"}</span>
+            </button>
+
+            {/* 积分余额 + 明细 */}
+            <div className="relative" ref={pointsPanelRef}>
+              <button
+                onClick={() => {
+                  const next = !pointsPanelOpen;
+                  setPointsPanelOpen(next);
+                  if (next) fetchPointsLog().catch(() => {});
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-studio-card border border-studio-border text-studio-text hover:border-emerald-500/50 hover:text-emerald-300 transition-all cursor-pointer whitespace-nowrap"
+                title="查看积分收支明细"
+              >
+                <Coins className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-mono">{userAssets?.points ?? "—"}</span>
+              </button>
+
+              {pointsPanelOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 glass-float rounded-2xl overflow-hidden z-50 animate-fadeIn">
+                  <div className="px-3.5 py-2.5 border-b border-studio-border flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <History className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-xs font-bold text-studio-text">积分收支明细</span>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-300">
+                      {userAssets?.points ?? 0} 分
+                    </span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto no-scrollbar">
+                    {pointsLog.length === 0 ? (
+                      <p className="px-3.5 py-6 text-center text-[11px] text-studio-muted">
+                        暂无记录 · 每日签到即可获得积分
+                      </p>
+                    ) : (
+                      pointsLog.slice(0, 20).map((entry, idx) => (
+                        <div
+                          key={`${entry.ts}-${idx}`}
+                          className="px-3.5 py-2 border-b border-studio-border/60 last:border-0 flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-[11px] text-studio-text truncate">{entry.reason}</p>
+                            <p className="text-[10px] text-studio-dim font-mono">
+                              {new Date(entry.ts).toLocaleString("zh-CN", { hour12: false })}
+                            </p>
+                          </div>
+                          <span
+                            className={`text-[11px] font-bold font-mono shrink-0 ${
+                              entry.delta > 0 ? "text-emerald-400" : "text-rose-400"
+                            }`}
+                          >
+                            {entry.delta > 0 ? "+" : ""}
+                            {entry.delta}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Mobile More Options Dropdown Trigger */}
         <div className="relative sm:hidden">
           <button
@@ -574,6 +727,14 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           </Button>
         )}
       </div>
+
+      {/* 签到 / 积分提示 */}
+      {checkInToast && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-float text-emerald-300 text-xs font-semibold shadow-2xl flex items-center gap-2 z-50 whitespace-nowrap animate-fadeIn">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>{checkInToast}</span>
+        </div>
+      )}
 
       {/* Instant Toast Notification */}
       {showSaveToast && (

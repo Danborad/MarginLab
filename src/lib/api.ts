@@ -672,3 +672,182 @@ export async function apiTestEmailConfig(
     return { success: false, message: err.message || "连通性测试请求失败" };
   }
 }
+
+// ===========================================================================
+// 积分算力 & 云存储（2026-10 重构）
+// ===========================================================================
+export interface UserAssets {
+  points: number;
+  storageQuota: number;
+  storageUsed: number;
+  storagePercent: number;
+  lastCheckInDate: string;
+  checkedInToday: boolean;
+}
+
+export interface PointsLogEntry {
+  ts: string;
+  delta: number;
+  reason: string;
+  balance: number;
+  operator?: string;
+}
+
+export async function apiGetUserAssets(userId: string): Promise<UserAssets | null> {
+  try {
+    const res = await fetch(`/api/user/${encodeURIComponent(userId)}/assets`);
+    const data = await res.json();
+    return data?.success ? (data.assets as UserAssets) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function apiCheckIn(userId: string): Promise<{
+  success: boolean;
+  message: string;
+  already?: boolean;
+  points?: number;
+  assets?: UserAssets;
+}> {
+  try {
+    const res = await fetch(`/api/user/${encodeURIComponent(userId)}/check-in`, { method: "POST" });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "签到失败，请稍后重试" };
+  }
+}
+
+export async function apiGetPointsLog(userId: string): Promise<{
+  success: boolean;
+  log: PointsLogEntry[];
+  points: number;
+}> {
+  try {
+    const res = await fetch(`/api/user/${encodeURIComponent(userId)}/points/log`);
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, log: [], points: 0 };
+  }
+}
+
+export async function apiUploadAvatar(userId: string, dataUrl: string): Promise<{
+  success: boolean;
+  avatar?: string;
+  message?: string;
+}> {
+  try {
+    const res = await fetch(`/api/user/${encodeURIComponent(userId)}/avatar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "头像上传失败" };
+  }
+}
+
+export interface SystemPublicConfig {
+  registerPoints: number;
+  checkInPoints: number;
+  costPerImage: number;
+  defaultStorageGB: number;
+  siteName: string;
+  logoUrl: string;
+  termsHtml: string;
+  privacyHtml: string;
+}
+
+export async function apiGetSystemPublicConfig(): Promise<SystemPublicConfig | null> {
+  try {
+    const res = await fetch("/api/system/public");
+    const data = await res.json();
+    return data?.success ? (data.config as SystemPublicConfig) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export interface AdminOverview {
+  totalUsers: number;
+  activeUsers: number;
+  adminUsers: number;
+  checkInToday: number;
+  totalAiImages: number;
+  totalPoints: number;
+  totalStorageUsed: number;
+  totalStorageQuota: number;
+  today: string;
+}
+
+export async function apiAdminOverview(adminUserId: string): Promise<AdminOverview | null> {
+  try {
+    const res = await fetch("/api/admin/overview", { headers: { "x-user-id": adminUserId } });
+    const data = await res.json();
+    return data?.success ? (data.overview as AdminOverview) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function apiAdminAdjustPoints(
+  adminUserId: string,
+  userId: string,
+  delta: number,
+  note: string
+): Promise<{ success: boolean; message?: string; points?: number; assets?: UserAssets }> {
+  try {
+    const res = await fetch(`/api/admin/user/${encodeURIComponent(userId)}/points`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": adminUserId },
+      body: JSON.stringify({ delta, note }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "调整积分失败" };
+  }
+}
+
+export async function apiAdminSetQuota(
+  adminUserId: string,
+  userId: string,
+  storageGB: number
+): Promise<{ success: boolean; message?: string; assets?: UserAssets }> {
+  try {
+    const res = await fetch(`/api/admin/user/${encodeURIComponent(userId)}/quota`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": adminUserId },
+      body: JSON.stringify({ storageGB }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "修改存储配额失败" };
+  }
+}
+
+export async function apiAdminGetSystemConfig(adminUserId: string): Promise<Record<string, any> | null> {
+  try {
+    const res = await fetch("/api/admin/system/config", { headers: { "x-user-id": adminUserId } });
+    const data = await res.json();
+    return data?.success ? data.config : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function apiAdminSaveSystemConfig(
+  adminUserId: string,
+  config: Record<string, any>
+): Promise<{ success: boolean; config?: Record<string, any>; message?: string }> {
+  try {
+    const res = await fetch("/api/admin/system/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": adminUserId },
+      body: JSON.stringify({ config }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "保存系统配置失败" };
+  }
+}

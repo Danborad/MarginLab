@@ -63,6 +63,14 @@ import {
    apiTestEmailConfig,
  } from "../lib/api";
 import type { SiteFilingConfig, EmailConfig, PublicEmailConfig } from "../lib/api";
+import {
+  apiGetUserAssets,
+  apiCheckIn,
+  apiGetPointsLog,
+  apiUploadAvatar,
+  apiGetSystemPublicConfig,
+} from "../lib/api";
+import type { UserAssets, PointsLogEntry, SystemPublicConfig } from "../lib/api";
 import { DEFAULT_SITE_FILING_CONFIG } from "../lib/api";
 import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
  
@@ -722,6 +730,17 @@ export interface EditorState {
      styleName?: string;
    }) => void;
 
+   // 积分 / 云存储（2026-10 重构）
+   userAssets: UserAssets | null;
+   pointsLog: PointsLogEntry[];
+   systemConfig: SystemPublicConfig | null;
+   fetchUserAssets: (userId?: string) => Promise<UserAssets | null>;
+   checkIn: () => Promise<{ success: boolean; message: string; already?: boolean; points?: number }>;
+   fetchPointsLog: () => Promise<void>;
+   uploadAvatar: (dataUrl: string) => Promise<{ success: boolean; message: string }>;
+   fetchSystemConfig: () => Promise<SystemPublicConfig | null>;
+   refreshAssetsAfterTask: (assets?: UserAssets | null) => void;
+
    fetchAiConfig: () => Promise<AiConfig | null>;
    fetchSiteFilingConfig: () => Promise<SiteFilingConfig | null>;
    saveSiteFilingConfig: (config: Partial<SiteFilingConfig>) => Promise<{ success: boolean; message: string; config?: SiteFilingConfig }>;
@@ -1342,6 +1361,9 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
        return res;
      },
  
+      userAssets: null,
+     pointsLog: [],
+     systemConfig: null,
      aiConfig: null,
      aiConfigLoading: false,
      siteFilingConfig: { ...DEFAULT_SITE_FILING_CONFIG },
@@ -1972,6 +1994,81 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
        const cfg = await apiGetAiConfig();
        setStore({ aiConfig: cfg, aiConfigLoading: false });
        return cfg;
+     },
+
+     // ── 积分 / 云存储 ────────────────────────────────────────────────
+     fetchUserAssets: async (explicitUserId) => {
+       const state = getStore();
+       const uid = explicitUserId || state.currentUser?.id;
+       if (!uid) {
+         setStore({ userAssets: null });
+         return null;
+       }
+       const assets = await apiGetUserAssets(uid);
+       if (assets) setStore({ userAssets: assets });
+       return assets;
+     },
+
+     checkIn: async () => {
+       const state = getStore();
+       const uid = state.currentUser?.id;
+       if (!uid) return { success: false, message: "请先登录后再签到" };
+       const res = await apiCheckIn(uid);
+       if (res.success && res.assets) {
+         setStore({ userAssets: res.assets });
+         const users = state.userAccounts.map((u) =>
+           u.id === uid ? { ...u, points: res.points ?? u.points } : u
+         );
+         setStore({ userAccounts: users });
+         if (state.currentUser) {
+           setStore({ currentUser: { ...state.currentUser, points: res.points ?? state.currentUser.points } });
+         }
+         getStore().fetchPointsLog().catch(() => {});
+       }
+       return { success: res.success, message: res.message, already: res.already, points: res.points };
+     },
+
+     fetchPointsLog: async () => {
+       const state = getStore();
+       const uid = state.currentUser?.id;
+       if (!uid) return;
+       const res = await apiGetPointsLog(uid);
+       if (res.success) setStore({ pointsLog: res.log });
+     },
+
+     uploadAvatar: async (dataUrl) => {
+       const state = getStore();
+       const uid = state.currentUser?.id;
+       if (!uid) return { success: false, message: "请先登录" };
+       const res = await apiUploadAvatar(uid, dataUrl);
+       if (res.success && res.avatar) {
+         const updatedUser = { ...state.currentUser!, avatar: res.avatar as string };
+         setStore({
+           currentUser: updatedUser,
+           userAccounts: state.userAccounts.map((u) => (u.id === uid ? { ...u, avatar: res.avatar as string } : u)),
+         });
+         const user = getStore().currentUser;
+         if (user) apiUpdateProfile(uid, { avatar: res.avatar }).catch(() => {});
+         return { success: true, message: "头像已更新" };
+       }
+       return { success: false, message: res.message || "头像上传失败" };
+     },
+
+     fetchSystemConfig: async () => {
+       const cfg = await apiGetSystemPublicConfig();
+       if (cfg) {
+         setStore({ systemConfig: cfg });
+         return cfg;
+       }
+       return null;
+     },
+
+     refreshAssetsAfterTask: (assets) => {
+       if (assets) {
+         setStore({ userAssets: assets });
+       } else {
+         getStore().fetchUserAssets().catch(() => {});
+       }
      },
  
      fetchSiteFilingConfig: async () => {

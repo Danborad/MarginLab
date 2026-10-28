@@ -27,6 +27,8 @@ const AI_HISTORY_ASSETS_DIR = path.join(DATA_DIR, "ai_history_assets");
 const AI_THUMBS_DIR = path.join(DATA_DIR, "ai_history_thumbs");
 const USER_MEDIA_DIR = path.join(DATA_DIR, "user_media");
 const THUMB_CACHE_DIR = path.join(DATA_DIR, "thumb_cache");
+const SYSTEM_CONFIG_FILE = path.join(DATA_DIR, "system_config.json");
+const POINTS_LOG_DIR = path.join(DATA_DIR, "points_log");
 
 // Ensure data directories exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -49,6 +51,9 @@ if (!fs.existsSync(AI_HISTORY_DIR)) {
 }
 if (!fs.existsSync(AI_HISTORY_ASSETS_DIR)) {
   fs.mkdirSync(AI_HISTORY_ASSETS_DIR, { recursive: true });
+}
+if (!fs.existsSync(POINTS_LOG_DIR)) {
+  fs.mkdirSync(POINTS_LOG_DIR, { recursive: true });
 }
 
 // Default demo accounts
@@ -827,6 +832,223 @@ function writeUserData(userId, data) {
 // Ensure users file is initialized
 writeUsers(readUsers());
 
+// ===========================================================================
+// 积分算力 & 云存储空间体系（2026-10 重构）
+// ---------------------------------------------------------------------------
+// 规则：
+//   · 新用户注册赠送 registerPoints（默认 50）积分 + defaultStorageGB（默认 5GB）空间
+//   · 每日签到赠送 checkInPoints（默认 10），按自然日去重
+//   · 每生成 1 张图消耗 costPerImage（默认 1）积分；预扣 → 成功确认 / 失败原路退还
+//   · 存储 = 用户上传素材 + AI 生成结果；达到 100% 拦截上传与生成，90% 黄色预警
+// ===========================================================================
+const DEFAULT_SYSTEM_CONFIG = {
+  registerPoints: 50,
+  checkInPoints: 10,
+  costPerImage: 1,
+  defaultStorageGB: 5,
+  siteName: "留白集 MarginLab",
+  logoUrl: "",
+  termsHtml: "",
+  privacyHtml: "",
+};
+
+function readSystemConfig() {
+  try {
+    if (fs.existsSync(SYSTEM_CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SYSTEM_CONFIG_FILE, "utf-8"));
+      return { ...DEFAULT_SYSTEM_CONFIG, ...data };
+    }
+  } catch (err) {
+    console.error("[SystemConfig] Read failed:", err.message);
+  }
+  return { ...DEFAULT_SYSTEM_CONFIG };
+}
+
+function writeSystemConfig(patch) {
+  const current = readSystemConfig();
+  const updated = { ...current, ...patch, updatedAt: new Date().toISOString() };
+  const tmpFile = SYSTEM_CONFIG_FILE + ".tmp";
+  fs.writeFileSync(tmpFile, JSON.stringify(updated, null, 2), "utf-8");
+  fs.renameSync(tmpFile, SYSTEM_CONFIG_FILE);
+  return updated;
+}
+
+const GB = 1024 * 1024 * 1024;
+
+/** 积分流水（每个用户一个 JSON 文件，最多保留 300 条） */
+function readPointsLog(userId) {
+  try {
+    const f = path.join(POINTS_LOG_DIR, `${userId}.json`);
+    if (fs.existsSync(f)) {
+      const arr = JSON.parse(fs.readFileSync(f, "utf-8"));
+      return Array.isArray(arr) ? arr : [];
+    }
+  } catch (err) {
+    console.error("[PointsLog] read failed:", err.message);
+  }
+  return [];
+}
+
+function appendPointsLog(userId, entry) {
+  try {
+    const list = readPointsLog(userId);
+    list.unshift(entry);
+    const trimmed = list.slice(0, 300);
+    const f = path.join(POINTS_LOG_DIR, `${userId}.json`);
+    const tmp = f + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(trimmed, null, 2), "utf-8");
+    fs.renameSync(tmp, f);
+    return trimmed;
+  } catch (err) {
+    console.error("[PointsLog] write failed:", err.message);
+    return [];
+  }
+}
+
+/** 补全用户资产字段（老账号首次访问时自动初始化，幂等） */
+function ensureUserAssets(user) {
+  if (!user) return user;
+  const cfg = readSystemConfig();
+  let changed = false;
+  if (typeof user.points !== "number" || !Number.isFinite(user.points)) {
+    user.points = cfg.registerPoints;
+    changed = true;
+  }
+  if (typeof user.storageQuota !== "number" || user.storageQuota <= 0) {
+    user.storageQuota = Math.round(cfg.defaultStorageGB * GB);
+    changed = true;
+  }
+  if (typeof user.lastCheckInDate !== "string") {
+    user.lastCheckInDate = "";
+    changed = true;
+  }
+  return changed ? user : user;
+}
+
+/** 保存单个用户（按 id 定位后整体写回） */
+function updateUserRecord(userId, mutate) {
+  const users = readUsers();
+  const idx = users.findIndex((u) => u && u.id === userId);
+  if (idx === -1) return null;
+  const user = ensureUserAssets({ ...users[idx] });
+  mutate(user);
+  users[idx] = user;
+  writeUsers(users);
+  return user;
+}
+
+function findUser(userId) {
+  if (!userId) return null;
+  const users = readUsers();
+  return users.find((u) => u && (u.id === userId || u.username === userId)) || null;
+}
+
+function todayKey() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** 目录占用（字节） */
+function dirSizeInBytes(dir) {
+  let total = 0;
+  try {
+    if (!fs.existsSync(dir)) return 0;
+    for (const name of fs.readdirSync(dir)) {
+      const p = path.join(dir, name);
+      let st;
+      try {
+        st = fs.statSync(p);
+      } catch (e) {
+        continue;
+      }
+      if (st.isDirectory()) total += dirSizeInBytes(p);
+      else total += st.size;
+    }
+  } catch (err) {
+    console.error("[dirSize] failed:", err.message);
+  }
+  return total;
+}
+
+/** 用户云存储已用量：上传素材目录 + 该用户 AI 历史结果文件 */
+function getUserStorageUsed(userId) {
+  const mediaBytes = dirSizeInBytes(path.join(USER_MEDIA_DIR, userId));
+  let aiBytes = 0;
+  try {
+    const history = readAiHistory(userId);
+    const ids = new Set();
+    for (const item of history) {
+      if (item && item.id) ids.add(String(item.id));
+    }
+    if (ids.size > 0 && fs.existsSync(AI_HISTORY_ASSETS_DIR)) {
+      for (const name of fs.readdirSync(AI_HISTORY_ASSETS_DIR)) {
+        const base = name.split("_").slice(0, -1).join("_");
+        // 文件名形如 ai_task_xxx_res.png / ai_task_xxx_src.jpg
+        const prefix = name.replace(/_(res|src)\.[A-Za-z0-9]+$/, "");
+        if (ids.has(prefix) || ids.has(base)) {
+          try {
+            aiBytes += fs.statSync(path.join(AI_HISTORY_ASSETS_DIR, name)).size;
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[storage] ai assets scan failed:", err.message);
+  }
+  return mediaBytes + aiBytes;
+}
+
+/** 统一的资产视图（给前端 / 后台） */
+function buildAssetView(user) {
+  if (!user) return null;
+  ensureUserAssets(user);
+  const used = getUserStorageUsed(user.id);
+  const quota = user.storageQuota || 0;
+  return {
+    points: user.points,
+    storageQuota: quota,
+    storageUsed: used,
+    storagePercent: quota > 0 ? Math.min(100, Math.round((used / quota) * 1000) / 10) : 0,
+    lastCheckInDate: user.lastCheckInDate || "",
+    checkedInToday: (user.lastCheckInDate || "") === todayKey(),
+  };
+}
+
+/** 扣分（返回新余额，失败返回 null） */
+function spendPoints(userId, amount, reason) {
+  let result = null;
+  updateUserRecord(userId, (u) => {
+    if (u.points < amount) return;
+    u.points -= amount;
+    result = u.points;
+    appendPointsLog(userId, {
+      ts: new Date().toISOString(),
+      delta: -amount,
+      reason,
+      balance: u.points,
+    });
+  });
+  return result;
+}
+
+/** 退分 */
+function refundPoints(userId, amount, reason) {
+  let result = null;
+  updateUserRecord(userId, (u) => {
+    u.points += amount;
+    result = u.points;
+    appendPointsLog(userId, {
+      ts: new Date().toISOString(),
+      delta: amount,
+      reason,
+      balance: u.points,
+    });
+  });
+  return result;
+}
+
+
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: "100mb" }));
@@ -1018,6 +1240,7 @@ app.post("/api/auth/register", (req, res) => {
   }
 
   const newUserId = "user_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+  const sysCfg = readSystemConfig();
   const newUser = {
     id: newUserId,
     username: finalUsername,
@@ -1029,13 +1252,26 @@ app.post("/api/auth/register", (req, res) => {
     status: "active",
     bio: (bio || "").trim() || "专注高定排版与艺术创作",
     email: cleanEmail,
-    themeColor: "#E5C49F",
+    themeColor: "#22C55E",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
+    // 资产初始化：注册奖励积分 + 默认云存储配额
+    points: Number(sysCfg.registerPoints) || 0,
+    storageQuota: Math.round((Number(sysCfg.defaultStorageGB) || 5) * 1024 * 1024 * 1024),
+    lastCheckInDate: "",
   };
 
   users.push(newUser);
   writeUsers(users);
+
+  if (newUser.points > 0) {
+    appendPointsLog(newUserId, {
+      ts: new Date().toISOString(),
+      delta: newUser.points,
+      reason: "新用户注册奖励",
+      balance: newUser.points,
+    });
+  }
 
   // Initialize empty user data
   writeUserData(newUserId, {
@@ -1048,7 +1284,7 @@ app.post("/api/auth/register", (req, res) => {
   console.log(`[API] Registered new user: ${cleanEmail || finalUsername} (${newUserId})`);
   res.json({
     success: true,
-    message: `恭喜！已成功注册账号「${newUser.name}」`,
+    message: `恭喜！已成功注册账号「${newUser.name}」，赠送 ${newUser.points} 算力积分与 ${sysCfg.defaultStorageGB}GB 云图库`,
     user: newUser,
   });
 });
@@ -1095,6 +1331,7 @@ app.post("/api/auth/login", (req, res) => {
   }
 
   user.lastLoginAt = new Date().toISOString();
+  ensureUserAssets(user);
   users[userIndex] = user;
   writeUsers(users);
 
@@ -1103,6 +1340,7 @@ app.post("/api/auth/login", (req, res) => {
     success: true,
     message: `欢迎回来，${user.name}！`,
     user,
+    assets: buildAssetView(user),
   });
 });
 
@@ -1220,12 +1458,217 @@ app.post("/api/auth/sync-accounts", (req, res) => {
   res.json({ success: true, accounts: merged });
 });
 
+// ===========================================================================
+// 积分 / 签到 / 云存储 用户侧接口
+// ===========================================================================
+app.get("/api/user/:userId/assets", (req, res) => {
+  const user = findUser(req.params.userId);
+  if (!user) return res.status(404).json({ success: false, message: "用户不存在" });
+  ensureUserAssets(user);
+  res.json({ success: true, assets: buildAssetView(user) });
+});
+
+app.get("/api/user/:userId/points/log", (req, res) => {
+  const user = findUser(req.params.userId);
+  if (!user) return res.status(404).json({ success: false, message: "用户不存在" });
+  res.json({ success: true, log: readPointsLog(user.id), points: ensureUserAssets(user).points });
+});
+
+app.post("/api/user/:userId/check-in", (req, res) => {
+  const user = findUser(req.params.userId);
+  if (!user) return res.status(404).json({ success: false, message: "用户不存在" });
+
+  const cfg = readSystemConfig();
+  const today = todayKey();
+  let awarded = 0;
+  let balance = 0;
+  let already = false;
+
+  const updated = updateUserRecord(user.id, (u) => {
+    if ((u.lastCheckInDate || "") === today) {
+      already = true;
+      balance = u.points;
+      return;
+    }
+    awarded = Number(cfg.checkInPoints) || 0;
+    u.points += awarded;
+    u.lastCheckInDate = today;
+    balance = u.points;
+  });
+
+  if (!updated) return res.status(500).json({ success: false, message: "签到失败，请稍后重试" });
+  if (already) {
+    return res.json({
+      success: true,
+      already: true,
+      message: "今天已经签到过啦，明天再来",
+      points: balance,
+      assets: buildAssetView(updated),
+    });
+  }
+
+  appendPointsLog(user.id, {
+    ts: new Date().toISOString(),
+    delta: awarded,
+    reason: "每日签到",
+    balance,
+  });
+
+  res.json({
+    success: true,
+    already: false,
+    message: `签到成功，算力积分 +${awarded}`,
+    points: balance,
+    assets: buildAssetView(updated),
+  });
+});
+
+// 用户中心：上传自定义头像（写入 user_media/<uid>/，返回短 URL）
+app.post("/api/user/:userId/avatar", (req, res) => {
+  const user = findUser(req.params.userId);
+  if (!user) return res.status(404).json({ success: false, message: "用户不存在" });
+  const { dataUrl } = req.body || {};
+  const persisted = persistDataUriToFile(dataUrl, path.join(USER_MEDIA_DIR, user.id), `avatar_${Date.now()}`);
+  if (!persisted) return res.status(400).json({ success: false, message: "头像数据无效" });
+  const url = `/api/user-media/${user.id}/${persisted}`;
+  const updated = updateUserRecord(user.id, (u) => {
+    u.avatar = url;
+  });
+  res.json({ success: true, avatar: url, user: updated });
+});
+
+// ===========================================================================
+// 管理后台专用接口
+// ===========================================================================
+app.get("/api/admin/overview", requireAdmin, (req, res) => {
+  const users = readUsers().map((u) => ensureUserAssets({ ...u }));
+  const today = todayKey();
+  let totalStorageUsed = 0;
+  let totalStorageQuota = 0;
+  let totalPoints = 0;
+  let checkInToday = 0;
+  for (const u of users) {
+    totalStorageQuota += u.storageQuota || 0;
+    totalPoints += u.points || 0;
+    if ((u.lastCheckInDate || "") === today) checkInToday += 1;
+    try {
+      totalStorageUsed += getUserStorageUsed(u.id);
+    } catch (e) {}
+  }
+  const historyCount = users.reduce((sum, u) => {
+    try {
+      return sum + readAiHistory(u.id).length;
+    } catch (e) {
+      return sum;
+    }
+  }, 0);
+
+  res.json({
+    success: true,
+    overview: {
+      totalUsers: users.length,
+      activeUsers: users.filter((u) => (u.status || "active") === "active").length,
+      adminUsers: users.filter((u) => u.isAdmin).length,
+      checkInToday,
+      totalAiImages: historyCount,
+      totalPoints,
+      totalStorageUsed,
+      totalStorageQuota,
+      today,
+    },
+  });
+});
+
+app.post("/api/admin/user/:userId/points", requireAdmin, (req, res) => {
+  const target = findUser(req.params.userId);
+  if (!target) return res.status(404).json({ success: false, message: "用户不存在" });
+  const delta = Number(req.body?.delta);
+  const note = String(req.body?.note || "").slice(0, 120);
+  if (!Number.isFinite(delta) || delta === 0) {
+    return res.status(400).json({ success: false, message: "请输入非零积分变动值" });
+  }
+  let balance = 0;
+  let blocked = false;
+  const updated = updateUserRecord(target.id, (u) => {
+    if (u.points + delta < 0) {
+      blocked = true;
+      balance = u.points;
+      return;
+    }
+    u.points += delta;
+    balance = u.points;
+  });
+  if (blocked) {
+    return res.status(400).json({ success: false, message: `扣减后积分为负（当前 ${balance}），请调整数值` });
+  }
+  appendPointsLog(target.id, {
+    ts: new Date().toISOString(),
+    delta,
+    reason: note ? `管理员调整：${note}` : "管理员调整",
+    balance,
+    operator: req.headers["x-user-id"] || "",
+  });
+  res.json({ success: true, points: balance, user: updated, assets: buildAssetView(updated) });
+});
+
+app.post("/api/admin/user/:userId/quota", requireAdmin, (req, res) => {
+  const target = findUser(req.params.userId);
+  if (!target) return res.status(404).json({ success: false, message: "用户不存在" });
+  const gb = Number(req.body?.storageGB);
+  if (!Number.isFinite(gb) || gb < 0.1) {
+    return res.status(400).json({ success: false, message: "存储上限至少 0.1 GB" });
+  }
+  const updated = updateUserRecord(target.id, (u) => {
+    u.storageQuota = Math.round(gb * GB);
+  });
+  res.json({ success: true, user: updated, assets: buildAssetView(updated) });
+});
+
+app.get("/api/admin/system/config", requireAdmin, (req, res) => {
+  res.json({ success: true, config: readSystemConfig() });
+});
+
+app.post("/api/admin/system/config", requireAdmin, (req, res) => {
+  const patch = req.body?.config || {};
+  const clean = {};
+  for (const key of ["registerPoints", "checkInPoints", "costPerImage", "defaultStorageGB"]) {
+    if (patch[key] !== undefined) {
+      const n = Number(patch[key]);
+      if (Number.isFinite(n) && n >= 0) clean[key] = n;
+    }
+  }
+  for (const key of ["siteName", "logoUrl", "termsHtml", "privacyHtml"]) {
+    if (typeof patch[key] === "string") clean[key] = patch[key];
+  }
+  const config = writeSystemConfig(clean);
+  res.json({ success: true, config });
+});
+
+// 公开读取：登录页/页脚需要的站点信息（不含敏感项）
+app.get("/api/system/public", (req, res) => {
+  const cfg = readSystemConfig();
+  res.json({
+    success: true,
+    config: {
+      registerPoints: cfg.registerPoints,
+      checkInPoints: cfg.checkInPoints,
+      costPerImage: cfg.costPerImage,
+      defaultStorageGB: cfg.defaultStorageGB,
+      siteName: cfg.siteName,
+      logoUrl: cfg.logoUrl,
+      termsHtml: cfg.termsHtml,
+      privacyHtml: cfg.privacyHtml,
+    },
+  });
+});
+
 // Get user data (doc, projects, templates, media)
 app.get("/api/user/:userId/data", (req, res) => {
   const { userId } = req.params;
   // 首次读取时顺手把历史遗留的 base64 素材搬成文件，之后 JSON 就只有几十 KB
   const data = migrateUserMediaIfNeeded(userId, readUserData(userId));
-  res.json({ success: true, data });
+  const user = findUser(userId);
+  res.json({ success: true, data, assets: user ? buildAssetView(user) : null });
 });
 
 // Save user data (with safe media protection)
@@ -1283,6 +1726,29 @@ app.post("/api/user/:userId/media", (req, res) => {
   const incoming = assets || mediaAssets || [];
   if (!Array.isArray(incoming)) {
     return res.status(400).json({ success: false, message: "Invalid assets array" });
+  }
+
+  // ── 云存储配额前置校验（2026-10 重构）──────────────────────────────────
+  const owner = findUser(userId);
+  if (owner) {
+    ensureUserAssets(owner);
+    const view = buildAssetView(owner);
+    const incomingBytes = incoming.reduce((sum, a) => {
+      if (!a || typeof a !== "object") return sum;
+      if (typeof a.src === "string" && a.src.startsWith("data:")) {
+        // base64 体积 ≈ 字符数 * 0.75
+        return sum + Math.round(a.src.length * 0.75);
+      }
+      return sum;
+    }, 0);
+    if (view.storageUsed + incomingBytes > view.storageQuota) {
+      return res.status(409).json({
+        success: false,
+        code: "STORAGE_FULL",
+        message: "云端存储空间已满，请前往【图库/历史记录】清理旧图，或联系管理员扩容",
+        assets: view,
+      });
+    }
   }
 
   const current = readUserData(userId);
@@ -2295,6 +2761,48 @@ app.post("/api/ai/generate", async (req, res) => {
     return res.status(400).json({ success: false, message: "缺少生图 Prompt 提示词" });
   }
 
+  // ── 积分与云存储前置校验（2026-10 重构）────────────────────────────────
+  // 规则：预扣费 → 成功确认 / 失败原路退还；存储满额拦截生成。
+  const sysCfg = readSystemConfig();
+  const cost = Math.max(0, Number(sysCfg.costPerImage) || 0);
+  const billingUser = userId && userId !== "default" ? findUser(userId) : null;
+  let chargedPoints = 0;
+
+  if (billingUser) {
+    ensureUserAssets(billingUser);
+    if (billingUser.status === "banned") {
+      return res.status(403).json({ success: false, message: "账号已被封禁，无法发起生成任务" });
+    }
+    const assetView = buildAssetView(billingUser);
+    if (assetView.storagePercent >= 100) {
+      return res.status(409).json({
+        success: false,
+        code: "STORAGE_FULL",
+        message: "云端存储空间已满，请前往【图库/生成历史】清理旧图，或联系管理员扩容",
+      });
+    }
+    if (cost > 0) {
+      if (billingUser.points < cost) {
+        return res.status(402).json({
+          success: false,
+          code: "POINTS_INSUFFICIENT",
+          message: "积分不足，请明日签到或联系管理员获取",
+          points: billingUser.points,
+        });
+      }
+      const remaining = spendPoints(billingUser.id, cost, `AI 生图（${styleName || styleId || "风格化"}）`);
+      if (remaining === null) {
+        return res.status(402).json({
+          success: false,
+          code: "POINTS_INSUFFICIENT",
+          message: "积分不足，请明日签到或联系管理员获取",
+        });
+      }
+      chargedPoints = cost;
+      console.log(`[AI Gen] Points pre-charged: -${cost} (balance ${remaining}) for ${billingUser.id}`);
+    }
+  }
+
   const config = readAiConfig();
   const taskId = "ai_task_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
 
@@ -2302,6 +2810,7 @@ app.post("/api/ai/generate", async (req, res) => {
 
   // Check if API Key is configured
   if (!config.apiKey || config.apiKey.trim().length === 0) {
+    if (chargedPoints > 0) refundPoints(billingUser.id, chargedPoints, "生图失败自动退还（未配置 API Key）");
     return res.status(400).json({
       success: false,
       needsConfig: true,
@@ -2449,12 +2958,14 @@ app.post("/api/ai/generate", async (req, res) => {
       imageUrl: persistedUrl,
       thumbUrl: toThumbUrl(persistedUrl),
       task: toClientHistoryItem({ ...historyItem, resultUrl: persistedUrl }),
+      assets: billingUser ? buildAssetView(findUser(billingUser.id)) : null,
     });
   } catch (err) {
     console.error("[AI Gen] Upstream generation error:", err.message);
     // AI 自由创作（custom_creative）必须返回真实大模型结果：失败即如实报错，
     // 不再用占位插画/示例样片冒充成片，供前端展示失败态并允许重试。
     if (styleId === "custom_creative") {
+      if (chargedPoints > 0) refundPoints(billingUser.id, chargedPoints, "生图失败自动退还（上游报错）");
       return res.status(502).json({
         success: false,
         message: `图像大模型生成失败：${err.message || "大模型服务无响应"}`,
@@ -2477,6 +2988,7 @@ app.post("/api/ai/generate", async (req, res) => {
       }
       if (!fallbackImage) {
         // 没有任何源图时无从做「同款风格化」，如实报错，不伪造结果。
+        if (chargedPoints > 0) refundPoints(billingUser.id, chargedPoints, "生图失败自动退还（无可用源图）");
         return res.status(502).json({
           success: false,
           message: `AI 生图调用失败：${err.message || "大模型服务无响应"}。本地兜底渲染也需要上传原图，请重新上传照片后重试。`,
@@ -2505,10 +3017,12 @@ app.post("/api/ai/generate", async (req, res) => {
         imageUrl: persisted,
         thumbUrl: toThumbUrl(persisted),
         task: toClientHistoryItem({ ...historyItem, resultUrl: persisted }),
+        assets: billingUser ? buildAssetView(findUser(billingUser.id)) : null,
       });
     } catch (fbErr) {
       console.error("[AI Gen] Photo-derived fallback also failed:", fbErr.message);
     }
+    if (chargedPoints > 0) refundPoints(billingUser.id, chargedPoints, "生图失败自动退还（兜底渲染失败）");
     return res.status(500).json({
       success: false,
       message: `AI 生图调用失败: ${err.message || "大模型服务无响应"}`,
