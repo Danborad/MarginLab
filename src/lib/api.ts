@@ -851,3 +851,20 @@ export async function apiAdminSaveSystemConfig(
     return { success: false, message: err.message || "保存系统配置失败" };
   }
 }
+
+export async function apiResetPasswordWithEmail(
+  email: string,
+  code: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    return { success: false, message: err.message || "重置密码失败" };
+  }
+}

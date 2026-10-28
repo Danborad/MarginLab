@@ -1392,6 +1392,41 @@ app.post("/api/auth/change-password", (req, res) => {
   res.json({ success: true, message: "密码修改成功，请牢记新密码", user });
 });
 
+// 忘记密码：邮箱验证码重置（2026-10 重构）
+app.post("/api/auth/reset-password", (req, res) => {
+  const { email, code, newPassword } = req.body || {};
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const pwd = String(newPassword || "").trim();
+
+  if (!cleanEmail) {
+    return res.status(400).json({ success: false, message: "请输入注册邮箱" });
+  }
+  if (!pwd || pwd.length < 4) {
+    return res.status(400).json({ success: false, message: "新密码至少需要 4 位字符" });
+  }
+
+  const users = readUsers();
+  const idx = users.findIndex((u) => u.email && u.email.toLowerCase() === cleanEmail);
+  if (idx === -1) {
+    return res.status(404).json({ success: false, message: "该邮箱尚未注册，请先创建账号" });
+  }
+
+  const stored = verificationCodeStore.get(cleanEmail);
+  if (!stored || Date.now() > stored.expiresAt) {
+    return res.status(400).json({ success: false, message: "邮箱验证码不存在或已过期，请重新获取" });
+  }
+  if (String(stored.code) !== String(code || "").trim()) {
+    return res.status(400).json({ success: false, message: "邮箱验证码错误，请重新核对" });
+  }
+  verificationCodeStore.delete(cleanEmail);
+
+  users[idx].passwordHash = pwd;
+  writeUsers(users);
+
+  console.log(`[API] Password reset via email: ${cleanEmail}`);
+  res.json({ success: true, message: "密码重置成功，请使用新密码登录" });
+});
+
 // Delete account
 app.post("/api/auth/delete-account", (req, res) => {
   const { userId } = req.body || {};

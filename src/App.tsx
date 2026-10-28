@@ -11,6 +11,7 @@ import { AlbumStudioStage } from "./components/canvas/AlbumStudioStage";
 import { MediaGalleryStudioStage } from "./components/canvas/MediaGalleryStudioStage";
 import { LandingHomePage } from "./components/home/LandingHomePage";
 import { AdminDashboardPage } from "./components/admin/AdminDashboardPage";
+import { AuthPortalPage } from "./components/auth/AuthPortalPage";
 
 // Global Modals
 import { AuthModal } from "./components/modals/AuthModal";
@@ -79,7 +80,19 @@ export function App() {
     return <AdminDashboardPage />;
   }
 
-  // 1. Landing Home View (未登录亦可进入工作台进行只读浏览)
+  // 1. Auth Portal（2026-10 重构：左图右表全屏登录视图）
+  if (currentView === "home") {
+    if (!isAuthenticated) {
+      return (
+        <div className="w-screen h-screen overflow-hidden bg-studio-bg select-none">
+          <AuthPortalPage />
+          <AlbumModal />
+        </div>
+      );
+    }
+  }
+
+  // 1b. Landing Home View（已登录访问首页）
   if (currentView === "home") {
     return (
       <div className="w-screen h-screen overflow-hidden bg-studio-bg select-none">

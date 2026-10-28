@@ -64,6 +64,7 @@ import {
  } from "../lib/api";
 import type { SiteFilingConfig, EmailConfig, PublicEmailConfig } from "../lib/api";
 import {
+  apiResetPasswordWithEmail,
   apiGetUserAssets,
   apiCheckIn,
   apiGetPointsLog,
@@ -738,6 +739,7 @@ export interface EditorState {
    checkIn: () => Promise<{ success: boolean; message: string; already?: boolean; points?: number }>;
    fetchPointsLog: () => Promise<void>;
    uploadAvatar: (dataUrl: string) => Promise<{ success: boolean; message: string }>;
+   resetPasswordWithEmail: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
    fetchSystemConfig: () => Promise<SystemPublicConfig | null>;
    refreshAssetsAfterTask: (assets?: UserAssets | null) => void;
 
@@ -2061,6 +2063,10 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
          return cfg;
        }
        return null;
+     },
+
+     resetPasswordWithEmail: async (email, code, newPassword) => {
+       return await apiResetPasswordWithEmail(email, code, newPassword);
      },
 
      refreshAssetsAfterTask: (assets) => {
