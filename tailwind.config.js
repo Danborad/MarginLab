@@ -54,6 +54,7 @@ export default {
           accentCrimson: "var(--studio-accent-crimson)",
           accentOlive: "var(--studio-accent-olive)",
           canvasBg: "var(--studio-canvas-bg)",
+          "canvas-bg": "var(--studio-canvas-bg)",
         },
         paper: {
           canvas: "#F6F4F0",

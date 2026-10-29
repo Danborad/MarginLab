@@ -135,7 +135,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
   };
 
   return (
-    <header className="h-14 border-b border-white/8 bg-[#0B0D12]/80 backdrop-blur-xl px-3 sm:px-5 flex items-center justify-between select-none z-30 relative shrink-0">
+    <header className="h-14 border-b border-studio-border bg-studio-sidebar/95 backdrop-blur-xl px-3 sm:px-5 flex items-center justify-between select-none z-30 relative shrink-0">
       {/* Left: Brand, User Avatar, Preset & Project */}
       <div className="flex items-center gap-1 sm:gap-2">
         {/* Brand Home Link */}
@@ -147,7 +147,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           <div className="w-8 h-8 rounded-xl bg-emerald-500/12 border border-emerald-500/35 flex items-center justify-center text-emerald-400 shadow-aurora group-hover:border-emerald-400/60 transition-all">
             <WebsiteLogo className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.8} />
           </div>
-          <span className="text-xs sm:text-sm font-bold tracking-widest text-white hidden md:inline-block">
+          <span className="text-xs sm:text-sm font-bold tracking-widest text-studio-text hidden md:inline-block">
             留白集
           </span>
           <span className="hidden md:inline-block text-[9px] font-mono font-bold tracking-[0.22em] uppercase text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/30 rounded px-1.5 py-0.5 leading-none">
@@ -444,20 +444,20 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
       {/* Center AI Retouch / Stylize Breadcrumb Indicator */}
       {isAiCreate && (
-        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-white/40">
-          <span className="opacity-60">留白集</span>
-          <span className="opacity-40">/</span>
-          <span className="font-bold text-white text-xs tracking-wider">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-studio-dim">
+          <span className="opacity-70">留白集</span>
+          <span className="opacity-50">/</span>
+          <span className="font-bold text-studio-text text-xs tracking-wider">
             AI 自由创作生图工作台
           </span>
         </div>
       )}
 
       {isAiStage && (
-        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-white/40">
-          <span className="opacity-60">留白集</span>
-          <span className="opacity-40">/</span>
-          <span className="font-bold text-white text-xs tracking-wider">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-studio-dim">
+          <span className="opacity-70">留白集</span>
+          <span className="opacity-50">/</span>
+          <span className="font-bold text-studio-text text-xs tracking-wider">
             {activePanel === "ai-retouch" ? "AI 质感修图工作台" : "AI 先锋风格化工作台"}
           </span>
         </div>
@@ -465,10 +465,10 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
 
       {/* Center Gallery Breadcrumb Indicator */}
       {isGalleryMode && (
-        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-white/40">
-          <span className="opacity-60">留白集</span>
-          <span className="opacity-40">/</span>
-          <span className="font-bold text-white text-xs tracking-wider">
+        <div className="hidden sm:flex items-center gap-2 text-xs font-serif tracking-widest text-studio-dim">
+          <span className="opacity-70">留白集</span>
+          <span className="opacity-50">/</span>
+          <span className="font-bold text-studio-text text-xs tracking-wider">
             我的图库 · 文件资产浏览器
           </span>
         </div>

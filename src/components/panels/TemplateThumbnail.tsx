@@ -65,7 +65,7 @@ export const TemplateThumbnail: React.FC<TemplateThumbnailProps> = React.memo(({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden select-none pointer-events-none bg-white ${className}`}
+      className={`preserve-light relative w-full h-full overflow-hidden select-none pointer-events-none bg-white ${className}`}
       style={{ backgroundColor: canvasBg }}
     >
       {/* 600 x 800 等比微缩视口 */}

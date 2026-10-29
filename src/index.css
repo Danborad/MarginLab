@@ -53,35 +53,35 @@
   --studio-glow: 0 0 32px -6px rgba(34, 197, 94, 0.45);
 }
 
-/* 浅色主题保留为可选（后续如需「高定纸感」模式仍可用） */
+/* 浅色主题保留为可选（高定纸感模式） */
 html.light {
-  --studio-bg: #ffffff;
+  --studio-bg: #f8fafc;
   --studio-sidebar: #ffffff;
   --studio-panel: #ffffff;
   --studio-card: #ffffff;
-  --studio-canvas-bg: #ffffff;
-  --studio-border: #e5e7eb;
-  --studio-border-subtle: #f3f4f6;
-  --studio-text: #111827;
-  --studio-muted: #6b7280;
-  --studio-dim: #9ca3af;
-  --studio-hover: #f9fafb;
-  --studio-hover-strong: #f3f4f6;
-  --studio-accent: #111827;
+  --studio-canvas-bg: #f1f5f9;
+  --studio-border: #e2e8f0;
+  --studio-border-subtle: #f1f5f9;
+  --studio-text: #0f172a;
+  --studio-muted: #64748b;
+  --studio-dim: #94a3b8;
+  --studio-hover: #f8fafc;
+  --studio-hover-strong: #f1f5f9;
+  --studio-accent: #0f172a;
   --studio-accent-hover: #000000;
   --studio-accent-bright: #16a34a;
   --studio-accent-crimson: #dc2626;
   --studio-accent-olive: #16a34a;
   --studio-glass: #ffffff;
-  --studio-glass-strong: #f9fafb;
-  --studio-float: rgba(255, 255, 255, 0.96);
-  --studio-input: #f9fafb;
+  --studio-glass-strong: #f8fafc;
+  --studio-float: rgba(255, 255, 255, 0.98);
+  --studio-input: #f8fafc;
   --studio-input-focus: #ffffff;
-  --studio-btn-glass: #f3f4f6;
-  --studio-btn-glass-hover: #e5e7eb;
-  --studio-border-strong: #d1d5db;
-  --studio-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.18);
-  --studio-glow: 0 0 25px -5px rgba(229, 196, 159, 0.2);
+  --studio-btn-glass: #f1f5f9;
+  --studio-btn-glass-hover: #e2e8f0;
+  --studio-border-strong: #cbd5e1;
+  --studio-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.08);
+  --studio-glow: 0 0 25px -5px rgba(34, 197, 94, 0.15);
 }
 
 @layer base {
@@ -672,13 +672,18 @@ html.dark .studio-hairline-b {
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
 }
 
-/* ---------- ⑤ 图片卡片：统一圆角 + 悬停微光 ---------- */
-html.dark .cover-card {
+/* ---------- ⑤ 图片卡片：统一圆角 + 悬停微光（明暗全模式生效） ---------- */
+.cover-card {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--studio-border);
   transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.24s ease, box-shadow 0.24s ease;
+}
+
+.cover-card img {
+  border-radius: 14px;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html.dark .cover-card:hover {
@@ -687,10 +692,6 @@ html.dark .cover-card:hover {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
     0 20px 44px -18px rgba(0, 0, 0, 0.95);
-}
-
-html.dark .cover-card img {
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html.dark .cover-card:hover img {

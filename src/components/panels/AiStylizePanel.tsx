@@ -201,10 +201,10 @@ export const AiStylizePanel: React.FC = () => {
         {filteredGroups.map((group) => (
           <div key={group.id} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-white tracking-wider uppercase font-mono">
+              <h4 className="text-xs font-bold text-studio-text tracking-wider uppercase font-mono">
                 {group.label}
               </h4>
-              <span className="text-[10px] text-white/40 font-mono font-semibold">
+              <span className="text-[10px] text-studio-dim font-mono font-semibold">
                 {group.items.length} 款
               </span>
             </div>
@@ -225,7 +225,7 @@ export const AiStylizePanel: React.FC = () => {
                     className={`group relative aspect-3/4 rounded-xl overflow-hidden bg-studio-card cursor-pointer transition-all duration-300 hover:scale-[1.04] active:scale-[0.98] text-left border ${
                       isSelected
                         ? "border-emerald-400 ring-2 ring-emerald-400/40 shadow-aurora"
-                        : "border-white/10 hover:border-white/30"
+                        : "border-studio-border hover:border-emerald-500/40"
                     }`}
                   >
                     <img

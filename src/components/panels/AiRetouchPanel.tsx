@@ -172,10 +172,10 @@ export const AiRetouchPanel: React.FC = () => {
         {filteredGroups.map((group) => (
           <div key={group.id} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-white tracking-wider uppercase font-mono">
+              <h4 className="text-xs font-bold text-studio-text tracking-wider uppercase font-mono">
                 {group.label}
               </h4>
-              <span className="text-[10px] text-white/40 font-mono font-semibold">
+              <span className="text-[10px] text-studio-dim font-mono font-semibold">
                 {group.items.length} 款
               </span>
             </div>
@@ -190,10 +190,10 @@ export const AiRetouchPanel: React.FC = () => {
                     onMouseEnter={() => setHoveredStyle(st)}
                     onMouseLeave={() => setHoveredStyle((prev) => (prev?.id === st.id ? null : prev))}
                     title={`${st.name}：${st.description}`}
-                    className={`group cover-card relative aspect-3/4 bg-studio-panel cursor-pointer active:scale-[0.97] text-left ${
+                    className={`group cover-card relative aspect-3/4 rounded-xl overflow-hidden bg-studio-panel cursor-pointer active:scale-[0.97] text-left border ${
                       isSelected
-                        ? "ring-2 ring-emerald-500/80 ring-offset-2 ring-offset-studio-sidebar"
-                        : ""
+                        ? "border-emerald-500 ring-2 ring-emerald-500/80 shadow-aurora"
+                        : "border-studio-border hover:border-emerald-500/40"
                     }`}
                   >
                     <img
@@ -201,7 +201,7 @@ export const AiRetouchPanel: React.FC = () => {
                       alt={st.name}
                       loading={idx < 9 ? "eager" : "lazy"}
                       decoding="async"
-                      className="w-full h-full object-cover scale-[1.06] group-hover:scale-[1.12] transition-transform duration-300"
+                      className="w-full h-full object-cover rounded-xl scale-[1.06] group-hover:scale-[1.12] transition-transform duration-300"
                     />
 
                     {/* Active Checkmark */}

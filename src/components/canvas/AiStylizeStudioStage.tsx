@@ -567,10 +567,10 @@ export const AiStylizeStudioStage: React.FC = () => {
               </div>
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-bold text-white truncate">
+                  <span className="text-xs sm:text-sm font-bold text-studio-text truncate">
                     {activeStyle?.name || "未指定风格"}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-mono shrink-0">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[10px] font-bold font-mono shrink-0">
                     {(activeStyle as any)?.retouchCategoryLabel || activeStyle?.badge || "AI精修"}
                   </span>
                 </div>
@@ -591,7 +591,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
                       isSelected
                         ? "bg-emerald-500/18 border-emerald-500/60 text-emerald-300 shadow-aurora"
-                        : "bg-white/[0.03] border-white/8 text-white/60 hover:text-white hover:bg-white/[0.07] hover:border-white/20"
+                        : "bg-studio-panel border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-hover"
                     }`}
                   >
                     <div className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -600,7 +600,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                         className={`rounded-[2px] border-[1.5px] transition-colors ${
                           isSelected
                             ? "border-emerald-400 bg-emerald-400/25"
-                            : "border-white/40 bg-white/10 group-hover:border-white/70"
+                            : "border-studio-dim bg-studio-panel group-hover:border-studio-muted"
                         }`}
                       />
                     </div>
@@ -668,7 +668,7 @@ export const AiStylizeStudioStage: React.FC = () => {
               </div>
             </div>
 
-            <p className="text-base sm:text-lg text-white font-extrabold mb-1.5 tracking-tight">
+            <p className="text-base sm:text-lg text-studio-text font-extrabold mb-1.5 tracking-tight">
               拖拽照片至此，或点击直接上传
             </p>
             <p className="text-xs text-studio-muted mb-7 leading-relaxed max-w-xs">
@@ -1080,7 +1080,7 @@ export const AiStylizeStudioStage: React.FC = () => {
 
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs font-bold text-white truncate">
+                      <p className="text-xs font-bold text-studio-text truncate">
                         {item.styleName || "AI 修图"}
                       </p>
                       <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">
@@ -1103,7 +1103,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                             aspectRatio: item.aspectRatio,
                           });
                         }}
-                        className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-emerald-300 text-[10px] font-bold transition-all cursor-pointer border border-white/10"
+                        className="px-2 py-0.5 rounded-md bg-studio-panel hover:bg-studio-hover text-emerald-600 dark:text-emerald-300 text-[10px] font-bold transition-all cursor-pointer border border-studio-border"
                         title="调出此条历史生成结果到主画布"
                       >
                         载入成片
@@ -1114,7 +1114,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                           e.stopPropagation();
                           handleReloadOriginalFromHistory(item);
                         }}
-                        className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-cyan-300 text-[10px] font-bold transition-all cursor-pointer border border-white/10 flex items-center gap-0.5"
+                        className="px-2 py-0.5 rounded-md bg-studio-panel hover:bg-studio-hover text-cyan-600 dark:text-cyan-300 text-[10px] font-bold transition-all cursor-pointer border border-studio-border flex items-center gap-0.5"
                         title="重新加载这张原图"
                       >
                         <RotateCcw className="w-2.5 h-2.5" />
@@ -1126,7 +1126,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                           e.stopPropagation();
                           handleDownload(resultImg, item.styleName);
                         }}
-                        className="p-1 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white transition-all cursor-pointer border border-white/10 ml-auto"
+                        className="p-1 rounded-md bg-studio-panel hover:bg-studio-hover text-studio-muted hover:text-studio-text transition-all cursor-pointer border border-studio-border ml-auto"
                         title="下载图片"
                       >
                         <Download className="w-3 h-3" />

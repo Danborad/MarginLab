@@ -91,8 +91,8 @@ export const LeftSidebar: React.FC = () => {
   return (
     <>
       {/* 1. 桌面端左侧一阶导航（80px）+ 二阶功能面板（380px） */}
-      <div className="hidden md:flex h-full bg-[#0A0B0E] select-none z-20 shrink-0 relative">
-        <div className="w-20 h-full flex flex-col items-center py-3 border-r border-white/8 bg-[#0A0B0E] shrink-0 z-20 overflow-y-auto no-scrollbar">
+      <div className="hidden md:flex h-full bg-studio-bg select-none z-20 shrink-0 relative">
+        <div className="w-20 h-full flex flex-col items-center py-3 border-r border-studio-border bg-studio-sidebar shrink-0 z-20 overflow-y-auto no-scrollbar">
           <div className="flex-1 space-y-2 w-full px-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -103,13 +103,13 @@ export const LeftSidebar: React.FC = () => {
                   onClick={() => handleNavClick(item.id)}
                   className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative border ${
                     isActive
-                      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-aurora font-bold"
-                      : "border-transparent text-white/50 hover:text-white hover:bg-white/5 font-medium"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/40 shadow-aurora font-bold"
+                      : "border-transparent text-studio-muted hover:text-studio-text hover:bg-studio-hover font-medium"
                   }`}
                   title={item.label}
                 >
                   {item.badge && <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-red-500" />}
-                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-emerald-400 stroke-[2.2]" : "text-white/50 stroke-[1.8]"}`} />
+                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-emerald-500 dark:text-emerald-400 stroke-[2.2]" : "text-studio-dim stroke-[1.8]"}`} />
                   <span className="text-[12px] tracking-tight font-medium">{item.label}</span>
                 </button>
               );
@@ -118,8 +118,8 @@ export const LeftSidebar: React.FC = () => {
         </div>
 
         {activePanel !== "media" && (
-        <div className="h-full bg-[#0E1016] border-r border-white/8 relative flex flex-col shrink-0 w-[380px] min-w-[380px] max-w-[380px]">
-          <div className="flex-1 min-h-0 overflow-y-auto bg-[#0E1016] no-scrollbar">
+        <div className="h-full bg-studio-panel border-r border-studio-border relative flex flex-col shrink-0 w-[380px] min-w-[380px] max-w-[380px]">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-studio-panel no-scrollbar">
             {activePanel === "ai-create" ? (
               <AiCreativePanel />
             ) : activePanel === "ai-retouch" ? (
@@ -137,7 +137,7 @@ export const LeftSidebar: React.FC = () => {
       </div>
 
       {/* 2. 移动端底部一阶导航 */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0B0D12]/90 backdrop-blur-xl border-t border-white/10 z-40 px-1 flex items-center justify-around select-none pb-[env(safe-area-inset-bottom)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-studio-sidebar/95 backdrop-blur-xl border-t border-studio-border z-40 px-1 flex items-center justify-around select-none pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center w-full justify-around">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -156,7 +156,7 @@ export const LeftSidebar: React.FC = () => {
                   }
                 }}
                 className={`flex-1 py-1.5 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                  isActive ? "text-emerald-400 font-bold" : "text-white/50 hover:text-white"
+                  isActive ? "text-emerald-500 dark:text-emerald-400 font-bold" : "text-studio-dim hover:text-studio-text"
                 }`}
               >
                 <Icon className="w-5 h-5" />
