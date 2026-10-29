@@ -225,11 +225,11 @@ export const AiCreativeStudioStage: React.FC = () => {
   return (
     <div className="flex-1 w-full h-full bg-studio-canvas-bg flex flex-col overflow-hidden relative select-none">
       {/* 顶部会话栏：标题与新建聊天按钮 */}
-      <div className="w-full bg-white border-b border-gray-200/80 px-4 sm:px-8 py-2.5 flex items-center justify-between z-20 shrink-0">
+      <div className="w-full bg-studio-sidebar border-b border-studio-border px-4 sm:px-8 py-2.5 flex items-center justify-between z-20 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-extrabold text-gray-950 tracking-tight">AI 自由创作对话</span>
-          <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
+          <span className="text-xs font-extrabold text-studio-text tracking-tight">AI 自由创作对话</span>
+          <span className="text-[11px] text-studio-dim font-medium hidden sm:inline">
             · 自由提示词生图
           </span>
         </div>
@@ -243,7 +243,7 @@ export const AiCreativeStudioStage: React.FC = () => {
             }
             createNewCreativeSession();
           }}
-          className="px-3 py-1.5 rounded-xl bg-gray-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+          className="px-3 py-1.5 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap"
           title="开启一次新的创作对话"
         >
           <Plus className="w-3.5 h-3.5" />
@@ -253,7 +253,7 @@ export const AiCreativeStudioStage: React.FC = () => {
 
       {/* 顶部全局提示 Toast */}
       {toastMessage && (
-        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 bg-gray-950 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2 animate-fadeIn pointer-events-none">
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 glass-float px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn pointer-events-none">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -518,7 +518,7 @@ export const AiCreativeStudioStage: React.FC = () => {
 
       {/* 底部吸底浮动输入卡片（与消息列共用同一居中轴，不再相对整个视口居中） */}
       <div className="shrink-0 sticky bottom-0 z-30 px-4 sm:px-8 lg:px-12 pb-3 pt-2 bg-gradient-to-t from-studio-canvas-bg via-studio-canvas-bg to-transparent">
-        <div className="w-full max-w-4xl mx-auto bg-studio-card border border-studio-border rounded-2xl shadow-glass p-3 sm:p-4 transition-all">
+        <div className="w-full max-w-4xl mx-auto bg-studio-card border border-studio-border-strong rounded-2xl shadow-glass-lg p-3 sm:p-4 transition-all">
           {/* 提示词输入区域 */}
           <div className="relative">
             <textarea
@@ -541,21 +541,21 @@ export const AiCreativeStudioStage: React.FC = () => {
           {/* 参考图胶囊插槽 */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             {creativeReferenceImage ? (
-              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-2.5 py-1 border border-gray-200">
-                <div className="w-6 h-6 rounded-md overflow-hidden bg-gray-200">
+              <div className="flex items-center gap-2 bg-white/5 rounded-xl px-2.5 py-1 border border-studio-border">
+                <div className="w-6 h-6 rounded-md overflow-hidden bg-studio-hover">
                   <img src={creativeReferenceImage} alt="参考图" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-xs font-bold text-gray-700">已选参考图</span>
+                <span className="text-xs font-bold text-studio-text">已选参考图</span>
                 <button
                   onClick={() => setIsMediaPickerOpen(true)}
-                  className="text-[11px] font-bold text-gray-500 hover:text-gray-900 cursor-pointer px-1"
+                  className="text-[11px] font-bold text-studio-muted hover:text-emerald-400 cursor-pointer px-1"
                   title="从图库换成另一张"
                 >
                   换图
                 </button>
                 <button
                   onClick={() => setCreativeReferenceImage(null)}
-                  className="p-0.5 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-800 cursor-pointer"
+                  className="p-0.5 rounded-full hover:bg-white/10 text-studio-muted hover:text-studio-text cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -570,7 +570,7 @@ export const AiCreativeStudioStage: React.FC = () => {
                     }
                     refFileInputRef.current?.click();
                   }}
-                  className="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-3 py-1 rounded-xl btn-glass text-xs font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>上传参考图</span>
@@ -584,7 +584,7 @@ export const AiCreativeStudioStage: React.FC = () => {
                     }
                     setIsMediaPickerOpen(true);
                   }}
-                  className="px-3 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-3 py-1 rounded-xl btn-glass text-xs font-bold flex items-center gap-1 cursor-pointer"
                   title="从图库中选择一张作为参考图"
                 >
                   <FolderHeart className="w-3.5 h-3.5" />
@@ -595,7 +595,7 @@ export const AiCreativeStudioStage: React.FC = () => {
           </div>
 
           {/* 底栏控制条：参考内容与比例参数 · 开始创作（已去掉类型选择） */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-2 border-t border-studio-border">
             {/* 左侧：仅保留画幅比例与生成张数设置 */}
             <div className="flex items-center gap-2 flex-wrap">
               {/* 画幅与张数设置胶囊（带比例几何缩略图） */}
@@ -603,7 +603,7 @@ export const AiCreativeStudioStage: React.FC = () => {
                 <button
                   id="creative-ratio-trigger-btn"
                   onClick={() => setIsConfigPopoverOpen(!isConfigPopoverOpen)}
-                  className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+                  className="px-3 py-1.5 rounded-xl btn-glass text-xs font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap"
                 >
                   <div className="w-4 h-4 flex items-center justify-center shrink-0">
                     <div
@@ -611,11 +611,11 @@ export const AiCreativeStudioStage: React.FC = () => {
                         width: `${Math.round(currentRatioMeta.thumbW * 0.7)}px`,
                         height: `${Math.round(currentRatioMeta.thumbH * 0.7)}px`,
                       }}
-                      className="border-[1.5px] border-gray-700 rounded-[1.5px] bg-gray-300/40"
+                      className="border-[1.5px] border-studio-dim rounded-[1.5px] bg-studio-hover"
                     />
                   </div>
                   <span>{creativeAspectRatio} · {creativeCount} 张</span>
-                  <ChevronDown className="w-3 h-3 text-gray-500" />
+                  <ChevronDown className="w-3 h-3 text-studio-dim" />
                 </button>
 
                 {/* 比例与张数下拉面板（带几何比例缩略图） */}
@@ -713,8 +713,8 @@ export const AiCreativeStudioStage: React.FC = () => {
                 onClick={() => submitCreativeGeneration()}
                 className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
                   creativePromptDraft.trim() && !isGenerating
-                    ? "bg-gray-950 hover:bg-black text-white"
-                    : "bg-gray-200 text-gray-500"
+                    ? "btn-aurora"
+                    : "bg-studio-hover text-studio-dim"
                 }`}
               >
                 {isGenerating ? (

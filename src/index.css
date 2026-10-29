@@ -40,6 +40,13 @@
   /* 磨砂玻璃 */
   --studio-glass: rgba(255, 255, 255, 0.04);
   --studio-glass-strong: rgba(255, 255, 255, 0.08);
+  /* 浮层 / 输入框 / 玻璃按钮（明暗两套都要给值，否则浅色会沿用深色） */
+  --studio-float: rgba(18, 20, 26, 0.94);
+  --studio-input: #1e2028;
+  --studio-input-focus: #22252e;
+  --studio-btn-glass: rgba(255, 255, 255, 0.06);
+  --studio-btn-glass-hover: rgba(255, 255, 255, 0.1);
+  --studio-border-strong: rgba(255, 255, 255, 0.2);
 
   /* 阴影 */
   --studio-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.7);
@@ -67,6 +74,12 @@ html.light {
   --studio-accent-olive: #16a34a;
   --studio-glass: #ffffff;
   --studio-glass-strong: #f9fafb;
+  --studio-float: rgba(255, 255, 255, 0.96);
+  --studio-input: #f9fafb;
+  --studio-input-focus: #ffffff;
+  --studio-btn-glass: #f3f4f6;
+  --studio-btn-glass-hover: #e5e7eb;
+  --studio-border-strong: #d1d5db;
   --studio-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.18);
   --studio-glow: 0 0 25px -5px rgba(229, 196, 159, 0.2);
 }
@@ -151,7 +164,7 @@ html.light {
 
   /* 更强的玻璃层（浮层、弹卡、抽屉） */
   .glass-float {
-    background-color: rgba(18, 20, 26, 0.92);
+    background-color: var(--studio-float);
     -webkit-backdrop-filter: blur(24px) saturate(1.2);
     backdrop-filter: blur(24px) saturate(1.2);
     border: 1px solid var(--studio-border);
@@ -208,7 +221,7 @@ html.light {
 
   /* 次级按钮：玻璃描边 */
   .btn-glass {
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--studio-btn-glass);
     border: 1px solid var(--studio-border);
     color: var(--studio-text);
     border-radius: 12px;
@@ -216,8 +229,8 @@ html.light {
   }
 
   .btn-glass:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--studio-btn-glass-hover);
+    border-color: var(--studio-border-strong);
   }
 
   /* 悬停时描边转为极光色 */
@@ -242,8 +255,8 @@ html.light {
 
   /* 深色无边框输入框（登录表单、参数输入） */
   .input-dark {
-    background-color: #1e2028;
-    border: 1px solid transparent;
+    background-color: var(--studio-input);
+    border: 1px solid var(--studio-border);
     color: var(--studio-text);
     border-radius: 12px;
     transition: border-color 0.16s ease, background-color 0.16s ease;
@@ -252,7 +265,7 @@ html.light {
   .input-dark:focus {
     outline: none;
     border-color: rgba(34, 197, 94, 0.55);
-    background-color: #22252e;
+    background-color: var(--studio-input-focus);
   }
 }
 
@@ -715,3 +728,118 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
   background-clip: padding-box;
 }
+
+/* ===========================================================================
+   浅色模式补丁（2026-10 修复：暗色重构新增的「白色低透明度」表面在浅色下不可见）
+   仅作用于 html.light，不影响原本就正确的存量浅色组件。
+   =========================================================================== */
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/[0.02]"],
+html.light [class*="bg-white/[0.03]"],
+html.light [class*="bg-white/10"] {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+html.light [class*="bg-white/20"],
+html.light [class*="bg-white/[0.06]"] {
+  background-color: rgba(0, 0, 0, 0.07);
+}
+
+html.light [class*="border-white/"]  {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 浅色下极光氛围光收敛，避免整页发灰 */
+html.light .aurora-bg::before {
+  opacity: 0.35;
+}
+
+/* 浅色下卡片投影更柔和 */
+html.light .glass-panel,
+html.light .glass-float {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.18);
+}
+
+html.light .cover-card:hover {
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.22);
+}
+
+/* 浅色模式下：原本用于 dark 的深色选中态（bg-gray-950/900）→ 极光绿主色 */
+html.light .bg-gray-950,
+html.light .bg-zinc-950,
+html.light .bg-gray-900,
+html.light .bg-zinc-900 {
+  background-color: #111827;
+}
+
+html.light .hover\:bg-black:hover {
+  background-color: #000000;
+}
+
+/* 主行动按钮（上传图片/开始创作等）在浅色下保持深色高对比，但加一点绿调 */
+html.light .bg-\[\#22C55E\] {
+  background-color: #22c55e;
+}
+
+/* 浅色下 ring 选中态 */
+html.light .ring-gray-950,
+html.light .ring-gray-900 {
+  --tw-ring-color: rgba(17, 24, 39, 0.6);
+}
+
+/* 深色下 canvas 区域最深、卡片层更亮，保证输入卡与浮层有明显层次 */
+html.dark {
+  --studio-canvas-bg: #06070a;
+  --studio-float: rgba(26, 30, 38, 0.96);
+  --studio-input: #14171f;
+  --studio-input-focus: #191d26;
+  --studio-btn-glass: rgba(255, 255, 255, 0.07);
+  --studio-btn-glass-hover: rgba(255, 255, 255, 0.12);
+}
+
+/* 浅色下彩色低透明度底色加深，保证文字对比度 */
+html.light [class*="bg-emerald-500/"] {
+  background-color: rgba(34, 197, 94, 0.12);
+}
+html.light [class*="bg-emerald-500/1"],
+html.light [class*="bg-emerald-500/2"] {
+  background-color: rgba(34, 197, 94, 0.18);
+}
+html.light [class*="bg-cyan-500/"] {
+  background-color: rgba(6, 182, 212, 0.12);
+}
+html.light [class*="bg-violet-500/"],
+html.light [class*="bg-violet-600/"] {
+  background-color: rgba(139, 92, 246, 0.12);
+}
+html.light [class*="bg-amber-500/"] {
+  background-color: rgba(245, 158, 11, 0.14);
+}
+html.light [class*="bg-rose-500/"],
+html.light [class*="bg-red-500/"] {
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* 浅色下的彩色文字加深，避免在浅底上发白 */
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #059669;
+}
+html.light .text-cyan-300,
+html.light .text-cyan-400 {
+  color: #0891b2;
+}
+html.light .text-violet-300,
+html.light .text-violet-400 {
+  color: #7c3aed;
+}
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #b45309;
+}
+html.light .text-rose-300,
+html.light .text-rose-400 {
+  color: #dc2626;
+}
+

@@ -44,14 +44,14 @@ export interface PhotobookStageProps {
 }
 
 /* ── 主题桌面背景 ──────────────────────────────────────────────── */
+// 舞台背景跟随全局主题（深色=暗房书桌 / 浅色=纸感桌面），书页本身始终是米白纸张
 const THEME_SKIN: Record<AlbumTheme, { bg: string; isLight: boolean }> = {
-  // 2026-10 重构：书页仍是米白纸张，但「书桌/舞台」统一为暗色，避免整块白底刺眼
-  indigo: { bg: '#0B0D11', isLight: false },
-  slate: { bg: '#0B0D11', isLight: false },
-  dark: { bg: '#0B0D11', isLight: false },
-  neutral: { bg: '#0B0D11', isLight: false },
-  burgundy: { bg: '#0B0D11', isLight: false },
-  forest: { bg: '#0B0D11', isLight: false },
+  indigo: { bg: 'var(--studio-canvas-bg)', isLight: false },
+  slate: { bg: 'var(--studio-canvas-bg)', isLight: false },
+  dark: { bg: 'var(--studio-canvas-bg)', isLight: false },
+  neutral: { bg: 'var(--studio-canvas-bg)', isLight: false },
+  burgundy: { bg: 'var(--studio-canvas-bg)', isLight: false },
+  forest: { bg: 'var(--studio-canvas-bg)', isLight: false },
 };
 
 const THEME_COLOR: Record<AlbumTheme, string> = {
@@ -278,15 +278,11 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
   /* ── 主题样式 ─────────────────────────────────────────────── */
   const skin = THEME_SKIN[album.theme || 'indigo'] ?? THEME_SKIN.indigo;
   const isLight = skin.isLight;
-  // 舞台统一为暗色，工具条走磨砂玻璃，书页本身仍保留米白纸张
-  const currentThemeCls = isLight ? 'text-zinc-900' : 'text-white';
-  const subTextCls = isLight ? 'text-zinc-600' : 'text-white/55';
-  const frostedPillCls = isLight
-    ? 'bg-white border border-black/10 shadow-lg text-zinc-900'
-    : 'glass-float text-white';
-  const toolBtnCls = isLight
-    ? 'bg-black/5 hover:bg-black/10 text-zinc-700 hover:text-white'
-    : 'bg-white/10 hover:bg-white/20 text-white';
+  // 全部走主题 token：浅色=深色字 / 深色=浅色字，两套自动切换
+  const currentThemeCls = 'text-studio-text';
+  const subTextCls = 'text-studio-muted';
+  const frostedPillCls = 'glass-float text-studio-text';
+  const toolBtnCls = 'btn-glass';
 
   /* ── 从头翻开画册 (彻底重置至封面 -1 并更新状态) ────────── */
   const handleRestart = useCallback(() => {
@@ -401,7 +397,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
               </h2>
               <Edit2
                 className={`w-3.5 h-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ${
-                  isLight ? 'text-zinc-400' : 'text-gray-500'
+                  'text-studio-dim'
                 }`}
               />
             </div>
@@ -427,7 +423,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
           <button
             onClick={toggleFullscreen}
             className={`p-2 rounded-xl transition-all cursor-pointer ${toolBtnCls} ${
-              isLight ? 'border border-black/10' : 'border border-gray-200'
+              'border border-studio-border'
             }`}
             title={isFullscreen ? '退出全屏' : '全屏翻阅'}
           >
@@ -437,7 +433,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
             <button
               onClick={onClose}
               className={`p-2 rounded-xl transition-all cursor-pointer ${toolBtnCls} ${
-                isLight ? 'border border-black/10' : 'border border-gray-200'
+                'border border-studio-border'
               }`}
               title="关闭画册"
             >
@@ -458,7 +454,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                   setViewMode('book');
                 }}
                 className={`group rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
-                  isLight ? 'bg-white shadow-md' : 'bg-black/40 shadow-xl'
+                  'glass-float'
                 } ${
                   index === -1
                     ? 'border-amber-400 ring-2 ring-amber-400/30'
@@ -493,7 +489,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                     setViewMode('book');
                   }}
                   className={`group rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${
-                    isLight ? 'bg-white shadow-md' : 'bg-black/40 shadow-xl'
+                    'glass-float'
                   } ${
                     index === idx
                       ? 'border-amber-400 ring-2 ring-amber-400/30'
@@ -588,7 +584,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                   setViewMode('book');
                 }}
                 className={`group rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
-                  isLight ? 'bg-white shadow-md' : 'bg-black/40 shadow-xl'
+                  'glass-float'
                 } ${
                   index >= totalSpreads
                     ? 'border-amber-400 ring-2 ring-amber-400/30'
@@ -636,7 +632,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                 <div className="w-8 h-8 rounded-full bg-amber-500/20 group-hover:bg-amber-500 text-amber-600 group-hover:text-zinc-950 flex items-center justify-center transition-colors">
                   <Plus className="w-4 h-4" />
                 </div>
-                <span className={`text-xs font-semibold ${isLight ? 'text-zinc-600' : 'text-gray-500'}`}>
+                <span className={`text-xs font-semibold ${'text-studio-muted'}`}>
                   添加新页面
                 </span>
               </div>
@@ -751,7 +747,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
         {toast && (
           <div
             className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-semibold animate-fadeIn z-50 ${
-              isLight ? 'bg-white text-gray-900 shadow-xl' : 'bg-white/95 text-zinc-950 shadow-2xl'
+              'glass-float text-studio-text'
             }`}
           >
             {toast}
@@ -793,7 +789,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                     setShowMoreMenu(false);
                   }}
                   className={`w-full px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-colors ${
-                    isLight ? 'hover:bg-black/5' : 'hover:bg-black/[0.05]'
+                    'hover:bg-white/10'
                   }`}
                 >
                   <RotateCcw className="w-4 h-4 text-amber-600" />
@@ -806,7 +802,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                     setShowMoreMenu(false);
                   }}
                   className={`w-full px-3 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-colors ${
-                    isLight ? 'hover:bg-black/5' : 'hover:bg-black/[0.05]'
+                    'hover:bg-white/10'
                   }`}
                 >
                   {isPlaying ? (
@@ -817,9 +813,9 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                   <span>{isPlaying ? '暂停自动翻页' : '自动翻页放映'}</span>
                 </button>
 
-                <div className={`h-[1px] my-1 ${isLight ? 'bg-black/10' : 'bg-black/[0.05]'}`} />
+                <div className={`h-[1px] my-1 ${'bg-studio-border'}`} />
 
-                <div className={`px-2.5 py-1 text-[10px] font-mono uppercase ${isLight ? 'text-zinc-400' : 'text-gray-500'}`}>
+                <div className={`px-2.5 py-1 text-[10px] font-mono uppercase ${'text-studio-dim'}`}>
                   桌面背景
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 px-2 pb-1">
@@ -908,7 +904,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
               <p className="text-xs font-semibold leading-relaxed">
                 删除当前对开页？
                 <br />
-                <span className={`font-normal ${isLight ? 'text-zinc-500' : 'text-gray-500'}`}>
+                <span className={`font-normal ${'text-studio-muted'}`}>
                   「
                   {spreads[index]?.title || `第 ${index * 2 + 1}-${index * 2 + 2} 页`}
                   」将被移除
@@ -918,7 +914,7 @@ export const PhotobookStage: React.FC<PhotobookStageProps> = ({
                 <button
                   onClick={() => setConfirmDelete(false)}
                   className={`flex-1 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${
-                    isLight ? 'bg-black/5 hover:bg-black/10' : 'bg-black/[0.05] hover:bg-white/20'
+                    'btn-glass'
                   }`}
                 >
                   取消

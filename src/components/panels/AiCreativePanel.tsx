@@ -64,16 +64,16 @@ export const AiCreativePanel: React.FC = () => {
   const totalRounds = creativeHistory.length;
 
   return (
-    <div className="w-full h-full flex flex-col bg-white select-none">
+    <div className="w-full h-full flex flex-col bg-studio-sidebar select-none">
       {/* 头部面板标题 */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-studio-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-950 font-bold">
-              <Compass className="w-4 h-4 text-gray-950" />
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-studio-border flex items-center justify-center text-emerald-400 font-bold">
+              <Compass className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-gray-950 tracking-tight">
+              <h3 className="text-sm font-extrabold text-studio-text tracking-tight">
                 AI 创作工作台
               </h3>
               <p className="text-[11px] text-gray-400 font-medium">
@@ -90,7 +90,7 @@ export const AiCreativePanel: React.FC = () => {
         <button
           id="new-creative-chat-btn"
           onClick={() => createNewCreativeSession()}
-          className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-gray-950 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+          className="mt-3.5 w-full py-2.5 px-3 rounded-xl btn-aurora text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           title="开启一个新的创作聊天（会新增一条历史记录）"
         >
           <Plus className="w-4 h-4" />
@@ -100,7 +100,7 @@ export const AiCreativePanel: React.FC = () => {
 
       {/* 内容区域：历史记录列表（按聊天聚合） */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5 no-scrollbar">
-        <div className="flex items-center justify-between px-1 py-0.5 text-xs text-gray-500 font-bold">
+        <div className="flex items-center justify-between px-1 py-0.5 text-xs text-studio-muted font-bold">
           <div className="flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
             <span>历史记录 ({chats.length})</span>
@@ -132,8 +132,8 @@ export const AiCreativePanel: React.FC = () => {
             return (
               <div
                 key={chat.id}
-                className={`group relative bg-white border rounded-2xl p-3 hover:shadow-xs transition-all space-y-2 ${
-                  isActive ? "border-gray-900" : "border-gray-200 hover:border-gray-400"
+                className={`group relative bg-studio-card border rounded-xl p-3 transition-all space-y-2 ${
+                  isActive ? "border-emerald-500/60 ring-1 ring-emerald-500/20" : "border-studio-border hover:border-white/20"
                 }`}
               >
                 <div className="flex items-center justify-between text-[11px] text-gray-400 font-medium">
@@ -162,7 +162,7 @@ export const AiCreativePanel: React.FC = () => {
                   {chat.firstRound.prompt}
                 </p>
                 {chat.rounds.length > 1 && (
-                  <p className="text-[11px] text-gray-500 line-clamp-1 leading-relaxed pl-2 border-l-2 border-gray-200">
+                  <p className="text-[11px] text-studio-muted line-clamp-1 leading-relaxed pl-2 border-l-2 border-studio-border">
                     {chat.lastRound.prompt}
                   </p>
                 )}
@@ -173,7 +173,7 @@ export const AiCreativePanel: React.FC = () => {
                     {allImages.slice(0, 3).map((img, idx) => (
                       <div
                         key={idx}
-                        className="w-12 h-10 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 shrink-0"
+                        className="w-12 h-10 rounded-lg overflow-hidden border border-studio-border bg-studio-panel shrink-0"
                       >
                         <img src={thumbOf(img, 160)} alt="预览" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       </div>
@@ -187,7 +187,7 @@ export const AiCreativePanel: React.FC = () => {
                 )}
 
                 {isGenerating && (
-                  <span className="text-[10px] text-gray-500 font-bold">生成中…</span>
+                  <span className="text-[10px] text-studio-dim font-bold">生成中…</span>
                 )}
                 {hasError && (
                   <span className="text-[10px] text-red-600 font-bold">有生成未完成，可重试</span>
@@ -197,7 +197,7 @@ export const AiCreativePanel: React.FC = () => {
                 <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                   <button
                     onClick={() => reapplyCreativeSession(chat.lastRound)}
-                    className="text-xs font-bold text-gray-950 hover:text-black flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 cursor-pointer transition-colors"
+                    className="text-xs font-bold text-studio-text flex items-center gap-1 px-2.5 py-1 rounded-lg btn-glass cursor-pointer"
                   >
                     <Edit3 className="w-3 h-3 text-gray-700" />
                     <span>编辑并重新发送</span>
