@@ -29,7 +29,16 @@ import { WatermarkEditModal } from "./components/modals/WatermarkEditModal";
 
 export function App() {
   (window as any).__store = useEditorStore;
-  const pathname = typeof window !== "undefined" ? window.location.pathname.replace(/\/+$/, "") : "";
+  // 路由感知：/admin 为独立全屏管理后台
+  const [pathname, setPathname] = React.useState(
+    typeof window !== "undefined" ? window.location.pathname.replace(/\/+$/, "") : ""
+  );
+  React.useEffect(() => {
+    const sync = () =>
+      setPathname(typeof window !== "undefined" ? window.location.pathname.replace(/\/+$/, "") : "");
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
 
   const currentView = useEditorStore((s) => s.currentView);
   const isAuthenticated = useEditorStore((s) => s.isAuthenticated);

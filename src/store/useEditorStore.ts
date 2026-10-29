@@ -1203,6 +1203,16 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
      adminModalOpen: false,
      adminModalTab: "users",
      setAdminModalOpen: (open, tab) => {
+       // 2026-10 重构：管理后台改为独立全屏页面 /admin，不再使用弹窗
+       if (open) {
+         try {
+           const url = tab ? `/admin?tab=${encodeURIComponent(tab)}` : "/admin";
+           window.history.pushState({}, "", url);
+           // 触发一次 popstate，让 App 感知路由变化并渲染全屏后台
+           window.dispatchEvent(new PopStateEvent("popstate"));
+         } catch (e) {}
+         return;
+       }
        setStore({
          adminModalOpen: open,
          ...(tab ? { adminModalTab: tab } : {}),

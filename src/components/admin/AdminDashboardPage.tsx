@@ -88,7 +88,23 @@ export const AdminDashboardPage: React.FC = () => {
   const fetchAiStyles = useEditorStore((s) => s.fetchAiStyles);
   const fetchAiConfig = useEditorStore((s) => s.fetchAiConfig);
 
-  const [section, setSection] = useState<AdminSection>("dashboard");
+  // 支持 /admin?tab=users / ai_config / styles / filing / email 直接落到对应页
+  const initialSection = (() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get("tab") || "";
+      const map: Record<string, AdminSection> = {
+        users: "users",
+        ai_config: "models",
+        styles: "styles",
+        filing: "settings",
+        email: "settings",
+      };
+      return map[t] || "dashboard";
+    } catch (e) {
+      return "dashboard";
+    }
+  })();
+  const [section, setSection] = useState<AdminSection>(initialSection);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);

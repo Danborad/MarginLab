@@ -36,6 +36,10 @@ const RATIO_OPTIONS = [
 const COUNT_OPTIONS = [1, 2, 4];
 
 export const AiCreativeStudioStage: React.FC = () => {
+  const systemConfig = useEditorStore((s) => s.systemConfig);
+  const fetchSystemConfig = useEditorStore((s) => s.fetchSystemConfig);
+  const userAssets = useEditorStore((s) => s.userAssets);
+  const costPerImage = Math.max(0, Number(systemConfig?.costPerImage ?? 1));
   const creativeHistory = useEditorStore((s) => s.creativeHistory);
   const creativePromptDraft = useEditorStore((s) => s.creativePromptDraft);
   const creativeAspectRatio = useEditorStore((s) => s.creativeAspectRatio);
@@ -74,6 +78,12 @@ export const AiCreativeStudioStage: React.FC = () => {
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 2800);
   };
+
+  // 首次进入时拉取全局配置（每张消耗积分等）
+  useEffect(() => {
+    if (!systemConfig) fetchSystemConfig().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-scroll to bottom on mount or new message
   useEffect(() => {
@@ -507,19 +517,24 @@ export const AiCreativeStudioStage: React.FC = () => {
       </div>
 
       {/* 底部吸底浮动输入卡片（与消息列共用同一居中轴，不再相对整个视口居中） */}
-      <div className="shrink-0 sticky bottom-0 z-30 px-4 sm:px-8 lg:px-12 pb-3 pt-2 bg-gradient-to-t from-[#fbfbfb] via-[#fbfbfb] to-transparent">
-        <div className="w-full max-w-4xl mx-auto bg-white border border-gray-200/90 rounded-3xl shadow-xl p-3 sm:p-4 transition-all">
+      <div className="shrink-0 sticky bottom-0 z-30 px-4 sm:px-8 lg:px-12 pb-3 pt-2 bg-gradient-to-t from-studio-canvas-bg via-studio-canvas-bg to-transparent">
+        <div className="w-full max-w-4xl mx-auto bg-studio-card border border-studio-border rounded-2xl shadow-glass p-3 sm:p-4 transition-all">
           {/* 提示词输入区域 */}
           <div className="relative">
             <textarea
               id="creative-prompt-input"
               ref={textareaRef}
-              rows={2}
+              rows={1}
               value={creativePromptDraft}
-              onChange={(e) => setCreativePromptDraft(e.target.value)}
+              onChange={(e) => {
+                setCreativePromptDraft(e.target.value);
+                const el = e.target as HTMLTextAreaElement;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+              }}
               onKeyDown={handleKeyDown}
-              placeholder="描述画面、人物、场景、构图与风格"
-              className="w-full bg-transparent resize-none border-none outline-none text-sm sm:text-[15px] text-gray-950 placeholder:text-gray-400 min-h-[52px] max-h-[140px] leading-relaxed"
+              placeholder="描述画面、人物、场景、构图与风格，Enter 发送"
+              className="w-full bg-transparent resize-none border-none outline-none text-sm sm:text-[15px] text-studio-text placeholder:text-studio-dim min-h-[28px] max-h-[120px] leading-relaxed py-1"
             />
           </div>
 
@@ -606,11 +621,11 @@ export const AiCreativeStudioStage: React.FC = () => {
                 {/* 比例与张数下拉面板（带几何比例缩略图） */}
                 {isConfigPopoverOpen && (
                   <div
-                    className="absolute bottom-full mb-2 left-0 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl p-3.5 z-50 space-y-3.5"
+                    className="absolute bottom-full mb-2 left-0 w-72 glass-float rounded-2xl p-3.5 z-50 space-y-3.5"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div>
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block mb-2">
+                      <span className="text-[11px] font-extrabold text-studio-dim uppercase tracking-wider block mb-2">
                         画幅比例
                       </span>
                       <div className="grid grid-cols-2 gap-2">
@@ -625,8 +640,8 @@ export const AiCreativeStudioStage: React.FC = () => {
                               }}
                               className={`p-2 rounded-xl text-xs font-bold text-left transition-all cursor-pointer flex items-center gap-2.5 border ${
                                 isSelected
-                                  ? "bg-gray-950 text-white border-gray-950 shadow-xs"
-                                  : "bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200/80"
+                                  ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/55"
+                                  : "bg-white/5 text-studio-muted hover:bg-white/10 hover:text-studio-text border-studio-border"
                               }`}
                             >
                               {/* 比例几何缩略图 */}
@@ -635,15 +650,15 @@ export const AiCreativeStudioStage: React.FC = () => {
                                   style={{ width: `${opt.thumbW}px`, height: `${opt.thumbH}px` }}
                                   className={`rounded-[2px] border-[1.5px] ${
                                     isSelected
-                                      ? "border-white bg-white/20"
-                                      : "border-gray-700 bg-gray-300/30"
+                                      ? "border-emerald-400 bg-emerald-400/25"
+                                      : "border-studio-dim bg-white/15"
                                   }`}
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <span className="block leading-tight font-extrabold">{opt.label}</span>
                                 <span className={`text-[10px] block leading-tight truncate mt-0.5 ${
-                                  isSelected ? "text-gray-300" : "text-gray-400 font-normal"
+                                  isSelected ? "text-emerald-300/80" : "text-studio-dim font-normal"
                                 }`}>
                                   {opt.desc}
                                 </span>
@@ -655,7 +670,7 @@ export const AiCreativeStudioStage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider block mb-2">
+                      <span className="text-[11px] font-extrabold text-studio-dim uppercase tracking-wider block mb-2">
                         生成张数
                       </span>
                       <div className="flex items-center gap-2">
@@ -666,10 +681,10 @@ export const AiCreativeStudioStage: React.FC = () => {
                               setCreativeCount(c);
                               setIsConfigPopoverOpen(false);
                             }}
-                            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                               creativeCount === c
-                                ? "bg-gray-950 text-white shadow-xs"
-                                : "bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200/80"
+                                ? "bg-emerald-500 text-black border-emerald-400 shadow-aurora"
+                                : "bg-white/5 text-studio-muted hover:bg-white/10 hover:text-studio-text border-studio-border"
                             }`}
                           >
                             {c} 张
@@ -684,15 +699,19 @@ export const AiCreativeStudioStage: React.FC = () => {
 
             {/* 右侧：开始创作按钮 */}
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-400 flex items-center gap-1 hidden sm:flex">
+              <span
+                className="text-xs font-bold text-studio-muted items-center gap-1 hidden sm:flex whitespace-nowrap shrink-0"
+                title={`本次生成消耗：${creativeCount * costPerImage} 积分（${costPerImage} 积分/张 × ${creativeCount} 张）`}
+              >
                 <span>⚡</span>
-                <span>{creativeCount * 2}</span>
+                <span className="font-mono">{creativeCount * costPerImage}</span>
+                <span className="text-[10px] font-normal text-studio-dim whitespace-nowrap">积分</span>
               </span>
 
               <button
                 disabled={isGenerating || !creativePromptDraft.trim()}
                 onClick={() => submitCreativeGeneration()}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap shrink-0 ${
                   creativePromptDraft.trim() && !isGenerating
                     ? "bg-gray-950 hover:bg-black text-white"
                     : "bg-gray-200 text-gray-500"

@@ -29,19 +29,29 @@ import {
    ──────────────────────────────────────────────────────────── */
 const SLIDES: { img: string; title: string; sub: string }[] = [
   {
-    img: "/album_samples/jiuzhaigou/spread_1_full.png",
+    img: "/covers/01_dreamy_motion_editorial.webp",
     title: "留白集 | 一站式 AI 美学风格工作台",
     sub: "注册即享 50 算力积分 + 5GB 专属云图库",
   },
   {
-    img: "/album_samples/jiuzhaigou/spread_3_full.png",
-    title: "AI 调色 · 风格化 · 艺术拼图排版",
-    sub: "为摄影师与设计师准备的极简创作台",
+    img: "/covers/06_eastern_ink_diptych_scenery.webp",
+    title: "东方水墨 · 摄影二分画",
+    sub: "25 款高定风格模板，一键重塑照片气质",
   },
   {
-    img: "/album_samples/jiuzhaigou/spread_5_full.png",
-    title: "相册成书与米家相纸一键冲印",
-    sub: "3 寸 / 6 寸专属适配，300DPI 无损出片",
+    img: "/covers/16_chinese_paper_relief.jpg",
+    title: "中式浮雕 · 纸感海报",
+    sub: "AI 调色修图与艺术拼图排版，为创作者准备",
+  },
+  {
+    img: "/covers/23_retro_print_illustration.jpg",
+    title: "Riso 孔版印刷 · 复古实验插画",
+    sub: "43 款专业调色修图风格，随选即用",
+  },
+  {
+    img: "/covers/25_out_of_frame_3d.jpg",
+    title: "破框而出 · 2D 突破 3D 海报",
+    sub: "相册成书与米家相纸一键冲印，300DPI 无损出片",
   },
 ];
 
@@ -266,8 +276,8 @@ export const AuthPortalPage: React.FC = () => {
               key={s.img}
               src={s.img}
               alt=""
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                i === slide ? "opacity-100" : "opacity-0"
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[900ms] ${
+                i === slide ? "opacity-100 scale-100" : "opacity-0 scale-105"
               }`}
             />
           ))}
@@ -688,28 +698,6 @@ export const AuthPortalPage: React.FC = () => {
                 </button>
               </form>
             )}
-
-            {/* 第三方登录位（占位，后续接入） */}
-            <div className="mt-5">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-studio-border" />
-                <span className="text-[10px] text-studio-dim whitespace-nowrap">其他登录方式</span>
-                <div className="flex-1 h-px bg-studio-border" />
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-3">
-                {["微信", "抖音", "GitHub"].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled
-                    title={`${n}登录即将开放`}
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-studio-border flex items-center justify-center text-studio-dim hover:text-studio-text hover:border-studio-border/80 transition-colors cursor-not-allowed opacity-60"
-                  >
-                    <span className="text-[10px] font-bold">{n.slice(0, 1)}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* 游客浏览入口 */}
             <div className="mt-5 pt-4 border-t border-studio-border flex flex-col gap-2">

@@ -147,7 +147,7 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white border border-amber-500/30 dark:border-amber-400/40 flex items-center justify-center text-amber-600 dark:text-studio-accent shadow-xs group-hover:border-amber-400 transition-colors">
             <WebsiteLogo className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.8} />
           </div>
-          <span className="font-serif tracking-widest text-xs sm:text-sm font-bold text-stone-900 dark:text-studio-accent hidden xs:inline-block">
+          <span className="font-serif tracking-widest text-xs sm:text-sm font-bold text-stone-900 dark:text-studio-accent hidden md:inline-block">
             留白集
           </span>
           <span className="hidden md:inline-block text-[9px] font-mono font-semibold tracking-[0.2em] uppercase text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-700 rounded px-1 py-0.5 leading-none">
@@ -155,27 +155,35 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
           </span>
         </button>
 
-        {/* User Account Dropdown (Direct profile edit & 1-click logout) */}
+        {/* 用户中心（左上角默认展示头像，2026-10 重构） */}
         {isAuthenticated && currentUser ? (
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               id="header-user-dropdown-btn"
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className={
-                "flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs text-studio-text transition-all cursor-pointer shadow-sm shrink-0 " +
+                "flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border transition-all cursor-pointer shrink-0 " +
                 (userMenuOpen
-                  ? "bg-studio-card border-studio-accent text-studio-accent ring-1 ring-studio-accent/40"
-                  : "bg-studio-card hover:bg-studio-hover border-studio-border hover:text-studio-accent")
+                  ? "bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/25"
+                  : "bg-studio-card hover:bg-studio-hover border-studio-border hover:border-emerald-500/40")
               }
-              title={`当前账号：${currentUser.name} (@${currentUser.username}) • 点击快捷操作`}
+              title={`当前账号：${currentUser.name} (@${currentUser.username}) • 点击打开个人中心`}
             >
-              <AvatarView avatar={currentUser.avatar} size="xs" />
-              <span className="font-medium max-w-[55px] xs:max-w-[85px] sm:max-w-[110px] truncate text-[11px] sm:text-xs">
-                {currentUser.name.split(" ")[0]}
+              <span className="relative">
+                <AvatarView avatar={currentUser.avatar} size="sm" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-studio-sidebar" />
+              </span>
+              <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
+                <span className="font-semibold text-studio-text truncate text-[11px] max-w-[86px]">
+                  {currentUser.name}
+                </span>
+                <span className="text-[9px] text-studio-dim font-mono truncate max-w-[86px]">
+                  @{currentUser.username}
+                </span>
               </span>
               <ChevronDown
-                className={`w-3 h-3 text-studio-muted transition-transform duration-200 ${
-                  userMenuOpen ? "rotate-180 text-studio-accent" : "opacity-80"
+                className={`w-3 h-3 text-studio-muted transition-transform duration-200 hidden md:block ${
+                  userMenuOpen ? "rotate-180 text-emerald-400" : ""
                 }`}
               />
             </button>
@@ -575,6 +583,15 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
         >
           <Keyboard className="w-4 h-4" />
         </Button>
+
+        {/* 明暗主题切换（2026-10 重构） */}
+        <button
+          onClick={toggleThemeMode}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-xl bg-studio-card border border-studio-border text-studio-muted hover:text-studio-text hover:border-emerald-500/40 transition-all cursor-pointer shrink-0"
+          title={themeMode === "dark" ? "切换为浅色模式" : "切换为深色模式"}
+        >
+          {themeMode === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
 
         {/* ── 用户状态栏：签到 / 积分（2026-10 重构） ── */}
         {isAuthenticated && currentUser && (

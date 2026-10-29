@@ -28,6 +28,7 @@ const AI_THUMBS_DIR = path.join(DATA_DIR, "ai_history_thumbs");
 const USER_MEDIA_DIR = path.join(DATA_DIR, "user_media");
 const THUMB_CACHE_DIR = path.join(DATA_DIR, "thumb_cache");
 const SYSTEM_CONFIG_FILE = path.join(DATA_DIR, "system_config.json");
+const DELETED_ACCOUNTS_FILE = path.join(DATA_DIR, "deleted_accounts.json");
 const POINTS_LOG_DIR = path.join(DATA_DIR, "points_log");
 
 // Ensure data directories exist
@@ -744,6 +745,29 @@ function deleteAiHistoryItem(userId = "default", itemId) {
   return filtered;
 }
 
+// 已删除账号墓碑：防止「种子账号」被删后又被 DEFAULT_ACCOUNTS 合并回来
+function readDeletedAccountIds() {
+  try {
+    if (fs.existsSync(DELETED_ACCOUNTS_FILE)) {
+      const arr = JSON.parse(fs.readFileSync(DELETED_ACCOUNTS_FILE, "utf-8"));
+      return new Set(Array.isArray(arr) ? arr : []);
+    }
+  } catch (e) {}
+  return new Set();
+}
+
+function markAccountDeleted(userId) {
+  try {
+    const set = readDeletedAccountIds();
+    set.add(userId);
+    const tmp = DELETED_ACCOUNTS_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(Array.from(set), null, 2), "utf-8");
+    fs.renameSync(tmp, DELETED_ACCOUNTS_FILE);
+  } catch (e) {
+    console.error("[DeletedAccounts] write failed:", e.message);
+  }
+}
+
 // Helper to read users atomically
 function readUsers() {
   try {
@@ -757,13 +781,18 @@ function readUsers() {
       list = Array.isArray(parsed) ? parsed : DEFAULT_ACCOUNTS;
     }
 
-    // Merge default accounts to guarantee seed accounts exist
+    const deletedIds = readDeletedAccountIds();
+
+    // Merge default accounts to guarantee seed accounts exist（已删除的除外）
     const map = new Map();
     for (const acc of DEFAULT_ACCOUNTS) {
+      if (deletedIds.has(acc.id)) continue;
       map.set(acc.id, acc);
     }
     for (const acc of list) {
       if (acc && acc.id) {
+        // 已删除的账号不得再从 users.json 里复活
+        if (deletedIds.has(acc.id)) continue;
         const isAdm = acc.isAdmin !== undefined ? acc.isAdmin : (acc.id === "user_admin" || acc.id === "user_pro" || acc.username === "admin");
         map.set(acc.id, {
           ...map.get(acc.id),
@@ -2006,6 +2035,8 @@ app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
 
   const deleted = users.splice(idx, 1)[0];
   writeUsers(users);
+  // 打墓碑，避免 DEFAULT_ACCOUNTS 下次读取时把它合并回来
+  markAccountDeleted(id);
 
   // Clean userdata file
   const userFile = path.join(USERDATA_DIR, `${id}.json`);
