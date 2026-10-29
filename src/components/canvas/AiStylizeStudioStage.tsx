@@ -695,14 +695,14 @@ export const AiStylizeStudioStage: React.FC = () => {
               height: currentRatioOption.emptyHeight,
               maxWidth: "100%",
             }}
-            className={`my-auto shrink-0 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center px-6 py-8 text-center cursor-pointer transition-all duration-300 relative ${
+            className={`my-auto shrink-0 rounded-2xl border border-dashed flex flex-col items-center justify-center px-6 py-8 text-center cursor-pointer transition-all duration-300 relative ${
               isDraggingOver
-                ? "border-gray-950 bg-gray-50 scale-[1.01]"
-                : "border-gray-300 bg-white hover:border-gray-900 hover:bg-gray-50/60"
+                ? "border-emerald-400 bg-emerald-500/10 scale-[1.01]"
+                : "border-white/15 bg-white/[0.02] hover:border-emerald-500/50 hover:bg-emerald-500/[0.05]"
             }`}
           >
             {/* 顶部当前画幅尺寸角标 */}
-            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-bold text-gray-700 flex items-center gap-1.5">
+            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/5 border border-studio-border text-xs font-bold text-studio-muted flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>
                 {currentRatioOption.label} · {currentRatioOption.desc}
@@ -710,7 +710,7 @@ export const AiStylizeStudioStage: React.FC = () => {
             </div>
 
             <div className="relative mb-5">
-              <div className="w-20 h-20 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400">
+              <div className="w-20 h-20 rounded-2xl bg-white/5 border border-studio-border flex items-center justify-center text-studio-dim">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -720,10 +720,10 @@ export const AiStylizeStudioStage: React.FC = () => {
               </div>
             </div>
 
-            <p className="text-base sm:text-lg text-gray-900 font-extrabold mb-1.5 tracking-tight">
+            <p className="text-base sm:text-lg text-studio-text font-extrabold mb-1.5 tracking-tight">
               上传照片，切换风格自动保留
             </p>
-            <p className="text-xs sm:text-[13px] text-gray-500 mb-6 leading-relaxed max-w-[300px]">
+            <p className="text-xs sm:text-[13px] text-studio-muted mb-6 leading-relaxed max-w-[300px]">
               支持 JPG / PNG / WebP 原图，默认 {currentRatioOption.label} {currentRatioOption.desc}尺寸，自动归档至「图库」
             </p>
 
@@ -748,9 +748,9 @@ export const AiStylizeStudioStage: React.FC = () => {
                   e.stopPropagation();
                   handleOpenGalleryModal();
                 }}
-                className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap"
+                className="px-4 py-2.5 rounded-xl btn-glass font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
-                <Images className="w-4 h-4 text-gray-700" />
+                <Images className="w-4 h-4" />
                 <span>从图库选图</span>
               </button>
             </div>
@@ -1051,29 +1051,29 @@ export const AiStylizeStudioStage: React.FC = () => {
       </div>
 
       {/* 右侧：生成历史栏（可重复调用显示） */}
-      <aside className="hidden lg:flex w-68 h-full border-l border-gray-200 bg-gray-50/50 flex-col shrink-0 select-none">
-        <div className="px-4 py-3.5 border-b border-gray-200 bg-white flex items-center justify-between">
+      <aside className="hidden lg:flex w-64 h-full border-l border-studio-border bg-studio-panel/60 backdrop-blur-glass flex-col shrink-0 select-none">
+        <div className="px-4 py-3.5 border-b border-studio-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-900" />
-            <h3 className="text-xs font-extrabold text-gray-950 tracking-tight">
+            <Clock className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-extrabold text-studio-text tracking-tight whitespace-nowrap">
               生成历史
             </h3>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[11px] font-bold">
-            {aiHistory.length} 条
+          <span className="px-2 py-0.5 rounded-full bg-white/5 border border-studio-border text-studio-muted text-[11px] font-bold font-mono">
+            {aiHistory.length}
           </span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2.5 no-scrollbar">
           {aiHistory.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-center px-4">
-              <div className="w-11 h-11 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 mb-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-studio-border flex items-center justify-center text-studio-dim mb-3">
                 <Clock className="w-5 h-5" />
               </div>
-              <p className="text-xs font-bold text-gray-700 mb-1">
+              <p className="text-xs font-bold text-studio-muted mb-1">
                 暂无生成历史
               </p>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
+              <p className="text-[11px] text-studio-dim leading-relaxed">
                 每次 AI 修图或风格化生成的结果都会保存在这里，点击即可随时调出对比与下载
               </p>
             </div>
@@ -1096,15 +1096,15 @@ export const AiStylizeStudioStage: React.FC = () => {
                       aspectRatio: item.aspectRatio,
                     });
                   }}
-                  className={`group relative rounded-xl p-2 bg-white border transition-all cursor-pointer flex items-center gap-3 ${
+                  className={`group relative rounded-xl p-2 bg-studio-card border transition-all cursor-pointer flex items-center gap-3 ${
                     isCurrent
-                      ? "border-gray-950 ring-2 ring-gray-950/10 shadow-xs"
+                      ? "border-emerald-500/70 ring-1 ring-emerald-500/20"
                       : isOriginalActive
-                      ? "border-blue-600 ring-2 ring-blue-600/10 shadow-xs"
-                      : "border-gray-200 hover:border-gray-400 hover:shadow-xs"
+                      ? "border-cyan-500/60 ring-1 ring-cyan-500/20"
+                      : "border-studio-border hover:border-white/20"
                   }`}
                 >
-                  <div className="w-14 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0 relative">
+                  <div className="w-14 h-16 rounded-lg overflow-hidden bg-studio-panel border border-studio-border shrink-0 relative">
                     {resultImg ? (
                       <img
                         src={item.thumbUrl || thumbOf(resultImg, 160)}

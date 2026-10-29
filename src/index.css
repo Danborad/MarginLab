@@ -594,3 +594,124 @@ html.dark table {
 html.dark thead th {
   color: var(--studio-muted);
 }
+
+/* ===========================================================================
+   高级感增强层（2026-10 第二轮视觉打磨）
+   ---------------------------------------------------------------------------
+   目标：不再只是「把白底换黑底」，而是建立
+   ① 空间纵深（背景/次级/浮层三级明度差）
+   ② 一致的边缘与高光（hairline + inner highlight）
+   ③ 克制的动效与焦点光
+   =========================================================================== */
+
+/* ---------- ① 三级明度纵深：让面板真正「浮起来」 ---------- */
+html.dark {
+  --studio-bg: #08090c;
+  --studio-sidebar: #0b0d12;
+  --studio-panel: #0f1117;
+  --studio-card: #14171f;
+  --studio-canvas-bg: #060709;
+
+  --studio-border: rgba(255, 255, 255, 0.07);
+  --studio-border-subtle: rgba(255, 255, 255, 0.04);
+  --studio-hover: rgba(255, 255, 255, 0.05);
+  --studio-hover-strong: rgba(255, 255, 255, 0.09);
+}
+
+/* ---------- ② 统一的 inner highlight + 外投影 ---------- */
+html.dark .glass-panel,
+html.dark .glass-float {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 18px 48px -20px rgba(0, 0, 0, 0.9);
+}
+
+/* 卡片悬停：只加极轻的光，不跳变 */
+html.dark .hover-aurora:hover {
+  border-color: rgba(34, 197, 94, 0.32);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+    0 0 0 1px rgba(34, 197, 94, 0.1),
+    0 24px 56px -24px rgba(0, 0, 0, 0.95);
+}
+
+/* ---------- ③ 焦点光：主按钮外的极光晕 ---------- */
+html.dark .btn-aurora {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
+    0 6px 20px -8px rgba(34, 197, 94, 0.55);
+}
+
+html.dark .btn-aurora:hover:not(:disabled) {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
+    0 10px 32px -10px rgba(34, 197, 94, 0.75);
+}
+
+/* ---------- ④ 侧栏与顶栏的「发丝高光」 ---------- */
+html.dark .studio-hairline-r {
+  border-right: 1px solid var(--studio-border);
+  box-shadow: 1px 0 0 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+html.dark .studio-hairline-b {
+  border-bottom: 1px solid var(--studio-border);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+/* ---------- ⑤ 图片卡片：统一圆角 + 悬停微光 ---------- */
+html.dark .cover-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--studio-border);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.24s ease, box-shadow 0.24s ease;
+}
+
+html.dark .cover-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 44px -18px rgba(0, 0, 0, 0.95);
+}
+
+html.dark .cover-card img {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.dark .cover-card:hover img {
+  transform: scale(1.045);
+}
+
+/* ---------- ⑥ 分区标题：更强的层级 ---------- */
+html.dark .section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--studio-text);
+}
+
+html.dark .section-sub {
+  font-size: 11px;
+  color: var(--studio-muted);
+  line-height: 1.6;
+}
+
+/* ---------- ⑦ 滚动条更克制 ---------- */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+}

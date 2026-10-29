@@ -190,10 +190,10 @@ export const AiRetouchPanel: React.FC = () => {
                     onMouseEnter={() => setHoveredStyle(st)}
                     onMouseLeave={() => setHoveredStyle((prev) => (prev?.id === st.id ? null : prev))}
                     title={`${st.name}：${st.description}`}
-                    className={`group relative aspect-3/4 rounded-2xl overflow-hidden bg-gray-100 cursor-pointer transition-all duration-200 hover:scale-[1.04] hover:z-10 active:scale-95 text-left ${
+                    className={`group cover-card relative aspect-3/4 bg-studio-panel cursor-pointer active:scale-[0.97] text-left ${
                       isSelected
-                        ? "ring-2.5 ring-gray-950 shadow-md"
-                        : "border border-gray-200 hover:border-gray-900 hover:shadow-lg shadow-2xs"
+                        ? "ring-2 ring-emerald-500/80 ring-offset-2 ring-offset-studio-sidebar"
+                        : ""
                     }`}
                   >
                     <img
@@ -206,7 +206,7 @@ export const AiRetouchPanel: React.FC = () => {
 
                     {/* Active Checkmark */}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-950 text-white flex items-center justify-center shadow-sm z-10">
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 text-black flex items-center justify-center shadow-aurora z-10">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </div>
                     )}
@@ -231,8 +231,8 @@ export const AiRetouchPanel: React.FC = () => {
         ))}
 
         {filteredGroups.length === 0 && (
-          <div className="py-12 text-center text-gray-400 text-xs space-y-1">
-            <p className="font-bold text-gray-600">未找到匹配的修图风格</p>
+          <div className="py-12 text-center text-studio-dim text-xs space-y-1">
+            <p className="font-bold text-studio-muted">未找到匹配的修图风格</p>
             <p>试试搜索“胶片”、“发丝光”、“去灰”或切换全部分类</p>
           </div>
         )}
@@ -240,8 +240,8 @@ export const AiRetouchPanel: React.FC = () => {
 
       {/* 悬浮大图与详情介绍浮窗（桌面端） */}
       {hoveredStyle && (
-        <div className="hidden md:flex fixed left-[476px] top-[76px] z-50 w-[320px] bg-white rounded-2xl border border-gray-200 shadow-2xl p-4 flex-col gap-3 pointer-events-none animate-fadeIn">
-          <div className="w-full aspect-3/4 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 relative">
+        <div className="hidden md:flex fixed left-[476px] top-[76px] z-50 w-[320px] glass-float rounded-2xl p-4 flex-col gap-3 pointer-events-none animate-fadeIn">
+          <div className="w-full aspect-3/4 rounded-xl overflow-hidden bg-studio-panel border border-studio-border relative">
             <img
               src={hoveredStyle.coverImage}
               alt={hoveredStyle.name}
@@ -254,21 +254,21 @@ export const AiRetouchPanel: React.FC = () => {
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <h4 className="text-base font-extrabold text-gray-950">
+              <h4 className="text-base font-extrabold text-studio-text">
                 {hoveredStyle.name}
               </h4>
-              <span className="text-[11px] font-mono text-gray-400">
+              <span className="text-[11px] font-mono text-studio-dim">
                 #{String(hoveredStyle.order).padStart(2, "0")}
               </span>
             </div>
-            <p className="text-xs text-gray-700 leading-relaxed font-medium">
+            <p className="text-xs text-studio-muted leading-relaxed font-medium">
               {hoveredStyle.description}
             </p>
-            <div className="pt-2 border-t border-gray-100">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+            <div className="pt-2 border-t border-studio-border">
+              <span className="text-[10px] font-bold text-studio-dim uppercase tracking-wider block mb-1">
                 AI 核心提示词
               </span>
-              <p className="text-[11px] text-gray-600 bg-gray-50 rounded-lg p-2 border border-gray-100 leading-relaxed">
+              <p className="text-[11px] text-studio-muted bg-white/5 rounded-lg p-2 border border-studio-border leading-relaxed">
                 {hoveredStyle.rawPrompt}
               </p>
             </div>
