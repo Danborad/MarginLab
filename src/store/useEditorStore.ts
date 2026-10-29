@@ -397,12 +397,16 @@ export const createCreativeFallbackArtwork = async (
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 };
 
-const STORAGE_THEME_KEY = "atelier_theme_mode_v7";
+const STORAGE_THEME_KEY = "marginlab_theme_v9";
 export const getStoredTheme = (): ThemeMode => {
-  // 2026-10 重构：全站默认深色暗房风格（Dark UI + 极光氛围）
+  // AIGC 一线大厂标准：全站默认且优先深色暗房极光风格（Dark UI）
   try {
-    const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_THEME_KEY) : null;
-    if (saved === "light" || saved === "dark") return saved as ThemeMode;
+    if (typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_THEME_KEY);
+      if (saved === "dark" || saved === "light") return saved as ThemeMode;
+      // 首次或旧版本遗留：强制写入并锁定为 dark
+      localStorage.setItem(STORAGE_THEME_KEY, "dark");
+    }
   } catch (e) {}
   return "dark";
 };

@@ -224,7 +224,14 @@ export const MediaGalleryStudioStage: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 w-full h-full bg-gray-50/50 flex flex-col overflow-hidden select-none">
+    <div className="flex-1 w-full h-full bg-studio-bg text-studio-text flex flex-col overflow-hidden relative select-none">
+      {/* 极光背景漫反射光晕 (即梦 / 可灵级氛围感) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 hidden dark:block">
+        <div className="absolute -top-32 left-1/4 w-[640px] h-[400px] bg-[#0D254C]/60 rounded-full blur-[140px]" />
+        <div className="absolute top-1/3 right-1/4 w-[520px] h-[380px] bg-violet-600/15 rounded-full blur-[150px]" />
+        <div className="absolute bottom-10 left-1/3 w-[460px] h-[340px] bg-emerald-500/10 rounded-full blur-[160px]" />
+      </div>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -234,8 +241,8 @@ export const MediaGalleryStudioStage: React.FC = () => {
         className="hidden"
       />
 
-      {/* 顶部综合工具栏（现代文件管理器顶部） */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col gap-3 shrink-0 shadow-2xs">
+      {/* 顶部综合工具栏：大厂深色磨砂玻璃 */}
+      <div className="bg-studio-sidebar/80 backdrop-blur-xl border-b border-studio-border px-6 py-4 flex flex-col gap-3 shrink-0 z-10 shadow-glass">
         {/* 只读速览提示条 */}
         {!isAuthenticated && (
           <div className="w-full px-4 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs shrink-0 animate-fadeIn">
@@ -254,19 +261,19 @@ export const MediaGalleryStudioStage: React.FC = () => {
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* 标题与文件数统计 */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-900 shadow-2xs">
-              <Images className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/12 border border-emerald-500/35 flex items-center justify-center text-emerald-400 shadow-aurora">
+              <Images className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-extrabold text-gray-950 tracking-tight">
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
                   我的图库
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-emerald-300 text-xs font-bold font-mono">
                   共 {allFiles.length} 个文件
                 </span>
               </div>
-              <p className="text-xs text-gray-500 font-medium">
+              <p className="text-xs text-studio-muted font-medium mt-0.5">
                 集中沉淀您上传的原图与 AI 艺术生成资产，随时复用修图或拼图
               </p>
             </div>
@@ -313,7 +320,7 @@ export const MediaGalleryStudioStage: React.FC = () => {
                 fileInputRef.current?.click();
               }}
               disabled={isUploading}
-              className="px-5 py-2.5 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl btn-aurora text-xs sm:text-sm font-bold flex items-center gap-2 shadow-aurora transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
               <Upload className="w-4 h-4" />
               <span>{isUploading ? "正在上传..." : "上传本地图片"}</span>
@@ -333,30 +340,30 @@ export const MediaGalleryStudioStage: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFilterTab("all")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                 filterTab === "all"
-                  ? "bg-gray-950 text-white shadow-2xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                  ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/50 shadow-aurora"
+                  : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border-white/8"
               }`}
             >
               全部文件 ({allFiles.length})
             </button>
             <button
               onClick={() => setFilterTab("upload")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                 filterTab === "upload"
-                  ? "bg-gray-950 text-white shadow-2xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                  ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/50 shadow-aurora"
+                  : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border-white/8"
               }`}
             >
               上传的原图 ({uploadCount})
             </button>
             <button
               onClick={() => setFilterTab("generated")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                 filterTab === "generated"
-                  ? "bg-gray-950 text-white shadow-2xs"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                  ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/50 shadow-aurora"
+                  : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border-white/8"
               }`}
             >
               AI 生成图片 ({generatedCount})
@@ -365,18 +372,18 @@ export const MediaGalleryStudioStage: React.FC = () => {
 
           <div className="flex items-center gap-2.5">
             <div className="relative w-56 sm:w-64">
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-studio-dim absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索文件名称或风格..."
-                className="w-full bg-gray-100 border border-transparent focus:border-gray-300 focus:bg-white rounded-xl pl-8 pr-7 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none transition-all"
+                className="w-full bg-studio-input border border-studio-border focus:border-emerald-500 rounded-xl pl-8 pr-7 py-2 text-xs text-studio-text placeholder:text-studio-dim focus:outline-none transition-all font-medium"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-studio-dim hover:text-white cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -385,11 +392,11 @@ export const MediaGalleryStudioStage: React.FC = () => {
 
             <button
               onClick={() => setSortOrder(sortOrder === "newest" ? "oldest" : "newest")}
-              className="px-2.5 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white text-xs text-gray-700 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+              className="px-3 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer"
               title="切换排序顺序"
             >
-              <ArrowUpDown className="w-3.5 h-3.5 text-gray-500" />
-              <span>{sortOrder === "newest" ? "最新优先" : "最早优先"}</span>
+              <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-mono">{sortOrder === "newest" ? "最新优先" : "最早优先"}</span>
             </button>
           </div>
         </div>
@@ -410,33 +417,34 @@ export const MediaGalleryStudioStage: React.FC = () => {
               handleFileUpload(e.dataTransfer.files);
             }}
             onClick={() => fileInputRef.current?.click()}
-            className={`w-full max-w-2xl mx-auto my-12 aspect-16/10 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-200 ${
+            className={`w-full max-w-2xl mx-auto my-12 aspect-16/10 rounded-3xl border border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300 relative group z-10 ${
               isDraggingOver
-                ? "border-gray-950 bg-gray-50 scale-[1.01]"
-                : "border-gray-300 bg-white hover:border-gray-900 hover:bg-gray-50/60"
+                ? "border-emerald-400 bg-emerald-500/12 shadow-aurora-lg scale-[1.01]"
+                : "border-studio-border bg-studio-card/60 backdrop-blur-xl hover:border-emerald-500/50 hover:bg-studio-card shadow-glass"
             }`}
           >
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 mb-3">
-              <FolderOpen className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-105 group-hover:border-emerald-500/40 group-hover:shadow-aurora transition-all duration-300">
+              <FolderOpen className="w-8 h-8 stroke-[1.8]" />
             </div>
-            <h3 className="text-base font-extrabold text-gray-950 mb-1">
+            <h3 className="text-base font-bold text-white mb-1.5 tracking-tight">
               {filterTab === "upload"
                 ? "暂无上传的原图"
                 : filterTab === "generated"
                 ? "暂无 AI 艺术生成图片"
                 : "图库中暂无任何照片"}
             </h3>
-            <p className="text-xs text-gray-500 mb-5 max-w-sm">
+            <p className="text-xs text-studio-muted mb-6 max-w-sm leading-relaxed">
               点击或拖拽本地照片至此处上传，在「AI修图」上传的照片与生成的成片也会自动汇聚于此
             </p>
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 fileInputRef.current?.click();
               }}
-              className="px-6 py-2.5 rounded-xl bg-gray-950 hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
+              className="px-6 py-2.5 rounded-xl btn-aurora text-xs font-bold flex items-center gap-2 cursor-pointer shadow-aurora transition-all active:scale-95"
             >
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="w-4 h-4" />
               <span>上传第一张照片</span>
             </button>
           </div>
@@ -447,7 +455,7 @@ export const MediaGalleryStudioStage: React.FC = () => {
               return (
                 <div
                   key={file.id}
-                  className="group relative rounded-2xl border border-gray-200 bg-white hover:border-gray-950 hover:shadow-lg transition-all flex flex-col overflow-hidden select-none"
+                  className="group relative cover-card rounded-2xl border border-studio-border bg-studio-card hover:border-emerald-500/50 transition-all flex flex-col overflow-hidden select-none"
                 >
                   {/* 缩略图窗口 */}
                   <div

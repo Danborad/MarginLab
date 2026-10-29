@@ -60,17 +60,17 @@ export const AiRetouchPanel: React.FC = () => {
   }, [activeCategory, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-white select-none overflow-hidden">
+    <div className="flex flex-col h-full bg-studio-sidebar text-studio-text select-none overflow-hidden border-r border-studio-border">
       {/* 1. Header Bar */}
-      <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+      <div className="px-4 pt-4 pb-3 border-b border-studio-border flex items-center justify-between bg-studio-sidebar shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-[15px] font-extrabold text-gray-950">AI 修同款</h3>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold">
+            <h3 className="text-sm font-bold text-studio-text tracking-tight">AI 修同款</h3>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-studio-panel text-emerald-600 dark:text-emerald-300 border border-studio-border font-bold font-mono">
               {RETOUCH_STYLES.length}款
             </span>
           </div>
-          <p className="text-xs text-gray-500 font-medium mt-0.5">
+          <p className="text-[11px] text-studio-muted font-medium mt-0.5">
             光影风格 · 美颜美肤 · 废片拯救 · 色彩风格
           </p>
         </div>
@@ -88,7 +88,7 @@ export const AiRetouchPanel: React.FC = () => {
       </div>
 
       {/* 2. Category Filter Pills & Search */}
-      <div className="px-4 py-2.5 border-b border-gray-100 bg-white space-y-2.5 shrink-0">
+      <div className="px-4 py-2.5 border-b border-studio-border bg-studio-sidebar space-y-2.5 shrink-0">
         {/* Search Input */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -97,7 +97,7 @@ export const AiRetouchPanel: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索修图风格（如：发丝光、水光肌、胶片、去灰）..."
-            className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-900 focus:bg-white transition-colors"
+            className="w-full pl-8 pr-7 py-2 rounded-xl bg-studio-input border border-studio-border text-xs text-studio-text placeholder:text-studio-dim focus:outline-none focus:border-emerald-500 transition-all font-medium"
           />
           {searchQuery && (
             <button
@@ -117,10 +117,10 @@ export const AiRetouchPanel: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
                   isActive
-                    ? "bg-gray-900 text-white shadow-2xs"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-950"
+                    ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/50 shadow-aurora"
+                    : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border-studio-border"
                 }`}
               >
                 <span>{cat.label}</span>
@@ -139,7 +139,7 @@ export const AiRetouchPanel: React.FC = () => {
 
       {/* Optional Prompt Detail / Mood Drawer */}
       {showAdvanced && (
-        <div className="p-3.5 border-b border-gray-100 bg-gray-50 space-y-2 shrink-0">
+        <div className="p-3.5 border-b border-studio-border bg-studio-card space-y-2 shrink-0">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-gray-800">
               当前风格：{currentRetouchStyle.name}
@@ -172,10 +172,10 @@ export const AiRetouchPanel: React.FC = () => {
         {filteredGroups.map((group) => (
           <div key={group.id} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-[14px] font-extrabold text-gray-900 tracking-tight">
+              <h4 className="text-xs font-bold text-white tracking-wider uppercase font-mono">
                 {group.label}
               </h4>
-              <span className="text-[11px] text-gray-400 font-semibold">
+              <span className="text-[10px] text-white/40 font-mono font-semibold">
                 {group.items.length} 款
               </span>
             </div>
@@ -241,7 +241,7 @@ export const AiRetouchPanel: React.FC = () => {
       {/* 悬浮大图与详情介绍浮窗（桌面端） */}
       {hoveredStyle && (
         <div className="hidden md:flex fixed left-[476px] top-[76px] z-50 w-[320px] glass-float rounded-2xl p-4 flex-col gap-3 pointer-events-none animate-fadeIn">
-          <div className="w-full aspect-3/4 rounded-xl overflow-hidden bg-studio-panel border border-studio-border relative">
+          <div className="w-full aspect-3/4 rounded-xl overflow-hidden bg-studio-card border border-studio-border relative">
             <img
               src={hoveredStyle.coverImage}
               alt={hoveredStyle.name}

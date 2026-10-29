@@ -171,7 +171,7 @@ export const TemplatePanel: React.FC = () => {
         </div>
         <button
           onClick={() => setProjectModalOpen(true)}
-          className="text-[11px] font-mono text-studio-accent hover:underline flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-studio-card transition-colors cursor-pointer"
+          className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-studio-card border border-studio-border transition-colors cursor-pointer font-bold"
           title="将当前画作存为自制模板"
         >
           <PlusCircle className="w-3 h-3" />
@@ -188,7 +188,7 @@ export const TemplatePanel: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索模板、风格、九宫格..."
-            className="w-full bg-studio-card/80 border border-studio-border focus:border-studio-accent rounded-lg pl-8 pr-7 py-1.5 text-xs text-studio-text placeholder:text-studio-muted/70 focus:outline-none transition-colors"
+            className="w-full bg-studio-input border border-studio-border focus:border-emerald-500 rounded-xl pl-8 pr-7 py-2 text-xs text-studio-text placeholder:text-studio-dim focus:outline-none transition-all font-medium"
           />
           {searchQuery && (
             <button
@@ -228,7 +228,7 @@ export const TemplatePanel: React.FC = () => {
       </div>
 
       {/* Auto-adaptation Canvas Reflow Box */}
-      <div className="p-2.5 rounded-xl border border-studio-border bg-studio-card/60 space-y-1.5">
+      <div className="p-2.5 rounded-xl border border-studio-border bg-studio-card space-y-1.5">
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-studio-muted font-medium flex items-center gap-1.5">
             <SlidersHorizontal className="w-3 h-3 text-studio-accent" />
@@ -238,7 +238,7 @@ export const TemplatePanel: React.FC = () => {
             onClick={() => setAdaptToCurrentCanvas((prev) => !prev)}
             className={
               "w-8 h-4 rounded-full transition-colors relative shrink-0 cursor-pointer " +
-              (adaptToCurrentCanvas ? "bg-studio-accent text-white" : "bg-studio-border")
+              (adaptToCurrentCanvas ? "bg-emerald-500 text-black shadow-aurora" : "bg-white/10")
             }
           >
             <div
@@ -252,7 +252,7 @@ export const TemplatePanel: React.FC = () => {
         <p className="text-[10px] text-studio-muted leading-relaxed">
           {adaptToCurrentCanvas ? (
             <span>
-              套用模板将<span className="text-studio-accent font-medium">自适应匹配</span>当前画布（
+              套用模板将<span className="text-emerald-400 font-bold">自适应匹配</span>当前画布（
               {canvas.presetName || `${canvas.width}×${canvas.height} px`}）
             </span>
           ) : (
@@ -291,8 +291,8 @@ export const TemplatePanel: React.FC = () => {
                   className={
                     "px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all flex items-center gap-1 cursor-pointer " +
                     (isSelected
-                      ? "bg-studio-accent text-white font-semibold shadow-sm ring-1 ring-studio-accent"
-                      : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border border-studio-border/60")
+                      ? "bg-emerald-500/18 text-emerald-300 font-bold border border-emerald-500/50 shadow-aurora"
+                      : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border border-studio-border")
                   }
                 >
                   <span>{cat.label}</span>
@@ -333,8 +333,8 @@ export const TemplatePanel: React.FC = () => {
                     className={
                       "px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer " +
                       (isSelected
-                        ? "bg-studio-accent text-white font-semibold shadow-sm ring-1 ring-studio-accent"
-                        : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border border-studio-border/60")
+                        ? "bg-emerald-500/18 text-emerald-300 font-bold border border-emerald-500/50 shadow-aurora"
+                        : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border border-studio-border")
                     }
                   >
                     <span>{cat.label}</span>
@@ -453,8 +453,8 @@ export const TemplatePanel: React.FC = () => {
                   className={
                     "group relative rounded-xl border overflow-hidden cursor-pointer transition-all duration-200 flex flex-col " +
                     (isActive
-                      ? "border-studio-accent ring-1 ring-studio-accent shadow-subtle-glow bg-studio-card"
-                      : "border-studio-border/70 hover:border-gray-400 bg-studio-card/50 hover:bg-studio-card")
+                      ? "border-emerald-500 ring-2 ring-emerald-500/40 shadow-aurora bg-studio-card"
+                      : "border-studio-border hover:border-studio-accent/40 bg-studio-card/60 hover:bg-studio-card")
                   }
                 >
                   {/* Poster Thumbnail */}
@@ -464,17 +464,17 @@ export const TemplatePanel: React.FC = () => {
 
                     {/* Top Floating Badges */}
                     <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/40 backdrop-blur-md text-studio-accent border border-gray-200 font-medium">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/70 backdrop-blur-md text-emerald-300 border border-emerald-500/30 font-bold">
                         {tpl.badge || tpl.category}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-white/20 backdrop-blur-md text-gray-900 font-medium">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/70 backdrop-blur-md text-white/80 border border-white/10 font-bold">
                         {tpl.photoCount}图
                       </span>
                     </div>
 
                     {/* Active Checkmark */}
                     {isActive && (
-                      <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-studio-accent text-white flex items-center justify-center shadow-lg">
+                      <div className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full btn-aurora text-black flex items-center justify-center shadow-md">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </div>
                     )}
@@ -482,7 +482,7 @@ export const TemplatePanel: React.FC = () => {
 
                   {/* Card Title Footer */}
                   <div className="p-2 bg-studio-card/80">
-                    <h3 className="text-[11px] font-medium text-studio-text truncate group-hover:text-studio-accent transition-colors leading-tight">
+                    <h3 className="text-[11px] font-bold text-studio-text truncate group-hover:text-emerald-500 dark:group-hover:text-emerald-300 transition-colors leading-tight">
                       {tpl.name.split("•")[0].trim()}
                     </h3>
                     <p className="text-[9px] font-mono text-studio-muted truncate mt-0.5">

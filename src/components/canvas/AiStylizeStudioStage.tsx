@@ -526,10 +526,17 @@ export const AiStylizeStudioStage: React.FC = () => {
   const displayedImage = latestResult && !isHoldingOriginal ? latestResult : sourceImage;
 
   return (
-    <div className="flex-1 w-full h-full bg-white flex overflow-hidden relative select-none">
+    <div className="flex-1 w-full h-full bg-studio-bg text-studio-text flex overflow-hidden relative select-none">
+      {/* 极光背景漫反射光晕 (即梦 / 可灵级氛围感) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 hidden dark:block">
+        <div className="absolute -top-32 left-1/4 w-[640px] h-[400px] bg-[#0D254C]/60 rounded-full blur-[140px]" />
+        <div className="absolute top-1/3 right-1/4 w-[520px] h-[380px] bg-violet-600/15 rounded-full blur-[150px]" />
+        <div className="absolute bottom-10 left-1/3 w-[460px] h-[340px] bg-emerald-500/10 rounded-full blur-[160px]" />
+      </div>
+
       {/* 顶部轻提示 Toast */}
       {toastMessage && (
-        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 bg-gray-950/90 backdrop-blur-md text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-xl flex items-center gap-2 animate-fadeIn pointer-events-none">
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 glass-float text-emerald-300 px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2 animate-fadeIn pointer-events-none">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -545,53 +552,35 @@ export const AiStylizeStudioStage: React.FC = () => {
 
       {/* 左侧/中央：主创作舞台 */}
       <div className="flex-1 h-full px-4 py-3.5 sm:px-6 sm:py-4 flex flex-col items-center justify-between overflow-y-auto no-scrollbar relative min-w-0">
-        {/* 顶部区域：风格介绍卡片 + 生成尺寸设置栏 */}
-        <div className="w-full max-w-5xl space-y-2.5 shrink-0">
-          {/* 1. 选中的风格介绍卡片 */}
-          <div className="w-full bg-gray-50/80 border border-gray-200 rounded-2xl p-3.5 sm:p-4 flex items-center gap-4 transition-all">
-            <div className="flex items-center gap-3.5 min-w-0 flex-1">
-              {/* 风格缩略图 */}
-              <div className="w-14 h-18 sm:w-16 sm:h-20 rounded-xl overflow-hidden bg-gray-200 border border-gray-300 shrink-0 shadow-2xs">
+        {/* 顶部区域：大厂级一体化悬浮玻璃控制条 (风格胶囊 + 比例切换器融合) */}
+        <div className="w-full max-w-5xl z-10 shrink-0">
+          <div className="w-full glass-panel rounded-2xl p-2.5 sm:px-4 flex flex-wrap items-center justify-between gap-3 shadow-glass">
+            {/* 左侧：当前选中的风格微型胶囊 */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-13 rounded-xl overflow-hidden bg-white/5 border border-white/10 shrink-0 shadow-inner">
                 <img
                   src={activeStyle?.coverImage || activeStyle?.previewUrl || "/covers/01_dreamy_motion_editorial.webp"}
                   alt={activeStyle?.name}
                   decoding="async"
-                  className="w-full h-full object-cover scale-[1.06]"
+                  className="w-full h-full object-cover scale-[1.05]"
                 />
               </div>
-
-              {/* 风格名称与文案介绍 */}
-              <div className="min-w-0 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-base sm:text-[17px] font-extrabold text-gray-950 truncate">
+              <div className="min-w-0 space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-white truncate">
                     {activeStyle?.name || "未指定风格"}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-gray-200/80 text-gray-800 text-[11px] font-bold shrink-0">
-                    {(activeStyle as any)?.retouchCategoryLabel || activeStyle?.badge || activeStyle?.tags?.[0] || "AI精修"}
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-mono shrink-0">
+                    {(activeStyle as any)?.retouchCategoryLabel || activeStyle?.badge || "AI精修"}
                   </span>
                 </div>
-                <p className="text-xs sm:text-[13px] text-gray-700 font-medium leading-relaxed line-clamp-1">
+                <p className="text-[11px] text-studio-muted truncate max-w-md">
                   {activeStyle?.description || "一键应用大师级 AI 质感修图"}
-                </p>
-                <p className="text-[11px] text-gray-400 font-mono truncate hidden sm:block">
-                  提示词：{(activeStyle as any)?.rawPrompt || activeStyle?.tags?.join(" · ")}
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* 2. 生成尺寸设置（日常尺寸选项 + 比例缩略图） */}
-          <div className="w-full bg-white border border-gray-200 rounded-2xl px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold text-gray-900 tracking-tight">
-                生成尺寸设置
-              </span>
-              <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
-                默认 3:4 竖屏 · 切换自动适配画幅
-              </span>
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            {/* 右侧：紧凑微型画幅比例选择器 */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
               {ASPECT_RATIO_OPTIONS.map((opt) => {
                 const isSelected = selectedRatio === opt.id;
                 return (
@@ -599,67 +588,29 @@ export const AiStylizeStudioStage: React.FC = () => {
                     key={opt.id}
                     type="button"
                     onClick={() => setSelectedRatio(opt.id)}
-                    className={`group flex items-center gap-2 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
+                    className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
                       isSelected
-                        ? "bg-gray-950 border-gray-950 text-white shadow-xs"
-                        : "bg-gray-50/90 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-950"
+                        ? "bg-emerald-500/18 border-emerald-500/60 text-emerald-300 shadow-aurora"
+                        : "bg-white/[0.03] border-white/8 text-white/60 hover:text-white hover:bg-white/[0.07] hover:border-white/20"
                     }`}
                   >
-                    {/* 尺寸缩略图 (带画面小山与太阳的几何比例缩略图) */}
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
-                        isSelected ? "bg-white/15" : "bg-white border border-gray-200/80"
-                      }`}
-                    >
+                    <div className="w-4 h-4 flex items-center justify-center shrink-0">
                       <div
-                        style={{ width: `${opt.thumbW}px`, height: `${opt.thumbH}px` }}
-                        className={`rounded-[3px] border-[1.5px] relative overflow-hidden flex items-end justify-center transition-colors ${
+                        style={{ width: `${Math.round(opt.thumbW * 0.75)}px`, height: `${Math.round(opt.thumbH * 0.75)}px` }}
+                        className={`rounded-[2px] border-[1.5px] transition-colors ${
                           isSelected
-                            ? "border-emerald-400 bg-emerald-400/20"
-                            : "border-gray-500 bg-gray-100 group-hover:border-gray-800"
+                            ? "border-emerald-400 bg-emerald-400/25"
+                            : "border-white/40 bg-white/10 group-hover:border-white/70"
                         }`}
-                      >
-                        {/* 缩略图内部微型太阳与山峰剪影 */}
-                        <span
-                          className={`absolute top-[2px] right-[2px] w-[3px] h-[3px] rounded-full ${
-                            isSelected ? "bg-emerald-300" : "bg-gray-400"
-                          }`}
-                        />
-                        <svg
-                          viewBox="0 0 16 8"
-                          className={`w-full h-[5px] ${
-                            isSelected ? "text-emerald-400/75" : "text-gray-400/80"
-                          }`}
-                          fill="currentColor"
-                          preserveAspectRatio="none"
-                        >
-                          <path d="M0 8L5 2L9 6L12 3.5L16 8H0Z" />
-                        </svg>
-                      </div>
+                      />
                     </div>
-
-                    {/* 比例文字与描述 */}
-                    <div className="leading-tight pr-0.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-extrabold tracking-tight">
-                          {opt.label}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-[10px] font-medium block ${
-                          isSelected ? "text-gray-300" : "text-gray-400"
-                        }`}
-                      >
-                        {opt.desc}
-                      </span>
-                    </div>
+                    <span className="text-[11px] font-bold font-mono tracking-tight">{opt.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
         </div>
-
         {/* 只读速览提示条 */}
         {!isAuthenticated && (
           <div className="mx-auto mb-2 px-4 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs font-semibold flex items-center gap-2 shadow-xs shrink-0 animate-fadeIn">
@@ -674,7 +625,7 @@ export const AiStylizeStudioStage: React.FC = () => {
           </div>
         )}
 
-        {/* 中部核心区域：默认 3:4 竖屏图片尺寸（随所选尺寸实时变化） */}
+        {/* 中部核心区域：即梦/可灵风格的深色微光玻璃上传画框 */}
         {!sourceImage ? (
           <div
             onDragOver={(e) => {
@@ -695,40 +646,38 @@ export const AiStylizeStudioStage: React.FC = () => {
               height: currentRatioOption.emptyHeight,
               maxWidth: "100%",
             }}
-            className={`my-auto shrink-0 rounded-2xl border border-dashed flex flex-col items-center justify-center px-6 py-8 text-center cursor-pointer transition-all duration-300 relative ${
+            className={`my-auto shrink-0 rounded-3xl border border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300 relative group z-10 ${
               isDraggingOver
-                ? "border-emerald-400 bg-emerald-500/10 scale-[1.01]"
-                : "border-white/15 bg-white/[0.02] hover:border-emerald-500/50 hover:bg-emerald-500/[0.05]"
+                ? "border-emerald-400 bg-emerald-500/12 shadow-aurora-lg scale-[1.01]"
+                : "border-studio-border bg-studio-card/70 backdrop-blur-xl hover:border-emerald-500/50 hover:bg-studio-card shadow-glass"
             }`}
           >
-            {/* 顶部当前画幅尺寸角标 */}
-            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/5 border border-studio-border text-xs font-bold text-studio-muted flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>
-                {currentRatioOption.label} · {currentRatioOption.desc}
-              </span>
+            {/* 顶部当前画幅尺寸微型胶囊 */}
+            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-bold text-studio-muted flex items-center gap-1.5 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{currentRatioOption.label} · {currentRatioOption.desc}</span>
             </div>
 
-            <div className="relative mb-5">
-              <div className="w-20 h-20 rounded-2xl bg-white/5 border border-studio-border flex items-center justify-center text-studio-dim">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+            {/* 发光中心图标 */}
+            <div className="relative mb-6">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:scale-105 group-hover:border-emerald-500/40 group-hover:shadow-aurora transition-all duration-300">
+                <Upload className="w-9 h-9 stroke-[1.8]" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#22C55E] text-white flex items-center justify-center text-base font-extrabold shadow-sm">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full btn-aurora text-black flex items-center justify-center text-sm font-black shadow-md">
                 +
               </div>
             </div>
 
-            <p className="text-base sm:text-lg text-studio-text font-extrabold mb-1.5 tracking-tight">
-              上传照片，切换风格自动保留
+            <p className="text-base sm:text-lg text-white font-extrabold mb-1.5 tracking-tight">
+              拖拽照片至此，或点击直接上传
             </p>
-            <p className="text-xs sm:text-[13px] text-studio-muted mb-6 leading-relaxed max-w-[300px]">
-              支持 JPG / PNG / WebP 原图，默认 {currentRatioOption.label} {currentRatioOption.desc}尺寸，自动归档至「图库」
+            <p className="text-xs text-studio-muted mb-7 leading-relaxed max-w-xs">
+              支持 JPG / PNG / WebP 原图 · 默认以 {currentRatioOption.label} 比例自动排版与云归档
             </p>
 
             <div className="flex items-center justify-center gap-3">
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!isAuthenticated) {
@@ -737,21 +686,22 @@ export const AiStylizeStudioStage: React.FC = () => {
                   }
                   fileInputRef.current?.click();
                 }}
-                className="px-5 py-2.5 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                className="px-5 py-2.5 rounded-xl btn-aurora text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-aurora transition-all active:scale-95"
               >
                 <Upload className="w-4 h-4" />
-                <span>上传图片</span>
+                <span>本地上传照片</span>
               </button>
 
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenGalleryModal();
                 }}
-                className="px-4 py-2.5 rounded-xl btn-glass font-bold text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                className="px-4 py-2.5 rounded-xl btn-glass text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               >
                 <Images className="w-4 h-4" />
-                <span>从图库选图</span>
+                <span>从图库挑选</span>
               </button>
             </div>
           </div>
@@ -971,20 +921,16 @@ export const AiStylizeStudioStage: React.FC = () => {
                 </button>
               </div>
             ) : (
-              /* 生成完成后的操作条：保存到图库 + 下载 + 用原图换风格 + 重新生成 + 从图库换图 + 上传新图 */
-              <div className="mt-3.5 flex items-center flex-wrap justify-center gap-2 bg-white border border-gray-200 rounded-2xl px-3.5 py-2 shadow-sm">
+              <div className="mt-3.5 flex items-center flex-wrap justify-center gap-2 glass-float rounded-2xl px-3.5 py-2 z-10 shadow-glass-lg">
                 <button
+                  type="button"
                   onClick={handleSaveToGallery}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    savedToast
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gray-900 hover:bg-black text-white"
-                  }`}
+                  className="px-4 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   {savedToast ? (
                     <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>已保存到图库</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-300">已存入图库</span>
                     </>
                   ) : (
                     <>
@@ -995,58 +941,60 @@ export const AiStylizeStudioStage: React.FC = () => {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleDownload(latestResult, activeStyle?.name)}
-                  className="px-4 py-2 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+                  className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-aurora"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>下载图片</span>
+                  <span>高清下载成片</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setLatestResult(null);
                     showToast("已切回原图底图，可在左侧选择任意其他风格生成");
                   }}
-                  className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="恢复为此照片原图，方便在左侧切换其他修图效果"
+                  className="px-3 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer text-cyan-300 hover:text-cyan-200"
+                  title="恢复为此照片原图，可在左侧直接换其他风格"
                 >
                   <Undo2 className="w-3.5 h-3.5" />
-                  <span>加载原图换效果</span>
+                  <span>切回原图换风格</span>
                 </button>
 
-                <div className="h-4 w-[1px] bg-gray-200 mx-0.5" />
+                <div className="h-4 w-[1px] bg-white/10 mx-0.5" />
 
                 <button
+                  type="button"
                   disabled={isGenerating}
                   onClick={handleGenerateWithFraming}
-                  className="px-3 py-2 rounded-xl hover:bg-gray-100 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-3 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-gray-600" />
-                  <span>{isGenerating ? "正在处理中..." : "重新生成"}</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isGenerating ? "处理中..." : "重新生成"}</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleOpenGalleryModal}
-                  className="px-3 py-2 rounded-xl hover:bg-gray-100 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="从图库中选择其他图片进行修图"
+                  className="px-3 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Images className="w-3.5 h-3.5 text-gray-700" />
+                  <Images className="w-3.5 h-3.5 text-studio-muted" />
                   <span>从图库换图</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-2 rounded-xl hover:bg-gray-100 text-gray-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="从本地电脑上传新图片"
+                  className="px-3 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Upload className="w-3.5 h-3.5" />
+                  <Upload className="w-3.5 h-3.5 text-studio-muted" />
                   <span>本地上传</span>
                 </button>
               </div>
             )}
           </div>
         )}
-
         <div className="shrink-0 h-2" />
       </div>
 
@@ -1130,16 +1078,20 @@ export const AiStylizeStudioStage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs font-extrabold text-gray-900 truncate">
+                      <p className="text-xs font-bold text-white truncate">
                         {item.styleName || "AI 修图"}
                       </p>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">
+                        ⚡ 1分
+                      </span>
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 font-medium">
+                    <p className="text-[10px] text-studio-dim font-mono">
                       {formatTime(item.createdAt)}
                     </p>
-                    <div className="mt-1.5 flex items-center flex-wrap gap-1.5">
+                    {/* 即梦/可灵风格：轻量悬浮胶囊动作 */}
+                    <div className="pt-1 flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1151,10 +1103,10 @@ export const AiStylizeStudioStage: React.FC = () => {
                             aspectRatio: item.aspectRatio,
                           });
                         }}
-                        className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
-                        title="调出此条历史生成结果"
+                        className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-emerald-300 text-[10px] font-bold transition-all cursor-pointer border border-white/10"
+                        title="调出此条历史生成结果到主画布"
                       >
-                        调出成片
+                        载入成片
                       </button>
                       <button
                         type="button"
@@ -1162,21 +1114,22 @@ export const AiStylizeStudioStage: React.FC = () => {
                           e.stopPropagation();
                           handleReloadOriginalFromHistory(item);
                         }}
-                        className="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer flex items-center gap-0.5"
-                        title="重新加载这张照片的原图，以便点击左侧调用其他风格效果"
+                        className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-cyan-300 text-[10px] font-bold transition-all cursor-pointer border border-white/10 flex items-center gap-0.5"
+                        title="重新加载这张原图"
                       >
                         <RotateCcw className="w-2.5 h-2.5" />
-                        <span>加载原图</span>
+                        <span>原图</span>
                       </button>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDownload(resultImg, item.styleName);
                         }}
-                        className="text-[10px] font-bold text-gray-600 hover:text-gray-950 px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors cursor-pointer"
-                        title="下载此历史结果"
+                        className="p-1 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-white/70 hover:text-white transition-all cursor-pointer border border-white/10 ml-auto"
+                        title="下载图片"
                       >
-                        下载
+                        <Download className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -1204,7 +1157,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                       onClick={() =>
                         setVisibleHistoryCount((count) => count + HISTORY_PAGE_SIZE)
                       }
-                      className="w-full py-2 rounded-xl bg-white border border-gray-200 hover:border-gray-400 hover:bg-gray-50 text-[11px] font-bold text-gray-700 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                      className="w-full py-2 rounded-xl btn-glass text-[11px] font-bold text-studio-text flex items-center justify-center gap-1 cursor-pointer"
                       title={`再加载 ${Math.min(
                         HISTORY_PAGE_SIZE,
                         hiddenHistoryCount
@@ -1218,7 +1171,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setVisibleHistoryCount(HISTORY_PAGE_SIZE)}
-                      className="w-full py-1.5 rounded-xl text-[11px] font-bold text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                      className="w-full py-1.5 rounded-xl text-[11px] font-bold text-studio-dim hover:text-studio-text hover:bg-white/5 flex items-center justify-center gap-1 cursor-pointer"
                       title="折叠回最近 10 次"
                     >
                       <ChevronUp className="w-3.5 h-3.5" />
