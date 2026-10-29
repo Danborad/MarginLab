@@ -3069,16 +3069,13 @@ app.post("/api/ai/generate", async (req, res) => {
 });
 
 app.get("/api/ai/history", (req, res) => {
-  let { userId } = req.query;
-  // 当未传用户ID、或以访客/默认身份首次请求时，优先返回超级管理员历史记录，避免刷新首屏空白
-  if (!userId || userId === "default" || userId === "undefined" || userId === "null" || userId === "guest_default") {
-    const adminHistory = readAiHistory("user_admin");
-    if (adminHistory && adminHistory.length > 0) {
-      return res.json({ success: true, history: toClientHistory(adminHistory) });
-    }
-    userId = "default";
+  const { userId } = req.query;
+  // 隐私约定（2026-10）：未登录 / 访客 / default 一律返回空历史，
+  // 绝不把超管或其他用户的生成记录透给只读预览。
+  if (!userId || userId === "default" || userId === "undefined" || userId === "null" || userId === "guest_default" || userId === "guest_user") {
+    return res.json({ success: true, history: [] });
   }
-  const history = readAiHistory(userId);
+  const history = readAiHistory(String(userId));
   res.json({ success: true, history: toClientHistory(history) });
 });
 

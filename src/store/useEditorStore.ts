@@ -2118,11 +2118,19 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
 
     fetchAiHistory: async (explicitUserId?: string) => {
       const state = getStore();
+      // 未登录/访客：只读预览不应看到任何他人的生成记录
+      if (!state.isAuthenticated && !explicitUserId) {
+        setStore({ aiHistory: [] });
+        return;
+      }
       const targetUserId =
         explicitUserId ||
         state.currentUser?.id ||
-        getLocalActiveUserId() ||
-        "user_admin";
+        getLocalActiveUserId();
+      if (!targetUserId) {
+        setStore({ aiHistory: [] });
+        return;
+      }
       const history = await apiGetAiHistory(targetUserId);
       if (Array.isArray(history)) {
         setStore({ aiHistory: history });
@@ -2677,6 +2685,15 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
        adminModalOpen: false,
        aiSettingsModalOpen: false,
        currentView: "home",
+       // 退出后清空所有与账号相关的展示数据，避免只读预览泄露他人作品
+       aiHistory: [],
+       aiQueue: [],
+       userAssets: null,
+       pointsLog: [],
+       styleWorkspaces: {},
+       aiSourceImage: null,
+       latestAiGeneratedImage: null,
+       creativeHistory: [],
      });
     },
 
@@ -2926,12 +2943,8 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       const state = getStore();
       const userId = state.currentUser?.id;
       if (!userId || !state.isAuthenticated) {
-        try {
-          const guestMedia = (await get<UserMediaAsset[]>(getStorageUserMediaKey("guest_user"))) || [];
-          if (Array.isArray(guestMedia) && guestMedia.length > 0) {
-            setStore({ mediaAssets: guestMedia });
-          }
-        } catch {}
+        // 只读预览不展示任何素材，避免泄露既有账号的私有资产
+        setStore({ mediaAssets: [] });
         return;
       }
 
@@ -4046,7 +4059,9 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         // Sync local accounts to server in background
         apiSyncAccounts(accounts).catch(() => {});
         getStore().fetchAiStyles().catch(() => {});
-        getStore().fetchAiHistory().catch(() => {});
+        // 先清空账号相关的展示数据，登录后再按 activeUser 重新拉取，
+        // 保证只读预览绝不会显示上一次账号的素材与生成记录。
+        setStore({ aiHistory: [], mediaAssets: [] });
 
         // Restore persisted queue from IndexedDB
         try {
