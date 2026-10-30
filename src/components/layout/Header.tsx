@@ -36,6 +36,7 @@ import { useEditorStore } from "../../store/useEditorStore";
  import { Button } from "../ui/Button";
  import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
+import { stripEmoji } from "../../lib/utils";
  
  export const Header: React.FC = () => {
    const document = useEditorStore((s) => s.document);
@@ -170,12 +171,12 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
               title={`当前账号：${currentUser.name} (@${currentUser.username}) • 点击打开个人中心`}
             >
               <span className="relative">
-                <AvatarView avatar={currentUser.avatar} size="sm" />
+                <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-studio-sidebar" />
               </span>
               <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
                 <span className="font-semibold text-studio-text truncate text-[11px] max-w-[86px]">
-                  {currentUser.name}
+                  {stripEmoji(currentUser.name)}
                 </span>
                 <span className="text-[9px] text-studio-dim font-mono truncate max-w-[86px]">
                   @{currentUser.username}
@@ -197,20 +198,20 @@ import { WebsiteLogo } from "../ui/WebsiteLogo";
               >
                {/* User Info Header */}
                <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border flex items-center gap-2.5 mb-1">
-                 <div className="w-9 h-9 rounded-xl bg-studio-card border border-studio-accent/40 flex items-center justify-center text-lg shrink-0 shadow-inner">
-                   <AvatarView avatar={currentUser.avatar} size="sm" />
+                 <div className="w-9 h-9 rounded-xl bg-studio-card border border-studio-border flex items-center justify-center shrink-0 shadow-inner">
+                   <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
                  </div>
                  <div className="flex-1 min-w-0">
                    <div className="flex items-center justify-between gap-1">
                      <h4 className="text-xs font-semibold text-studio-text truncate">
-                       {currentUser.name}
+                       {stripEmoji(currentUser.name)}
                      </h4>
-                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-600 border border-emerald-500/30 shrink-0">
+                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
                        在线
                      </span>
                    </div>
-                   <p className="text-[10px] font-mono text-studio-accent truncate mt-0.5">
-                     @{currentUser.username} • {currentUser.role || "独立创作者"}
+                   <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
+                     @{currentUser.username} • {stripEmoji(currentUser.role || "独立创作者")}
                    </p>
                  </div>
                </div>

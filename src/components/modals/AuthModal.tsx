@@ -22,6 +22,7 @@ import {
   HardDrive,
 } from "lucide-react";
 import { Button } from "../ui/Button";
+import { stripEmoji } from "../../lib/utils";
 
 export const AuthModal: React.FC = () => {
   const authModalOpen = useEditorStore((s) => s.authModalOpen || s.userAccountModalOpen);
@@ -80,10 +81,10 @@ export const AuthModal: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      setEditName(currentUser.name || "");
-      setEditRole(currentUser.role || "创作者");
-      setEditBio(currentUser.bio || "");
-      setEditAvatar(currentUser.avatar || "🎨");
+      setEditName(stripEmoji(currentUser.name || ""));
+      setEditRole(stripEmoji(currentUser.role || "创作者"));
+      setEditBio(stripEmoji(currentUser.bio || ""));
+      setEditAvatar(currentUser.avatar || "");
     }
   }, [currentUser]);
 
@@ -203,7 +204,7 @@ export const AuthModal: React.FC = () => {
         <div className="p-4 sm:p-4.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/90">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-stone-800 to-stone-700 flex items-center justify-center text-amber-300 border border-amber-500/40 shadow-sm text-xl">
-              <AvatarView avatar={currentUser.avatar} size="lg" />
+              <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="lg" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -219,7 +220,7 @@ export const AuthModal: React.FC = () => {
               </div>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
                 当前登录：
-                <span className="text-amber-700 dark:text-amber-400 font-bold">{currentUser.name}</span>
+                <span className="text-amber-700 dark:text-amber-400 font-bold">{stripEmoji(currentUser.name)}</span>
                 <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 ml-1">
                   (@{currentUser.username})
                 </span>{" "}
@@ -303,7 +304,7 @@ export const AuthModal: React.FC = () => {
                       className="relative w-12 h-12 rounded-full bg-white dark:bg-zinc-800 border border-amber-500/40 flex items-center justify-center text-2xl shadow-xs overflow-hidden cursor-pointer group shrink-0"
                       title="点击上传自定义头像（JPG/PNG/WebP）"
                     >
-                      <AvatarView avatar={currentUser.avatar} size="xl" />
+                      <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="xl" />
                       <span className="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
                         <Upload className="w-3.5 h-3.5" />
                         <span className="text-[8px] font-bold mt-0.5">
@@ -325,7 +326,7 @@ export const AuthModal: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                          {currentUser.name}
+                          {stripEmoji(currentUser.name)}
                         </h3>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
                           登录中

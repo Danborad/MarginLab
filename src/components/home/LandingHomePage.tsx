@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useEditorStore } from "../../store/useEditorStore";
 import { generateCaptchaCode, drawCaptchaCanvas } from "../../lib/captcha";
+import { stripEmoji } from "../../lib/utils";
 import { CARTOON_AVATARS } from "../ui/AvatarPicker";
 import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
@@ -28,8 +29,6 @@ import {
   Mail,
 } from "lucide-react";
 import { Button } from "../ui/Button";
-
-const AVATAR_OPTIONS = ["🎨", "📷", "✨", "🌿", "☕", "🏛️", "🎞️", "🌸", "⚡", "💎", "🪐", "🎬"];
 
 export const LandingHomePage: React.FC = () => {
   const setCurrentView = useEditorStore((s) => s.setCurrentView);
@@ -81,7 +80,7 @@ export const LandingHomePage: React.FC = () => {
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPass, setRegConfirmPass] = useState("");
   const [regName, setRegName] = useState("");
-  const [regAvatar, setRegAvatar] = useState(AVATAR_OPTIONS[0]);
+  const [regAvatar, setRegAvatar] = useState("");
   const [showRegPass, setShowRegPass] = useState(false);
   const [regCaptcha, setRegCaptcha] = useState("");
   const [captchaCode, setCaptchaCode] = useState(() => generateCaptchaCode(4));
@@ -239,15 +238,14 @@ export const LandingHomePage: React.FC = () => {
 
     setIsRegistering(true);
     const effectiveUsername = regUsername.trim() || cleanEmail.split("@")[0].trim();
-    const effectiveName = regName.trim() || effectiveUsername;
-    const randomAvatar = CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱";
+    const effectiveName = stripEmoji(regName.trim() || effectiveUsername);
     const res = await register({
       email: cleanEmail,
       code: regEmailCode.trim(),
       username: effectiveUsername,
       name: effectiveName,
       password: regPassword.trim(),
-      avatar: randomAvatar,
+      avatar: "",
       role: "创作者",
       bio: "专注高定排版与艺术创作",
     });

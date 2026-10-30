@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
+import { stripEmoji } from "../../lib/utils";
 import {
   apiAdminOverview,
   apiAdminGetUsers,
@@ -268,19 +269,34 @@ export const AdminDashboardPage: React.FC = () => {
     showToast(res.success ? "ok" : "err", res.success ? "全局规则已保存" : res.message || "保存失败");
   };
 
+  const handleReturnToStudio = () => {
+    setCurrentView("studio");
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  };
+
   return (
     <div className="w-screen h-screen bg-studio-bg text-studio-text flex overflow-hidden select-none">
       {/* ── 左侧固定导航 ── */}
       <aside className="w-60 shrink-0 h-full bg-studio-sidebar border-r border-studio-border flex flex-col">
-        <div className="h-16 px-4 flex items-center gap-2.5 border-b border-studio-border shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-400">
+        <button
+          type="button"
+          onClick={handleReturnToStudio}
+          className="h-16 px-4 flex items-center gap-2.5 border-b border-studio-border shrink-0 hover:bg-white/5 transition-all text-left cursor-pointer group"
+          title="点击返回留白集前台创作与拼图工作台"
+        >
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
             <WebsiteLogo className="w-4 h-4" strokeWidth={1.8} />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-studio-text whitespace-nowrap">留白集 · 控制台</p>
+            <p className="text-xs font-bold text-studio-text whitespace-nowrap group-hover:text-emerald-400 transition-colors">
+              留白集 · 控制台
+            </p>
             <p className="text-[10px] font-mono text-studio-dim tracking-wider">MARGINLAB ADMIN</p>
           </div>
-        </div>
+        </button>
 
         <nav className="flex-1 p-2.5 space-y-1 overflow-y-auto no-scrollbar">
           {SECTIONS.map((s) => {
@@ -308,11 +324,12 @@ export const AdminDashboardPage: React.FC = () => {
 
         <div className="p-2.5 border-t border-studio-border shrink-0">
           <button
-            onClick={() => setCurrentView("studio")}
-            className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-studio-muted hover:text-studio-text hover:bg-white/5 border border-studio-border flex items-center gap-2 transition-colors cursor-pointer"
+            onClick={handleReturnToStudio}
+            className="w-full px-3 py-2 rounded-xl text-xs font-bold text-studio-muted hover:text-studio-text hover:bg-white/5 border border-studio-border flex items-center gap-2 transition-colors cursor-pointer"
+            title="回到留白集前台排版与创作舞台"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="whitespace-nowrap">返回工作台</span>
+            <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="whitespace-nowrap">返回前台工作台</span>
           </button>
         </div>
       </aside>
@@ -328,7 +345,15 @@ export const AdminDashboardPage: React.FC = () => {
               {SECTIONS.find((s) => s.id === section)?.desc}
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              onClick={handleReturnToStudio}
+              className="px-3.5 py-1.5 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
+              title="返回前台创作与拼图工作台"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>返回前台</span>
+            </button>
             <button
               onClick={reload}
               disabled={loading}
@@ -338,10 +363,15 @@ export const AdminDashboardPage: React.FC = () => {
               <span>刷新</span>
             </button>
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/5 border border-studio-border">
-              <AvatarView avatar={currentUser?.avatar || "👑"} size="xs" />
+              <AvatarView avatar={currentUser?.avatar} name={stripEmoji(currentUser?.name || "管理员")} size="xs" />
               <span className="text-xs font-semibold text-studio-text whitespace-nowrap">
-                {currentUser?.name}
+                {stripEmoji(currentUser?.name || "管理员")}
               </span>
+              {currentUser?.isAdmin && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500">
+                  超级管理员
+                </span>
+              )}
             </div>
           </div>
         </header>
@@ -503,14 +533,16 @@ export const AdminDashboardPage: React.FC = () => {
                         <tr key={u.id} className="border-b border-studio-border/60 last:border-0 hover:bg-white/[0.03]">
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2.5">
-                              <AvatarView avatar={u.avatar} size="sm" />
+                              <AvatarView avatar={u.avatar} name={stripEmoji(u.name || u.username)} size="sm" />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <p className="text-xs font-semibold text-studio-text truncate max-w-[140px]">
-                                    {u.name}
+                                  <p className="text-xs font-bold text-studio-text truncate max-w-[140px]">
+                                    {stripEmoji(u.name || u.username)}
                                   </p>
                                   {u.isAdmin && (
-                                    <Crown className="w-3 h-3 text-amber-400 shrink-0" />
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500 shrink-0">
+                                      管理员
+                                    </span>
                                   )}
                                 </div>
                                 <p className="text-[10px] text-studio-dim font-mono truncate max-w-[180px]">
@@ -816,7 +848,7 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm glass-float rounded-2xl p-4 animate-fadeIn">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-studio-text">调整积分 · {pointsTarget.name}</h3>
+              <h3 className="text-xs font-bold text-studio-text">调整积分 · {stripEmoji(pointsTarget.name || pointsTarget.username)}</h3>
               <button onClick={() => setPointsTarget(null)} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <X className="w-3.5 h-3.5 text-studio-muted" />
               </button>
@@ -874,7 +906,7 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm glass-float rounded-2xl p-4 animate-fadeIn">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-studio-text">修改存储上限 · {quotaTarget.name}</h3>
+              <h3 className="text-xs font-bold text-studio-text">修改存储上限 · {stripEmoji(quotaTarget.name || quotaTarget.username)}</h3>
               <button onClick={() => setQuotaTarget(null)} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <X className="w-3.5 h-3.5 text-studio-muted" />
               </button>
@@ -926,7 +958,7 @@ export const AdminDashboardPage: React.FC = () => {
       {pwdTarget && (
         <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-sm glass-float rounded-2xl p-4 animate-fadeIn">
-            <h3 className="text-xs font-bold text-studio-text mb-3">重设密码 · {pwdTarget.name}</h3>
+            <h3 className="text-xs font-bold text-studio-text mb-3">重设密码 · {stripEmoji(pwdTarget.name || pwdTarget.username)}</h3>
             <input
               value={pwdValue}
               onChange={(e) => setPwdValue(e.target.value)}
@@ -958,7 +990,7 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="w-full max-w-sm glass-float rounded-2xl p-4 animate-fadeIn">
             <h3 className="text-xs font-bold text-rose-300 mb-2">彻底删除账号</h3>
             <p className="text-[11px] text-studio-muted mb-3">
-              将永久删除「{deleteTarget.name}」(@{deleteTarget.username}) 的账号与其作品、素材、AI 历史，不可恢复。
+              将永久删除「{stripEmoji(deleteTarget.name || deleteTarget.username)}」(@{deleteTarget.username}) 的账号与其作品、素材、AI 历史，不可恢复。
             </p>
             <div className="flex justify-end gap-2">
               <button

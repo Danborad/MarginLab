@@ -145,3 +145,17 @@ export function imageExtFromUrl(src: string): 'jpg' | 'png' | 'webp' {
   if (raw === 'webp') return 'webp';
   return 'png';
 }
+
+/**
+ * 过滤字符串中的所有 Emoji 表情包，返回纯净扁平文本
+ */
+export function stripEmoji(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(
+      /(?:[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|[\uFE00-\uFE0F]|\u200D|[\u{1F300}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}])/gu,
+      ''
+    )
+    .trim();
+}
+

@@ -1098,8 +1098,8 @@ export const AdminManagementModal: React.FC = () => {
                         <div className="relative">
                           <AvatarView avatar={user.avatar} size="md" />
                           {user.isAdmin && (
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center text-[9px] shadow font-bold">
-                              👑
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-black flex items-center justify-center text-[9px] shadow font-bold">
+                              <ShieldCheck className="w-2.5 h-2.5 stroke-[2.5]" />
                             </span>
                           )}
                         </div>

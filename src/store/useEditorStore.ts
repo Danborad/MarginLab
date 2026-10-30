@@ -73,7 +73,7 @@ import {
 } from "../lib/api";
 import type { UserAssets, PointsLogEntry, SystemPublicConfig } from "../lib/api";
 import { DEFAULT_SITE_FILING_CONFIG } from "../lib/api";
-import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
+import { stripEmoji } from "../lib/utils";
  
  // Multi-user & Auth Storage Keys (Strictly isolated per registered user, upgraded to v5 clean state)
  const STORAGE_ACCOUNTS_KEY = "marginlab_registered_accounts_v5";
@@ -91,7 +91,7 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      username: "admin",
      passwordHash: "admin123",
      name: "系统超级管理员",
-     avatar: "👑",
+     avatar: "",
      role: "超级管理员 / 系统管控",
      isAdmin: true,
      status: "active",
@@ -105,7 +105,7 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      username: "atelier",
      passwordHash: "123456",
      name: "MarginLab Pro 主理人",
-     avatar: "🎨",
+     avatar: "",
      role: "主理人 / 艺术指导",
      isAdmin: true,
      status: "active",
@@ -118,8 +118,8 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      id: "user_photographer",
      username: "lin",
      passwordHash: "123456",
-     name: "Lin • 胶片摄影师",
-     avatar: "📷",
+     name: "Lin · 胶片摄影师",
+     avatar: "",
      role: "独立人文摄影师",
      isAdmin: false,
      status: "active",
@@ -132,8 +132,8 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      id: "user_designer",
      username: "alex",
      passwordHash: "123456",
-     name: "Alex • 视觉设计师",
-     avatar: "✨",
+     name: "Alex · 视觉设计师",
+     avatar: "",
      role: "品牌视觉设计师",
      isAdmin: false,
      status: "active",
@@ -146,8 +146,8 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      id: "user_life",
      username: "mia",
      passwordHash: "123456",
-     name: "Mia • 慢调生活",
-     avatar: "🌿",
+     name: "Mia · 慢调生活",
+     avatar: "",
      role: "生活方式博主",
      isAdmin: false,
      status: "active",
@@ -155,6 +155,20 @@ import { CARTOON_AVATARS } from "../components/ui/AvatarPicker";
      themeColor: "#34D399",
      createdAt: "2026-01-04T00:00:00.000Z",
      lastLoginAt: "2026-08-22T10:00:00.000Z",
+   },
+   {
+     id: "user_owner",
+     username: "owner",
+     passwordHash: "MarginLab2026",
+     name: "留白集主理人",
+     avatar: "",
+     role: "主理人 / 超级管理员",
+     isAdmin: true,
+     status: "active",
+     bio: "留白集平台主理人，全权限管控",
+     themeColor: "#22C55E",
+     createdAt: "2026-10-29T00:00:00.000Z",
+     lastLoginAt: "2026-10-30T00:00:00.000Z",
    },
  ];
 
@@ -2587,7 +2601,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
         username: cleanWithoutAt,
         password: password.trim(),
         name: name.trim() || (cleanEmail ? cleanEmail.split("@")[0] : cleanWithoutAt),
-        avatar: avatar || (CARTOON_AVATARS[Math.floor(Math.random() * CARTOON_AVATARS.length)]?.emoji || "🐱"),
+        avatar: (avatar && (avatar.startsWith("http") || avatar.startsWith("data:image") || avatar.startsWith("/api/"))) ? avatar : "",
         role: role?.trim() || "独立创作者",
         bio: bio?.trim() || "专注高定排版与艺术创作",
         email: cleanEmail,
@@ -2621,7 +2635,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
           username: cleanWithoutAt,
           passwordHash: password.trim(),
           name: name.trim() || cleanWithoutAt,
-          avatar: avatar || "🎨",
+          avatar: (avatar && (avatar.startsWith("http") || avatar.startsWith("data:image") || avatar.startsWith("/api/"))) ? avatar : "",
           role: role?.trim() || "独立创作者",
           bio: bio?.trim() || "专注高定排版与艺术创作",
           email: email?.trim() || "",
@@ -2874,7 +2888,7 @@ export const useEditorStore = create<EditorState>((setStore, getStore) => {
       }
     },
 
-    createUserAccount: async (name, role = "创作者", avatar = "✨", bio = "", themeColor = "#E5C49F") => {
+    createUserAccount: async (name, role = "创作者", avatar = "", bio = "", themeColor = "#E5C49F") => {
       const state = getStore();
       const newUserId = generateId("user");
       const username = `user_${Date.now().toString(36)}`;

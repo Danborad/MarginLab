@@ -57,14 +57,14 @@ if (!fs.existsSync(POINTS_LOG_DIR)) {
   fs.mkdirSync(POINTS_LOG_DIR, { recursive: true });
 }
 
-// Default demo accounts
+// Default demo accounts (全面扁平化，去除所有 Emoji 表情包)
 const DEFAULT_ACCOUNTS = [
   {
     id: "user_admin",
     username: "admin",
     passwordHash: "admin123",
     name: "系统超级管理员",
-    avatar: "👑",
+    avatar: "",
     role: "超级管理员 / 系统管控",
     isAdmin: true,
     status: "active",
@@ -77,8 +77,8 @@ const DEFAULT_ACCOUNTS = [
     id: "user_pro",
     username: "atelier",
     passwordHash: "123456",
-    name: "Atelier Pro 主理人",
-    avatar: "🎨",
+    name: "MarginLab Pro 主理人",
+    avatar: "",
     role: "主理人 / 艺术指导",
     isAdmin: true,
     status: "active",
@@ -91,8 +91,8 @@ const DEFAULT_ACCOUNTS = [
     id: "user_photographer",
     username: "lin",
     passwordHash: "123456",
-    name: "Lin • 胶片摄影师",
-    avatar: "📷",
+    name: "Lin · 胶片摄影师",
+    avatar: "",
     role: "独立人文摄影师",
     isAdmin: false,
     status: "active",
@@ -105,8 +105,8 @@ const DEFAULT_ACCOUNTS = [
     id: "user_designer",
     username: "alex",
     passwordHash: "123456",
-    name: "Alex • 视觉设计师",
-    avatar: "✨",
+    name: "Alex · 视觉设计师",
+    avatar: "",
     role: "品牌视觉设计师",
     isAdmin: false,
     status: "active",
@@ -119,8 +119,8 @@ const DEFAULT_ACCOUNTS = [
     id: "user_life",
     username: "mia",
     passwordHash: "123456",
-    name: "Mia • 慢调生活",
-    avatar: "🌿",
+    name: "Mia · 慢调生活",
+    avatar: "",
     role: "生活方式博主",
     isAdmin: false,
     status: "active",
@@ -128,6 +128,20 @@ const DEFAULT_ACCOUNTS = [
     themeColor: "#34D399",
     createdAt: "2026-01-04T00:00:00.000Z",
     lastLoginAt: "2026-08-22T10:00:00.000Z",
+  },
+  {
+    id: "user_owner",
+    username: "owner",
+    passwordHash: "MarginLab2026",
+    name: "留白集主理人",
+    avatar: "",
+    role: "主理人 / 超级管理员",
+    isAdmin: true,
+    status: "active",
+    bio: "留白集平台主理人，全权限管控",
+    themeColor: "#22C55E",
+    createdAt: "2026-10-29T00:00:00.000Z",
+    lastLoginAt: "2026-10-30T00:00:00.000Z",
   },
 ];
 
@@ -768,6 +782,11 @@ function markAccountDeleted(userId) {
   }
 }
 
+function stripEmojiServer(str) {
+  if (!str) return '';
+  return String(str).replace(/(?:[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|[\uFE00-\uFE0F]|\u200D|[\u{1F300}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}])/gu, '').trim();
+}
+
 // Helper to read users atomically
 function readUsers() {
   try {
@@ -794,12 +813,21 @@ function readUsers() {
         // 已删除的账号不得再从 users.json 里复活
         if (deletedIds.has(acc.id)) continue;
         const isAdm = acc.isAdmin !== undefined ? acc.isAdmin : (acc.id === "user_admin" || acc.id === "user_pro" || acc.username === "admin");
-        map.set(acc.id, {
-          ...map.get(acc.id),
+        const existing = map.get(acc.id) || {};
+        const merged = {
+          ...existing,
           ...acc,
           isAdmin: isAdm,
           status: acc.status || "active",
-        });
+        };
+        // 全面扁平化清洗：剔除所有 Emoji 表情包，非真实图片 URL 的头像置空
+        if (merged.avatar && !merged.avatar.startsWith('http') && !merged.avatar.startsWith('data:image') && !merged.avatar.startsWith('/api/')) {
+          merged.avatar = '';
+        }
+        if (merged.name) merged.name = stripEmojiServer(merged.name);
+        if (merged.role) merged.role = stripEmojiServer(merged.role);
+        if (merged.bio) merged.bio = stripEmojiServer(merged.bio);
+        map.set(acc.id, merged);
       }
     }
     const result = Array.from(map.values());
@@ -833,7 +861,7 @@ function isUserAdmin(userId) {
     const uname = (acc.username || "").toLowerCase();
     return uid === cleanId || uname === cleanId;
   });
-  return Boolean(u && (u.isAdmin || u.id === "user_admin" || u.username === "admin" || u.id === "user_pro"));
+  return Boolean(u && (u.isAdmin || u.id === "user_admin" || u.username === "admin" || u.id === "user_pro" || u.username === "owner" || u.id === "user_owner"));
 }
 
 // Helper to read user data file
@@ -1274,12 +1302,12 @@ app.post("/api/auth/register", (req, res) => {
     id: newUserId,
     username: finalUsername,
     passwordHash: password.trim(),
-    name: (name || "").trim() || (cleanEmail ? cleanEmail.split("@")[0] : finalUsername),
-    avatar: avatar || ["🐱", "🐶", "🦊", "🐼", "🐰", "🐻", "🐨", "🦖", "🦁", "🐧", "🦉", "🐬", "🧑‍🎨", "📷", "🧑‍🚀", "☕"][Math.floor(Math.random() * 16)],
-    role: (role || "").trim() || "独立创作者",
+    name: stripEmojiServer((name || "").trim() || (cleanEmail ? cleanEmail.split("@")[0] : finalUsername)),
+    avatar: (avatar && (avatar.startsWith('http') || avatar.startsWith('data:image') || avatar.startsWith('/api/'))) ? avatar : "",
+    role: stripEmojiServer((role || "").trim() || "独立创作者"),
     isAdmin: false,
     status: "active",
-    bio: (bio || "").trim() || "专注高定排版与艺术创作",
+    bio: stripEmojiServer((bio || "").trim() || "专注高定排版与艺术创作"),
     email: cleanEmail,
     themeColor: "#22C55E",
     createdAt: new Date().toISOString(),
@@ -1997,14 +2025,14 @@ app.post("/api/admin/users/create", requireAdmin, (req, res) => {
     id: newUserId,
     username: cleanUser,
     passwordHash: password.trim(),
-    name: (name || "").trim() || cleanUser,
-    avatar: avatar || "🎨",
-    role: (role || "").trim() || "创作者",
+    name: stripEmojiServer((name || "").trim() || cleanUser),
+    avatar: (avatar && (avatar.startsWith('http') || avatar.startsWith('data:image') || avatar.startsWith('/api/'))) ? avatar : "",
+    role: stripEmojiServer((role || "").trim() || "创作者"),
     isAdmin: Boolean(isAdmin),
     status: "active",
-    bio: (bio || "").trim() || "平台创作者",
+    bio: stripEmojiServer((bio || "").trim() || "平台创作者"),
     email: (email || "").trim(),
-    themeColor: "#E5C49F",
+    themeColor: "#22C55E",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
   };
