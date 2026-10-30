@@ -24,10 +24,21 @@ import {
   Image as ImageIcon,
   CalendarCheck,
   X,
+  Edit3,
+  ToggleLeft,
+  ToggleRight,
+  RotateCcw,
+  Upload,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
 import { stripEmoji } from "../../lib/utils";
+import { STYLE_CATEGORIES } from "../../lib/ai-styles";
+import type { StylePreset } from "../../types/ai";
 import {
   apiAdminOverview,
   apiAdminGetUsers,
@@ -88,6 +99,10 @@ export const AdminDashboardPage: React.FC = () => {
   const aiConfig = useEditorStore((s) => s.aiConfig);
   const fetchAiStyles = useEditorStore((s) => s.fetchAiStyles);
   const fetchAiConfig = useEditorStore((s) => s.fetchAiConfig);
+  const adminToggleAiStyle = useEditorStore((s) => s.adminToggleAiStyle);
+  const adminSaveAiStyle = useEditorStore((s) => s.adminSaveAiStyle);
+  const adminDeleteAiStyle = useEditorStore((s) => s.adminDeleteAiStyle);
+  const adminResetAiStyles = useEditorStore((s) => s.adminResetAiStyles);
 
   // 支持 /admin?tab=users / ai_config / styles / filing / email 直接落到对应页
   const initialSection = (() => {
@@ -125,6 +140,153 @@ export const AdminDashboardPage: React.FC = () => {
   const [pwdTarget, setPwdTarget] = useState<UserAccount | null>(null);
   const [pwdValue, setPwdValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserAccount | null>(null);
+
+  // ── 风格模板管理状态 ──
+  const [styleSearchQuery, setStyleSearchQuery] = useState("");
+  const [styleCategoryFilter, setStyleCategoryFilter] = useState("all");
+  const [styleStatusFilter, setStyleStatusFilter] = useState<"all" | "enabled" | "disabled">("all");
+  const [editingStyle, setEditingStyle] = useState<StylePreset | null>(null);
+  const [isCreatingStyle, setIsCreatingStyle] = useState(false);
+
+  // 风格编辑表单字段
+  const [formStyleName, setFormStyleName] = useState("");
+  const [formStyleEnName, setFormStyleEnName] = useState("");
+  const [formStyleCategory, setFormStyleCategory] = useState("editorial");
+  const [formStyleBadge, setFormStyleBadge] = useState("");
+  const [formStyleOrder, setFormStyleOrder] = useState(1);
+  const [formStyleCover, setFormStyleCover] = useState("");
+  const [formStyleDesc, setFormStyleDesc] = useState("");
+  const [formStylePrompt, setFormStylePrompt] = useState("");
+  const [formStyleNegative, setFormStyleNegative] = useState("");
+  const [formStyleTags, setFormStyleTags] = useState("");
+  const [formStyleEnabled, setFormStyleEnabled] = useState(true);
+  const [savingStyle, setSavingStyle] = useState(false);
+  const [styleResetting, setStyleResetting] = useState(false);
+
+  const handleOpenEditStyle = (s: StylePreset) => {
+    setEditingStyle(s);
+    setIsCreatingStyle(false);
+    setFormStyleName(s.name || "");
+    setFormStyleEnName(s.enName || "");
+    setFormStyleCategory(s.category || "editorial");
+    setFormStyleBadge(s.badge || "");
+    setFormStyleOrder(s.order || 1);
+    setFormStyleCover(s.coverImage || "");
+    setFormStyleDesc(s.description || "");
+    setFormStylePrompt(s.promptTemplate || "");
+    setFormStyleNegative(s.negativePrompt || "");
+    setFormStyleTags(Array.isArray(s.tags) ? s.tags.join(", ") : "");
+    setFormStyleEnabled(s.enabled !== false);
+  };
+
+  const handleOpenCreateStyle = () => {
+    setEditingStyle(null);
+    setIsCreatingStyle(true);
+    setFormStyleName("");
+    setFormStyleEnName("");
+    setFormStyleCategory("editorial");
+    setFormStyleBadge("新上架");
+    setFormStyleOrder(aiStyles.length + 1);
+    setFormStyleCover("");
+    setFormStyleDesc("");
+    setFormStylePrompt("");
+    setFormStyleNegative("ugly face, distorted, blur, low quality, watermark");
+    setFormStyleTags("");
+    setFormStyleEnabled(true);
+  };
+
+  const handleSaveStyle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formStyleName.trim()) {
+      showToast("err", "请输入风格名称");
+      return;
+    }
+    setSavingStyle(true);
+    const tagsArray = formStyleTags
+      .split(/[,，]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const payload: Partial<StylePreset> & { id: string } = {
+      id: editingStyle ? editingStyle.id : `style_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: formStyleName.trim(),
+      enName: formStyleEnName.trim(),
+      category: formStyleCategory as any,
+      badge: formStyleBadge.trim(),
+      order: Number(formStyleOrder) || 1,
+      coverImage: formStyleCover.trim(),
+      description: formStyleDesc.trim(),
+      promptTemplate: formStylePrompt.trim(),
+      negativePrompt: formStyleNegative.trim(),
+      tags: tagsArray,
+      enabled: formStyleEnabled,
+    };
+    const res = await adminSaveAiStyle(payload);
+    setSavingStyle(false);
+    if (res.success) {
+      showToast("ok", editingStyle ? "风格配置已更新" : "新建风格成功");
+      setEditingStyle(null);
+      setIsCreatingStyle(false);
+      fetchAiStyles(true);
+    } else {
+      showToast("err", res.message || "保存失败");
+    }
+  };
+
+  const handleToggleStyle = async (s: StylePreset) => {
+    const next = s.enabled === false;
+    const res = await adminToggleAiStyle(s.id, next);
+    if (res.success) {
+      showToast("ok", next ? `「${s.name}」已上架（创作者可见）` : `「${s.name}」已停用（已隐藏）`);
+      fetchAiStyles(true);
+    } else {
+      showToast("err", res.message || "切换失败");
+    }
+  };
+
+  const handleDeleteStyle = async (s: StylePreset) => {
+    if (s.id === "dreamy_motion_editorial") {
+      showToast("err", "官方核心标杆风格受保护，不可删除");
+      return;
+    }
+    if (!window.confirm(`确认彻底删除风格「${s.name}」吗？`)) return;
+    const res = await adminDeleteAiStyle(s.id);
+    if (res.success) {
+      showToast("ok", "风格已删除");
+      fetchAiStyles(true);
+    } else {
+      showToast("err", res.message || "删除失败");
+    }
+  };
+
+  const handleResetStyles = async () => {
+    if (!window.confirm("确认将风格列表恢复为官方默认配置吗？自定义修改将被重置。")) return;
+    setStyleResetting(true);
+    const res = await adminResetAiStyles();
+    setStyleResetting(false);
+    if (res.success) {
+      showToast("ok", "已恢复为官方默认配置");
+      fetchAiStyles(true);
+    } else {
+      showToast("err", res.message || "恢复失败");
+    }
+  };
+
+  const filteredAiStyles = useMemo(() => {
+    return aiStyles.filter((s) => {
+      if (styleCategoryFilter !== "all" && s.category !== styleCategoryFilter) return false;
+      if (styleStatusFilter === "enabled" && s.enabled === false) return false;
+      if (styleStatusFilter === "disabled" && s.enabled !== false) return false;
+      if (!styleSearchQuery.trim()) return true;
+      const q = styleSearchQuery.trim().toLowerCase();
+      return (
+        s.name?.toLowerCase().includes(q) ||
+        s.enName?.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q) ||
+        s.badge?.toLowerCase().includes(q) ||
+        (Array.isArray(s.tags) && s.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    });
+  }, [aiStyles, styleCategoryFilter, styleStatusFilter, styleSearchQuery]);
 
   // 系统规则
   const [sysCfg, setSysCfg] = useState<Record<string, any> | null>(null);
@@ -673,50 +835,266 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ── 模板与风格 ── */}
+          {/* ── 模板与风格（全面扁平化管理，卡片尺寸适中，支持编辑/上下架/新增/恢复） ── */}
           {section === "styles" && (
-            <div className="space-y-3">
-              <div className="glass-panel rounded-2xl p-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xs font-bold text-studio-text">风格库总览</h2>
-                  <p className="text-[11px] text-studio-muted mt-0.5">
-                    共 {aiStyles.length} 款 · 已上架 {aiStyles.filter((s) => s.enabled !== false).length} 款
-                  </p>
-                </div>
-                <button
-                  onClick={() => useEditorStore.getState().setAdminModalOpen(true, "styles")}
-                  className="px-3 py-1.5 rounded-xl btn-aurora text-xs font-bold cursor-pointer whitespace-nowrap"
-                >
-                  打开完整风格管理
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {aiStyles.slice(0, 30).map((s) => (
-                  <div
-                    key={s.id}
-                    className="glass-panel rounded-xl overflow-hidden group hover-aurora"
-                  >
-                    <div className="aspect-[3/4] bg-studio-panel overflow-hidden">
-                      {s.coverImage ? (
-                        <img
-                          src={s.coverImage}
-                          alt={s.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-studio-dim">
-                          <ImageIcon className="w-5 h-5" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2">
-                      <p className="text-[11px] font-bold text-studio-text truncate">{s.name}</p>
-                      <p className="text-[10px] text-studio-dim truncate">{s.enName}</p>
-                    </div>
+            <div className="space-y-3.5">
+              {/* 顶部指标统计与操作工具栏 */}
+              <div className="glass-panel rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div>
+                    <h2 className="text-sm font-bold text-studio-text">风格与排版模板管理</h2>
+                    <p className="text-[11px] text-studio-muted mt-0.5">
+                      集中管控 AI 风格化核心模型配方、提示词、推荐角标与上下架状态
+                    </p>
                   </div>
-                ))}
+                  <div className="flex items-center gap-1.5 ml-0 lg:ml-2">
+                    <span className="px-2.5 py-1 rounded-lg bg-studio-panel border border-studio-border text-[11px] font-mono text-studio-text">
+                      全部 <strong className="text-emerald-500 font-bold">{aiStyles.length}</strong> 款
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                      已上架 <strong className="font-bold">{aiStyles.filter((s) => s.enabled !== false).length}</strong>
+                    </span>
+                    <span className="px-2.5 py-1 rounded-lg bg-studio-panel border border-studio-border text-[11px] font-mono text-studio-dim">
+                      已停用 <strong className="font-bold">{aiStyles.filter((s) => s.enabled === false).length}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleResetStyles}
+                    disabled={styleResetting}
+                    className="px-3 py-1.5 rounded-xl btn-glass text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="重置为官方预设的 25 款标杆风格配置"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${styleResetting ? "animate-spin" : ""}`} />
+                    <span>恢复官方默认</span>
+                  </button>
+                  <button
+                    onClick={handleOpenCreateStyle}
+                    className="px-3.5 py-1.5 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>新建自定义风格</span>
+                  </button>
+                </div>
               </div>
+
+              {/* 搜索与分类状态筛选工具条 */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 flex-1 max-w-xl">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 text-studio-dim absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={styleSearchQuery}
+                      onChange={(e) => setStyleSearchQuery(e.target.value)}
+                      placeholder="搜索风格名称、英文标识、标签或描述..."
+                      className="w-full bg-studio-input border border-studio-border focus:border-emerald-500 rounded-xl pl-8 pr-7 py-2 text-xs text-studio-text placeholder:text-studio-dim focus:outline-none transition-all font-medium"
+                    />
+                    {styleSearchQuery && (
+                      <button
+                        onClick={() => setStyleSearchQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-studio-dim hover:text-studio-text cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 分类下拉 */}
+                  <select
+                    value={styleCategoryFilter}
+                    onChange={(e) => setStyleCategoryFilter(e.target.value)}
+                    className="px-3 py-2 bg-studio-card border border-studio-border rounded-xl text-xs text-studio-text focus:outline-none cursor-pointer shrink-0 font-medium"
+                  >
+                    <option value="all">全部分类 ({aiStyles.length})</option>
+                    {STYLE_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label} ({aiStyles.filter((s) => s.category === cat.id).length})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 状态筛选胶囊 */}
+                <div className="flex items-center gap-1 bg-studio-card p-1 rounded-xl border border-studio-border shrink-0 text-xs">
+                  <button
+                    onClick={() => setStyleStatusFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      styleStatusFilter === "all"
+                        ? "bg-emerald-500 text-black shadow-xs"
+                        : "text-studio-muted hover:text-studio-text"
+                    }`}
+                  >
+                    全部
+                  </button>
+                  <button
+                    onClick={() => setStyleStatusFilter("enabled")}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      styleStatusFilter === "enabled"
+                        ? "bg-emerald-500 text-black shadow-xs"
+                        : "text-studio-muted hover:text-studio-text"
+                    }`}
+                  >
+                    仅上架
+                  </button>
+                  <button
+                    onClick={() => setStyleStatusFilter("disabled")}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      styleStatusFilter === "disabled"
+                        ? "bg-emerald-500 text-black shadow-xs"
+                        : "text-studio-muted hover:text-studio-text"
+                    }`}
+                  >
+                    仅停用
+                  </button>
+                </div>
+              </div>
+
+              {/* 风格管理卡片网格（适中紧凑尺寸，展示全部控制按钮与信息） */}
+              <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+                {filteredAiStyles.map((s) => {
+                  const isEnabled = s.enabled !== false;
+                  const isCore = s.id === "dreamy_motion_editorial";
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`glass-panel rounded-2xl p-3 flex flex-col justify-between border transition-all ${
+                        isEnabled
+                          ? "border-studio-border hover:border-emerald-500/50 hover:shadow-glass"
+                          : "border-studio-border/50 opacity-65 bg-studio-panel/40"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* 适中紧凑的缩略图 (不再是巨图) */}
+                        <div className="w-18 h-24 sm:w-20 sm:h-28 rounded-xl overflow-hidden bg-studio-panel border border-studio-border shrink-0 relative group">
+                          {s.coverImage ? (
+                            <img
+                              src={s.coverImage}
+                              alt={s.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : s.previewSvg ? (
+                            <div
+                              dangerouslySetInnerHTML={{ __html: s.previewSvg }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-studio-dim">
+                              <ImageIcon className="w-5 h-5 mb-1" />
+                              <span className="text-[9px] font-mono">无封面</span>
+                            </div>
+                          )}
+                          {s.badge && (
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-black/75 text-white backdrop-blur-xs font-mono">
+                              {s.badge}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 主体元数据 */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <h3 className="text-xs font-bold text-studio-text truncate">
+                                {s.name}
+                              </h3>
+                              {isCore && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/15 border border-amber-500/30 text-amber-500 shrink-0">
+                                  标杆
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold font-mono shrink-0 whitespace-nowrap ${
+                                isEnabled
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                  : "bg-studio-panel text-studio-dim border border-studio-border"
+                              }`}
+                            >
+                              {isEnabled ? "已上架" : "已隐藏"}
+                            </span>
+                          </div>
+
+                          <p className="text-[10px] text-studio-dim font-mono truncate">
+                            {s.enName || s.id}
+                          </p>
+
+                          <p className="text-[11px] text-studio-muted line-clamp-2 leading-relaxed">
+                            {s.description || "无详细描述"}
+                          </p>
+
+                          {/* 提示词片段缩略 */}
+                          {s.promptTemplate && (
+                            <div className="bg-studio-panel/80 p-1.5 rounded-lg border border-studio-border/50 text-[10px] font-mono text-studio-dim truncate">
+                              <span className="text-emerald-500 font-bold mr-1">PROMPT:</span>
+                              {s.promptTemplate}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 底部管理操作控制条 */}
+                      <div className="mt-3 pt-2.5 border-t border-studio-border/70 flex items-center justify-between gap-2">
+                        {/* 左：一键上架/下架切换开关 */}
+                        <button
+                          onClick={() => handleToggleStyle(s)}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                            isEnabled
+                              ? "bg-emerald-500/12 border-emerald-500/35 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                              : "bg-studio-panel border-studio-border text-studio-dim hover:text-studio-text"
+                          }`}
+                          title={isEnabled ? "点击下架停用（创作者不可见）" : "点击上架启用（创作者可见）"}
+                        >
+                          {isEnabled ? (
+                            <>
+                              <ToggleRight className="w-4 h-4 text-emerald-500" />
+                              <span>上架中</span>
+                            </>
+                          ) : (
+                            <>
+                              <ToggleLeft className="w-4 h-4 text-studio-dim" />
+                              <span>已停用</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* 右：编辑与删除按钮 */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditStyle(s)}
+                            className="px-2.5 py-1 rounded-lg btn-glass text-[11px] font-bold text-studio-text flex items-center gap-1 cursor-pointer hover:border-emerald-500/50"
+                            title="打开风格模板详细设置（提示词、角标、分类、封面等）"
+                          >
+                            <Edit3 className="w-3 h-3 text-emerald-400" />
+                            <span>编辑设置</span>
+                          </button>
+                          {!isCore && (
+                            <button
+                              onClick={() => handleDeleteStyle(s)}
+                              className="p-1 rounded-lg text-studio-dim hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                              title="彻底删除此风格"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredAiStyles.length === 0 && (
+                <div className="py-16 text-center text-studio-dim text-xs glass-panel rounded-2xl space-y-2">
+                  <Palette className="w-8 h-8 mx-auto text-studio-dim opacity-50" />
+                  <p className="font-bold text-studio-text">未找到符合条件的风格模板</p>
+                  <p className="text-[11px]">请尝试重置搜索关键字或切换分类标签</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1007,6 +1385,292 @@ export const AdminDashboardPage: React.FC = () => {
                 {busy === "delete" ? "删除中…" : "确认删除"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 风格模板深度设置弹窗（编辑与新建） ── */}
+      {(editingStyle || isCreatingStyle) && (
+        <div
+          className="fixed inset-0 z-[160] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn"
+          onClick={() => {
+            setEditingStyle(null);
+            setIsCreatingStyle(false);
+          }}
+        >
+          <div
+            className="w-full max-w-2xl bg-studio-sidebar border border-studio-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-studio-border bg-studio-panel flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
+                  <Palette className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-studio-text">
+                    {editingStyle ? `编辑风格模板 · ${editingStyle.name}` : "新建先锋艺术风格模板"}
+                  </h3>
+                  <p className="text-[11px] text-studio-muted mt-0.5">
+                    配置风格核心名称、所属分类、封面微缩图、AI 引导提示词配方与上下架状态
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingStyle(null);
+                  setIsCreatingStyle(false);
+                }}
+                className="p-1.5 rounded-lg text-studio-dim hover:text-studio-text hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form Body */}
+            <form onSubmit={handleSaveStyle} className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
+              {/* 1. 基本信息 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    风格名称 *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formStyleName}
+                    onChange={(e) => setFormStyleName(e.target.value)}
+                    placeholder="例如: s21 · 梦幻动态电影海报"
+                    className="w-full input-dark px-3 py-2 text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    英文标识 / 副标题
+                  </label>
+                  <input
+                    type="text"
+                    value={formStyleEnName}
+                    onChange={(e) => setFormStyleEnName(e.target.value)}
+                    placeholder="例如: 01 · Dreamy Motion Editorial"
+                    className="w-full input-dark px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* 2. 分类、角标、排序 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    风格分类
+                  </label>
+                  <select
+                    value={formStyleCategory}
+                    onChange={(e) => setFormStyleCategory(e.target.value)}
+                    className="w-full input-dark px-3 py-2 text-xs font-medium cursor-pointer"
+                  >
+                    {STYLE_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    推荐角标
+                  </label>
+                  <input
+                    type="text"
+                    value={formStyleBadge}
+                    onChange={(e) => setFormStyleBadge(e.target.value)}
+                    placeholder="例: s21 顶荐 / 新上架 / 热门"
+                    className="w-full input-dark px-3 py-2 text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    排序权重
+                  </label>
+                  <input
+                    type="number"
+                    value={formStyleOrder}
+                    onChange={(e) => setFormStyleOrder(Number(e.target.value) || 1)}
+                    className="w-full input-dark px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* 3. 封面微缩图设置 */}
+              <div className="p-3.5 rounded-2xl bg-studio-card border border-studio-border space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-studio-text">风格封面预览与上传</h4>
+                  {formStyleCover && (
+                    <button
+                      type="button"
+                      onClick={() => setFormStyleCover("")}
+                      className="text-[10px] text-rose-400 hover:underline cursor-pointer"
+                    >
+                      清除当前封面
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <div className="w-18 h-24 sm:w-20 sm:h-28 rounded-xl bg-studio-panel border border-studio-border overflow-hidden shrink-0 flex items-center justify-center relative">
+                    {formStyleCover ? (
+                      <img src={formStyleCover} alt="Cover Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center p-2 text-studio-dim">
+                        <ImageIcon className="w-5 h-5 mx-auto mb-1 opacity-50" />
+                        <span className="text-[9px]">暂无封面</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl btn-glass text-xs text-studio-text font-bold cursor-pointer">
+                      <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>上传封面相片 (JPG / PNG / WebP)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => setFormStyleCover(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    <input
+                      type="text"
+                      value={formStyleCover.startsWith("data:") ? "[已读取本地相片 Base64 缓存]" : formStyleCover}
+                      onChange={(e) => setFormStyleCover(e.target.value)}
+                      placeholder="或粘贴图片绝对 URL 地址..."
+                      className="w-full input-dark px-3 py-1.5 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. 详细介绍说明 */}
+              <div>
+                <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                  风格详细介绍说明 *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={formStyleDesc}
+                  onChange={(e) => setFormStyleDesc(e.target.value)}
+                  placeholder="简述该风格的视觉特征、光影质感、留白构图与排版特色..."
+                  className="w-full input-dark px-3 py-2 text-xs leading-relaxed"
+                />
+              </div>
+
+              {/* 5. 提示词配方模板 */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-studio-muted">
+                    AI 核心提示词配方模板 (PROMPT TEMPLATE) *
+                  </label>
+                  <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                    可用插槽: {"{moodNotes}"}, {"{textInstruction}"}
+                  </span>
+                </div>
+                <textarea
+                  required
+                  rows={4}
+                  value={formStylePrompt}
+                  onChange={(e) => setFormStylePrompt(e.target.value)}
+                  placeholder="输入发送给上游大模型的艺术风格提示词模板..."
+                  className="w-full input-dark px-3 py-2 text-xs font-mono leading-relaxed"
+                />
+              </div>
+
+              {/* 6. 负向提示词 */}
+              <div>
+                <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                  负向提示词 (NEGATIVE PROMPT)
+                </label>
+                <textarea
+                  rows={2}
+                  value={formStyleNegative}
+                  onChange={(e) => setFormStyleNegative(e.target.value)}
+                  placeholder="例如: distorted faces, ugly fingers, excessive fog, watermark..."
+                  className="w-full input-dark px-3 py-2 text-xs font-mono leading-relaxed"
+                />
+              </div>
+
+              {/* 7. 标签与展示状态 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                    风格标签 (逗号分隔)
+                  </label>
+                  <input
+                    type="text"
+                    value={formStyleTags}
+                    onChange={(e) => setFormStyleTags(e.target.value)}
+                    placeholder="例: 慢门拖影, 动态留白, 电影质感"
+                    className="w-full input-dark px-3 py-2 text-xs font-medium"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-studio-card border border-studio-border">
+                  <div>
+                    <div className="text-xs font-bold text-studio-text">模板展示状态</div>
+                    <div className="text-[10px] text-studio-dim">
+                      {formStyleEnabled ? "创作者在前台修图/风格化面板可见并可直接使用" : "处于隐藏状态，仅管理员后台可见"}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormStyleEnabled(!formStyleEnabled)}
+                    className={`px-3 py-1 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      formStyleEnabled
+                        ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                        : "bg-studio-panel border-studio-border text-studio-dim hover:text-studio-text"
+                    }`}
+                  >
+                    {formStyleEnabled ? <ToggleRight className="w-4 h-4 text-emerald-500" /> : <ToggleLeft className="w-4 h-4" />}
+                    <span>{formStyleEnabled ? "已上架" : "已隐藏"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 弹窗底部操作 */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-studio-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingStyle(null);
+                    setIsCreatingStyle(false);
+                  }}
+                  className="px-4 py-2 rounded-xl btn-glass text-xs font-semibold cursor-pointer"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStyle}
+                  className="px-5 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs"
+                >
+                  {savingStyle ? "正在保存…" : editingStyle ? "保存修改配置" : "确认新建风格"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
