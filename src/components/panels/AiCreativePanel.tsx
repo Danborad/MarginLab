@@ -69,8 +69,8 @@ export const AiCreativePanel: React.FC = () => {
       <div className="p-4 border-b border-studio-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-white/5 border border-studio-border flex items-center justify-center text-emerald-400 font-bold">
-              <Compass className="w-4 h-4 text-emerald-400" />
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-studio-border flex items-center justify-center text-studio-text font-bold">
+              <Compass className="w-4 h-4 text-studio-text" />
             </div>
             <div>
               <h3 className="text-sm font-extrabold text-studio-text tracking-tight">
@@ -81,7 +81,7 @@ export const AiCreativePanel: React.FC = () => {
               </p>
             </div>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+          <span className="px-2 py-0.5 rounded-lg bg-studio-panel text-studio-text border border-studio-border text-[10px] font-bold">
             就绪
           </span>
         </div>

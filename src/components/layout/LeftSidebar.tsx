@@ -12,11 +12,10 @@ import { AiCreativePanel } from "../panels/AiCreativePanel";
 const NAV_ITEMS: {
   id: string;
   label: string;
-  badge?: boolean;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: "ai-create", label: "创作", badge: true, icon: Compass },
-  { id: "ai-retouch", label: "AI修图", badge: true, icon: Sparkles },
+  { id: "ai-create", label: "创作", icon: Compass },
+  { id: "ai-retouch", label: "AI修图", icon: Sparkles },
   { id: "ai-stylize", label: "风格化", icon: Wand2 },
   { id: "templates", label: "拼图", icon: LayoutTemplate },
   { id: "album", label: "相册", icon: BookOpen },
@@ -101,15 +100,14 @@ export const LeftSidebar: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative border ${
+                  className={`w-full py-3 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer relative border ${
                     isActive
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/40 shadow-aurora font-bold"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 font-bold shadow-xs border-transparent"
                       : "border-transparent text-studio-muted hover:text-studio-text hover:bg-studio-hover font-medium"
                   }`}
                   title={item.label}
                 >
-                  {item.badge && <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-red-500" />}
-                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? "text-emerald-500 dark:text-emerald-400 stroke-[2.2]" : "text-studio-dim stroke-[1.8]"}`} />
+                  <Icon className={`w-5 h-5 transition-transform group-hover:scale-105 ${isActive ? "text-white dark:text-zinc-950 stroke-[2.2]" : "text-studio-dim stroke-[1.8]"}`} />
                   <span className="text-[12px] tracking-tight font-medium">{item.label}</span>
                 </button>
               );

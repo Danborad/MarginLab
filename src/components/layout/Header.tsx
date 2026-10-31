@@ -145,225 +145,16 @@ import { stripEmoji } from "../../lib/utils";
           className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer text-left shrink-0 group py-0.5"
           title="点击返回登录与产品首页"
         >
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/12 border border-emerald-500/35 flex items-center justify-center text-emerald-400 shadow-aurora group-hover:border-emerald-400/60 transition-all">
+          <div className="w-8 h-8 rounded-xl bg-studio-panel border border-studio-border flex items-center justify-center text-studio-text shadow-xs group-hover:border-emerald-400/60 transition-all">
             <WebsiteLogo className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.8} />
           </div>
           <span className="text-xs sm:text-sm font-bold tracking-widest text-studio-text hidden md:inline-block">
             留白集
           </span>
-          <span className="hidden md:inline-block text-[9px] font-mono font-bold tracking-[0.22em] uppercase text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/30 rounded px-1.5 py-0.5 leading-none">
+          <span className="hidden md:inline-block text-[9px] font-mono font-bold tracking-[0.22em] uppercase text-studio-text/90 bg-studio-panel border border-studio-border rounded px-1.5 py-0.5 leading-none">
             MarginLab
           </span>
         </button>
-
-        {/* 用户中心（左上角默认展示头像，2026-10 重构） */}
-        {isAuthenticated && currentUser ? (
-          <div className="relative shrink-0" ref={userMenuRef}>
-            <button
-              id="header-user-dropdown-btn"
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className={
-                "flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border transition-all cursor-pointer shrink-0 " +
-                (userMenuOpen
-                  ? "bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/25"
-                  : "bg-studio-card hover:bg-studio-hover border-studio-border hover:border-emerald-500/40")
-              }
-              title={`当前账号：${currentUser.name} (@${currentUser.username}) • 点击打开个人中心`}
-            >
-              <span className="relative">
-                <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-studio-sidebar" />
-              </span>
-              <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
-                <span className="font-semibold text-studio-text truncate text-[11px] max-w-[86px]">
-                  {stripEmoji(currentUser.name)}
-                </span>
-                <span className="text-[9px] text-studio-dim font-mono truncate max-w-[86px]">
-                  @{currentUser.username}
-                </span>
-              </span>
-              <ChevronDown
-                className={`w-3 h-3 text-studio-muted transition-transform duration-200 hidden md:block ${
-                  userMenuOpen ? "rotate-180 text-emerald-400" : ""
-                }`}
-              />
-            </button>
-
-            {/* Quick Dropdown Menu */}
-            {userMenuOpen && (
-              <div
-                id="header-user-dropdown-menu"
-                className="absolute left-0 top-full mt-1.5 w-64 bg-studio-card border border-studio-border rounded-2xl shadow-2xl p-2 z-50 animate-fadeIn space-y-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-               {/* User Info Header */}
-               <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border flex items-center gap-2.5 mb-1">
-                 <div className="w-9 h-9 rounded-xl bg-studio-card border border-studio-border flex items-center justify-center shrink-0 shadow-inner">
-                   <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
-                 </div>
-                 <div className="flex-1 min-w-0">
-                   <div className="flex items-center justify-between gap-1">
-                     <h4 className="text-xs font-semibold text-studio-text truncate">
-                       {stripEmoji(currentUser.name)}
-                     </h4>
-                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
-                       在线
-                     </span>
-                   </div>
-                   <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
-                     @{currentUser.username} • {stripEmoji(currentUser.role || "独立创作者")}
-                   </p>
-                 </div>
-               </div>
- 
-               {/* 云存储使用进度（2026-10 重构） */}
-               <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border mb-1">
-                 <div className="flex items-center justify-between mb-1.5">
-                   <span className="flex items-center gap-1 text-[11px] font-bold text-studio-text">
-                     <HardDrive className="w-3.5 h-3.5 text-studio-muted" />
-                     云存储空间
-                   </span>
-                   <span className="text-[10px] font-mono text-studio-muted">
-                     {((userAssets?.storageUsed || 0) / 1073741824).toFixed(2)}G /{" "}
-                     {((userAssets?.storageQuota || 0) / 1073741824).toFixed(1)}G
-                   </span>
-                 </div>
-                 <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                   <div
-                     className={`h-full rounded-full transition-all ${
-                       (userAssets?.storagePercent || 0) >= 90
-                         ? "bg-amber-400"
-                         : (userAssets?.storagePercent || 0) >= 100
-                         ? "bg-rose-500"
-                         : "bg-emerald-500"
-                     }`}
-                     style={{ width: `${Math.min(100, userAssets?.storagePercent || 0)}%` }}
-                   />
-                 </div>
-                 <p className="mt-1 text-[10px] text-studio-dim">
-                   已用 {userAssets?.storagePercent ?? 0}%
-                   {(userAssets?.storagePercent || 0) >= 90
-                     ? " · 空间紧张，请清理旧图"
-                     : " · 上传素材与 AI 成片均计入"}
-                 </p>
-               </div>
-
-               {/* Admin Control Center Option (Only for Admins) */}
-               {currentUser.isAdmin && (
-                 <>
-                   <button
-                     id="header-admin-control-btn"
-                     onClick={() => {
-                       setUserMenuOpen(false);
-                       setAdminModalOpen(true, "users");
-                     }}
-                     className="w-full px-2.5 py-2 rounded-xl text-left text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-2.5 transition-colors cursor-pointer group"
-                   >
-                     <div className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-500 border border-emerald-500/25">
-                       <ShieldCheck className="w-3.5 h-3.5" />
-                     </div>
-                     <div className="flex-1">
-                       <span className="font-semibold flex items-center gap-1.5">
-                         系统管理与创作者管控
-                         <span className="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">ADMIN</span>
-                       </span>
-                       <span className="text-[10px] text-studio-muted block">账号封禁、重设密码、AI 模型配置</span>
-                     </div>
-                   </button>
-                   <div className="h-[1px] bg-studio-border my-1 mx-1" />
-                 </>
-               )}
- 
-               {/* Option 1: Edit Profile / Personal Center */}
-               <button
-                 onClick={() => {
-                   setUserMenuOpen(false);
-                   setAuthModalOpen(true, "profile");
-                 }}
-                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
-                    <User className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-medium">编辑账号与个人中心</span>
-                    <span className="text-[10px] text-studio-muted block">修改昵称、头像、简介</span>
-                  </div>
-                </button>
-
-                {/* Option 2: Change Password */}
-                <button
-                  onClick={() => {
-                    setUserMenuOpen(false);
-                    setAuthModalOpen(true, "changePassword");
-                  }}
-                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
-                    <KeyRound className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-medium">修改登录密码</span>
-                    <span className="text-[10px] text-studio-muted block">更新安全密码凭证</span>
-                  </div>
-                </button>
-
-               {/* Option 3: Switch / Login Other Account */}
-               <button
-                 onClick={() => {
-                   setUserMenuOpen(false);
-                   navigateToHomeAuth("login");
-                 }}
-                 className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
-               >
-                 <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
-                   <LogIn className="w-3.5 h-3.5" />
-                 </div>
-                 <div className="flex-1">
-                   <span className="font-medium">切换其他账号登录</span>
-                   <span className="text-[10px] text-studio-muted block">进入其他创作者空间</span>
-                 </div>
-               </button>
- 
-               <div className="h-[1px] bg-studio-border my-1 mx-1" />
- 
-               {/* Option 5: Instant 1-Click Logout */}
-                <button
-                  id="header-user-logout-btn"
-                  onClick={async () => {
-                    setUserMenuOpen(false);
-                    await logout();
-                  }}
-                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-red-600 dark:text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 flex items-center gap-2.5 transition-colors cursor-pointer group"
-                  title="一键退出当前登录，返回首页"
-                >
-                  <div className="w-6 h-6 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-600 border border-red-500/20">
-                    <LogOut className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-semibold">退出当前登录</span>
-                    <span className="text-[10px] text-red-600/80 dark:text-red-600/70 block">直接退出并返回登录页</span>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="hidden xs:flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-[10px] sm:text-[11px] font-bold">
-              <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-              <span>只读速览</span>
-            </div>
-            <button
-              onClick={() => navigateToHomeAuth("register")}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
-              title="登录或注册专属个人账号开启完整编辑"
-            >
-              <LogIn className="w-3 h-3" />
-              <span>登录 / 注册</span>
-            </button>
-          </div>
-        )}
 
         {/* Collage Specific Tools: Canvas Preset, Projects, Admin Quick, Quick Save */}
         {isCollageMode && (
@@ -406,10 +197,10 @@ import { stripEmoji } from "../../lib/utils";
               <button
                 id="header-admin-quick-btn"
                 onClick={() => setAdminModalOpen(true, "users")}
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-400 font-medium transition-all cursor-pointer shrink-0 shadow-xs"
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-studio-panel hover:bg-emerald-500/20 border border-studio-border text-xs text-emerald-600 dark:text-studio-text font-medium transition-all cursor-pointer shrink-0 shadow-xs"
                 title="打开系统管理后台（创作者账号与全局 AI 大模型管控）"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <ShieldCheck className="w-3.5 h-3.5 text-studio-text" />
                 <span>管理后台</span>
               </button>
             )}
@@ -420,7 +211,7 @@ import { stripEmoji } from "../../lib/utils";
               className={
                 "flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs transition-all border cursor-pointer shrink-0 " +
                 (justSaved
-                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-600 font-semibold"
+                  ? "bg-studio-panel border-studio-border text-emerald-700 dark:text-emerald-600 font-semibold"
                   : isDirty
                   ? "bg-amber-500/15 border-amber-500/50 text-amber-800 dark:text-amber-600 hover:bg-amber-500/25 font-medium"
                   : "bg-studio-card border-studio-border text-studio-muted hover:text-studio-text")
@@ -588,7 +379,7 @@ import { stripEmoji } from "../../lib/utils";
         {/* 明暗主题切换（2026-10 重构） */}
         <button
           onClick={toggleThemeMode}
-          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-xl bg-studio-card border border-studio-border text-studio-muted hover:text-studio-text hover:border-emerald-500/40 transition-all cursor-pointer shrink-0"
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-xl bg-studio-card border border-studio-border text-studio-muted hover:text-studio-text hover:border-studio-border-strong transition-all cursor-pointer shrink-0"
           title={themeMode === "dark" ? "切换为浅色模式" : "切换为深色模式"}
         >
           {themeMode === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -613,10 +404,10 @@ import { stripEmoji } from "../../lib/utils";
                 setTimeout(() => setCheckInToast(""), 2600);
               }}
               disabled={checkingIn}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer whitespace-nowrap ${
                 userAssets?.checkedInToday
                   ? "bg-studio-card border-studio-border text-studio-muted cursor-default"
-                  : "border-emerald-500/45 bg-emerald-500/12 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400/70"
+                  : "border-studio-border bg-studio-card text-studio-text hover:bg-studio-hover"
               }`}
               title={userAssets?.checkedInToday ? "今日已签到" : "点击签到领取算力积分"}
             >
@@ -632,10 +423,10 @@ import { stripEmoji } from "../../lib/utils";
                   setPointsPanelOpen(next);
                   if (next) fetchPointsLog().catch(() => {});
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-studio-card border border-studio-border text-studio-text hover:border-emerald-500/50 hover:text-emerald-300 transition-all cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-studio-card border border-studio-border text-studio-text hover:border-studio-border-strong transition-all cursor-pointer whitespace-nowrap"
                 title="查看积分收支明细"
               >
-                <Coins className="w-3.5 h-3.5 text-emerald-400" />
+                <Coins className="w-3.5 h-3.5 text-studio-text" />
                 <span className="font-mono">{userAssets?.points ?? "—"}</span>
               </button>
 
@@ -643,10 +434,10 @@ import { stripEmoji } from "../../lib/utils";
                 <div className="absolute right-0 top-full mt-2 w-72 glass-float rounded-2xl overflow-hidden z-50 animate-fadeIn">
                   <div className="px-3.5 py-2.5 border-b border-studio-border flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <History className="w-3.5 h-3.5 text-emerald-400" />
+                      <History className="w-3.5 h-3.5 text-studio-text" />
                       <span className="text-xs font-bold text-studio-text">积分收支明细</span>
                     </div>
-                    <span className="text-[11px] font-mono text-emerald-300">
+                    <span className="text-[11px] font-mono text-studio-text">
                       {userAssets?.points ?? 0} 分
                     </span>
                   </div>
@@ -669,7 +460,7 @@ import { stripEmoji } from "../../lib/utils";
                           </div>
                           <span
                             className={`text-[11px] font-bold font-mono shrink-0 ${
-                              entry.delta > 0 ? "text-emerald-400" : "text-rose-400"
+                              entry.delta > 0 ? "text-studio-text" : "text-rose-400"
                             }`}
                           >
                             {entry.delta > 0 ? "+" : ""}
@@ -682,6 +473,215 @@ import { stripEmoji } from "../../lib/utils";
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* 用户中心（左上角默认展示头像，2026-10 重构） */}
+        {isAuthenticated && currentUser ? (
+          <div className="relative shrink-0" ref={userMenuRef}>
+            <button
+              id="header-user-dropdown-btn"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className={
+                "flex items-center gap-2 px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 " +
+                (userMenuOpen
+                  ? "bg-studio-panel border-studio-border-strong"
+                  : "bg-studio-card hover:bg-studio-hover border-studio-border hover:border-studio-border-strong")
+              }
+              title={`当前账号：${currentUser.name} (@${currentUser.username}) • 点击打开个人中心`}
+            >
+              <span className="relative">
+                <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-zinc-900 dark:bg-white border-2 border-studio-sidebar" />
+              </span>
+              <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
+                <span className="font-semibold text-studio-text truncate text-[11px] max-w-[86px]">
+                  {stripEmoji(currentUser.name)}
+                </span>
+                <span className="text-[9px] text-studio-dim font-mono truncate max-w-[86px]">
+                  @{currentUser.username}
+                </span>
+              </span>
+              <ChevronDown
+                className={`w-3 h-3 text-studio-muted transition-transform duration-200 hidden md:block ${
+                  userMenuOpen ? "rotate-180 text-studio-text" : ""
+                }`}
+              />
+            </button>
+
+            {/* Quick Dropdown Menu */}
+            {userMenuOpen && (
+              <div
+                id="header-user-dropdown-menu"
+                className="absolute right-0 top-full mt-1.5 w-64 bg-studio-card border border-studio-border rounded-2xl shadow-2xl p-2 z-50 animate-fadeIn space-y-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+               {/* User Info Header */}
+               <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border flex items-center gap-2.5 mb-1">
+                 <div className="w-9 h-9 rounded-xl bg-studio-card border border-studio-border flex items-center justify-center shrink-0 shadow-inner">
+                   <AvatarView avatar={currentUser.avatar} name={stripEmoji(currentUser.name)} size="sm" />
+                 </div>
+                 <div className="flex-1 min-w-0">
+                   <div className="flex items-center justify-between gap-1">
+                     <h4 className="text-xs font-semibold text-studio-text truncate">
+                       {stripEmoji(currentUser.name)}
+                     </h4>
+                     <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-studio-panel text-studio-text border border-studio-border shrink-0">
+                       在线
+                     </span>
+                   </div>
+                   <p className="text-[10px] font-mono text-emerald-600 dark:text-studio-text truncate mt-0.5">
+                     @{currentUser.username} • {stripEmoji(currentUser.role || "独立创作者")}
+                   </p>
+                 </div>
+               </div>
+ 
+               {/* 云存储使用进度（2026-10 重构） */}
+               <div className="p-2.5 rounded-xl bg-studio-panel border border-studio-border mb-1">
+                 <div className="flex items-center justify-between mb-1.5">
+                   <span className="flex items-center gap-1 text-[11px] font-bold text-studio-text">
+                     <HardDrive className="w-3.5 h-3.5 text-studio-muted" />
+                     云存储空间
+                   </span>
+                   <span className="text-[10px] font-mono text-studio-muted">
+                     {((userAssets?.storageUsed || 0) / 1073741824).toFixed(2)}G /{" "}
+                     {((userAssets?.storageQuota || 0) / 1073741824).toFixed(1)}G
+                   </span>
+                 </div>
+                 <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                   <div
+                     className={`h-full rounded-full transition-all ${
+                       (userAssets?.storagePercent || 0) >= 90
+                         ? "bg-amber-400"
+                         : (userAssets?.storagePercent || 0) >= 100
+                         ? "bg-rose-500"
+                         : "bg-emerald-500"
+                     }`}
+                     style={{ width: `${Math.min(100, userAssets?.storagePercent || 0)}%` }}
+                   />
+                 </div>
+                 <p className="mt-1 text-[10px] text-studio-dim">
+                   已用 {userAssets?.storagePercent ?? 0}%
+                   {(userAssets?.storagePercent || 0) >= 90
+                     ? " · 空间紧张，请清理旧图"
+                     : " · 上传素材与 AI 成片均计入"}
+                 </p>
+               </div>
+
+               {/* Admin Control Center Option (Only for Admins) */}
+               {currentUser.isAdmin && (
+                 <>
+                   <button
+                     id="header-admin-control-btn"
+                     onClick={() => {
+                       setUserMenuOpen(false);
+                       setAdminModalOpen(true, "users");
+                     }}
+                     className="w-full px-2.5 py-2 rounded-xl text-left text-xs bg-studio-panel hover:bg-emerald-500/20 text-emerald-600 dark:text-studio-text border border-studio-border flex items-center gap-2.5 transition-colors cursor-pointer group"
+                   >
+                     <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-text border border-studio-border">
+                       <ShieldCheck className="w-3.5 h-3.5" />
+                     </div>
+                     <div className="flex-1">
+                       <span className="font-semibold flex items-center gap-1.5">
+                         系统管理与创作者管控
+                         <span className="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-studio-text">ADMIN</span>
+                       </span>
+                       <span className="text-[10px] text-studio-muted block">账号封禁、重设密码、AI 模型配置</span>
+                     </div>
+                   </button>
+                   <div className="h-[1px] bg-studio-border my-1 mx-1" />
+                 </>
+               )}
+ 
+               {/* Option 1: Edit Profile / Personal Center */}
+               <button
+                 onClick={() => {
+                   setUserMenuOpen(false);
+                   setAuthModalOpen(true, "profile");
+                 }}
+                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium">编辑账号与个人中心</span>
+                    <span className="text-[10px] text-studio-muted block">修改昵称、头像、简介</span>
+                  </div>
+                </button>
+
+                {/* Option 2: Change Password */}
+                <button
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setAuthModalOpen(true, "changePassword");
+                  }}
+                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
+                    <KeyRound className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-medium">修改登录密码</span>
+                    <span className="text-[10px] text-studio-muted block">更新安全密码凭证</span>
+                  </div>
+                </button>
+
+               {/* Option 3: Switch / Login Other Account */}
+               <button
+                 onClick={() => {
+                   setUserMenuOpen(false);
+                   navigateToHomeAuth("login");
+                 }}
+                 className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-studio-text hover:text-studio-accent hover:bg-studio-hover flex items-center gap-2.5 transition-colors cursor-pointer group"
+               >
+                 <div className="w-6 h-6 rounded-lg bg-studio-panel flex items-center justify-center text-studio-muted group-hover:text-studio-accent border border-studio-border/60">
+                   <LogIn className="w-3.5 h-3.5" />
+                 </div>
+                 <div className="flex-1">
+                   <span className="font-medium">切换其他账号登录</span>
+                   <span className="text-[10px] text-studio-muted block">进入其他创作者空间</span>
+                 </div>
+               </button>
+ 
+               <div className="h-[1px] bg-studio-border my-1 mx-1" />
+ 
+               {/* Option 5: Instant 1-Click Logout */}
+                <button
+                  id="header-user-logout-btn"
+                  onClick={async () => {
+                    setUserMenuOpen(false);
+                    await logout();
+                  }}
+                  className="w-full px-2.5 py-2 rounded-xl text-left text-xs text-red-600 dark:text-red-600 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 flex items-center gap-2.5 transition-colors cursor-pointer group"
+                  title="一键退出当前登录，返回首页"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-600 border border-red-500/20">
+                    <LogOut className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="font-semibold">退出当前登录</span>
+                    <span className="text-[10px] text-red-600/80 dark:text-red-600/70 block">直接退出并返回登录页</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="hidden xs:flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-[10px] sm:text-[11px] font-bold">
+              <Eye className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              <span>只读速览</span>
+            </div>
+            <button
+              onClick={() => navigateToHomeAuth("register")}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] sm:text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0 active:scale-95 whitespace-nowrap"
+              title="登录或注册专属个人账号开启完整编辑"
+            >
+              <LogIn className="w-3 h-3" />
+              <span>登录 / 注册</span>
+            </button>
           </div>
         )}
 
@@ -748,7 +748,7 @@ import { stripEmoji } from "../../lib/utils";
 
       {/* 签到 / 积分提示 */}
       {checkInToast && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-float text-emerald-300 text-xs font-semibold shadow-2xl flex items-center gap-2 z-50 whitespace-nowrap animate-fadeIn">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full glass-float text-studio-text text-xs font-semibold shadow-2xl flex items-center gap-2 z-50 whitespace-nowrap animate-fadeIn">
           <CheckCircle2 className="w-3.5 h-3.5" />
           <span>{checkInToast}</span>
         </div>
@@ -756,7 +756,7 @@ import { stripEmoji } from "../../lib/utils";
 
       {/* Instant Toast Notification */}
       {showSaveToast && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white border border-emerald-500/40 text-emerald-600 text-xs font-mono shadow-2xl flex items-center gap-2 z-50 backdrop-blur-md animate-fadeIn whitespace-nowrap">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white border border-studio-border text-emerald-600 text-xs font-mono shadow-2xl flex items-center gap-2 z-50 backdrop-blur-md animate-fadeIn whitespace-nowrap">
           <Check className="w-3.5 h-3.5 text-emerald-600" />
           <span>
             已存档至「{currentUser ? currentUser.name : "本地"}」作品库

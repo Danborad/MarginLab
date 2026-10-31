@@ -98,7 +98,7 @@ export const AiStylizePanel: React.FC = () => {
             <h3 className="text-sm font-bold text-studio-text tracking-tight">
               AI 先锋风格化
             </h3>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-studio-panel text-emerald-600 dark:text-emerald-300 border border-studio-border font-bold font-mono">
+            <span className="text-[10px] px-2 py-0.5 rounded-lg bg-studio-panel text-studio-text border border-studio-border font-bold font-mono">
               {activeStylizeList.length}款
             </span>
           </div>
@@ -126,7 +126,7 @@ export const AiStylizePanel: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索先锋风格（如：手撕、浮雕、等高线、水墨、手账）..."
-            className="w-full pl-8 pr-7 py-2 rounded-xl bg-studio-input border border-studio-border text-xs text-studio-text placeholder:text-studio-dim focus:outline-none focus:border-emerald-500 transition-all font-medium"
+            className="w-full pl-8 pr-7 py-2 rounded-xl bg-studio-input border border-studio-border text-xs text-studio-text placeholder:text-studio-dim focus:outline-none focus:border-studio-border-strong transition-all font-medium"
           />
           {searchQuery && (
             <button
@@ -146,9 +146,9 @@ export const AiStylizePanel: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 border ${
                   isActive
-                    ? "bg-emerald-500/18 text-emerald-300 border-emerald-500/50 shadow-aurora"
+                    ? "bg-emerald-500/18 text-emerald-300 border-studio-border-strong/50 shadow-xs"
                     : "bg-studio-panel text-studio-muted hover:text-studio-text hover:bg-studio-hover border-studio-border"
                 }`}
               >
@@ -224,8 +224,8 @@ export const AiStylizePanel: React.FC = () => {
                     title={`${st.name}：${st.description}`}
                     className={`group relative aspect-3/4 rounded-xl overflow-hidden bg-studio-card cursor-pointer transition-all duration-300 hover:scale-[1.04] active:scale-[0.98] text-left border ${
                       isSelected
-                        ? "border-emerald-400 ring-2 ring-emerald-400/40 shadow-aurora"
-                        : "border-studio-border hover:border-emerald-500/40"
+                        ? "border-studio-border-strong ring-2 ring-studio-border-strong/40 shadow-xs"
+                        : "border-studio-border hover:border-studio-border-strong/40"
                     }`}
                   >
                     <img
@@ -236,7 +236,7 @@ export const AiStylizePanel: React.FC = () => {
                       className="w-full h-full object-cover scale-[1.05] group-hover:scale-[1.10] transition-transform duration-300"
                     />
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full btn-aurora text-black flex items-center justify-center shadow-md z-10">
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center shadow-md z-10">
                         <Check className="w-3 h-3 stroke-[3]" />
                       </div>
                     )}

@@ -30,12 +30,12 @@
   --studio-hover: rgba(255, 255, 255, 0.06);
   --studio-hover-strong: rgba(255, 255, 255, 0.1);
 
-  /* 强调色：极光绿 */
-  --studio-accent: #22c55e;
-  --studio-accent-hover: #16a34a;
-  --studio-accent-bright: #00e676;
+  /* 强调色：纯粹黑白（高定极简） */
+  --studio-accent: #ffffff;
+  --studio-accent-hover: #e4e4e7;
+  --studio-accent-bright: #ffffff;
   --studio-accent-crimson: #ef4444;
-  --studio-accent-olive: #22c55e;
+  --studio-accent-olive: #ffffff;
 
   /* 磨砂玻璃 */
   --studio-glass: rgba(255, 255, 255, 0.04);
@@ -195,18 +195,30 @@ html.light {
     z-index: 1;
   }
 
-  /* 强调按钮：极光绿 */
+  /* 核心主按钮：极简黑白高定风格 (圆角 8px) */
   .btn-aurora {
-    background: linear-gradient(135deg, #22c55e 0%, #00e676 100%);
-    color: #04120a;
+    background: #09090b;
+    color: #ffffff;
     font-weight: 700;
-    border-radius: 12px;
-    transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: transform 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  html.dark .btn-aurora {
+    background: #ffffff;
+    color: #09090b;
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .btn-aurora:hover:not(:disabled) {
-    filter: brightness(1.08);
-    box-shadow: 0 0 28px -4px rgba(34, 197, 94, 0.55);
+    background: #27272a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  html.dark .btn-aurora:hover:not(:disabled) {
+    background: #e4e4e7;
+    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
   }
 
   .btn-aurora:active:not(:disabled) {
@@ -214,17 +226,16 @@ html.light {
   }
 
   .btn-aurora:disabled {
-    opacity: 0.45;
+    opacity: 0.4;
     cursor: not-allowed;
-    filter: grayscale(0.4);
   }
 
-  /* 次级按钮：玻璃描边 */
+  /* 次级按钮：高定黑白玻璃 (圆角 8px) */
   .btn-glass {
     background-color: var(--studio-btn-glass);
     border: 1px solid var(--studio-border);
     color: var(--studio-text);
-    border-radius: 12px;
+    border-radius: 8px;
     transition: background-color 0.16s ease, border-color 0.16s ease;
   }
 
@@ -239,8 +250,8 @@ html.light {
   }
 
   .hover-aurora:hover {
-    border-color: rgba(34, 197, 94, 0.5);
-    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.16), 0 0 24px -8px rgba(34, 197, 94, 0.4);
+    border-color: var(--studio-border-strong);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
 
   /* 顶部细极光线 */
@@ -648,17 +659,13 @@ html.dark .hover-aurora:hover {
     0 24px 56px -24px rgba(0, 0, 0, 0.95);
 }
 
-/* ---------- ③ 焦点光：主按钮外的极光晕 ---------- */
+/* ---------- ③ 焦点光：黑白高定微光 ---------- */
 html.dark .btn-aurora {
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
-    0 6px 20px -8px rgba(34, 197, 94, 0.55);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.12);
 }
 
 html.dark .btn-aurora:hover:not(:disabled) {
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
-    0 10px 32px -10px rgba(34, 197, 94, 0.75);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
 }
 
 /* ---------- ④ 侧栏与顶栏的「发丝高光」 ---------- */

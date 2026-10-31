@@ -570,7 +570,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                   <span className="text-xs sm:text-sm font-bold text-studio-text truncate">
                     {activeStyle?.name || "未指定风格"}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[10px] font-bold font-mono shrink-0">
+                  <span className="px-2 py-0.5 rounded-lg bg-studio-panel border border-studio-border text-studio-text text-[10px] font-bold font-mono shrink-0">
                     {(activeStyle as any)?.retouchCategoryLabel || activeStyle?.badge || "AI精修"}
                   </span>
                 </div>
@@ -590,7 +590,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                     onClick={() => setSelectedRatio(opt.id)}
                     className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
                       isSelected
-                        ? "bg-emerald-500/18 border-emerald-500/60 text-emerald-300 shadow-aurora"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 border-transparent shadow-xs"
                         : "bg-studio-panel border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-hover"
                     }`}
                   >
@@ -599,7 +599,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                         style={{ width: `${Math.round(opt.thumbW * 0.75)}px`, height: `${Math.round(opt.thumbH * 0.75)}px` }}
                         className={`rounded-[2px] border-[1.5px] transition-colors ${
                           isSelected
-                            ? "border-emerald-400 bg-emerald-400/25"
+                            ? "border-current bg-current/20"
                             : "border-studio-dim bg-studio-panel group-hover:border-studio-muted"
                         }`}
                       />
@@ -646,24 +646,24 @@ export const AiStylizeStudioStage: React.FC = () => {
               height: currentRatioOption.emptyHeight,
               maxWidth: "100%",
             }}
-            className={`my-auto shrink-0 rounded-3xl border border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300 relative group z-10 ${
+            className={`my-auto shrink-0 rounded-2xl border border-dashed flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-all duration-300 relative group z-10 ${
               isDraggingOver
-                ? "border-emerald-400 bg-emerald-500/12 shadow-aurora-lg scale-[1.01]"
+                ? "border-emerald-400 bg-emerald-500/12 shadow-xs-lg scale-[1.01]"
                 : "border-studio-border bg-studio-card/70 backdrop-blur-xl hover:border-emerald-500/50 hover:bg-studio-card shadow-glass"
             }`}
           >
             {/* 顶部当前画幅尺寸微型胶囊 */}
-            <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-bold text-studio-muted flex items-center gap-1.5 font-mono">
+            <div className="absolute top-4 right-4 px-3 py-1 rounded-lg bg-studio-panel border border-studio-border text-[11px] font-bold text-studio-muted flex items-center gap-1.5 font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>{currentRatioOption.label} · {currentRatioOption.desc}</span>
             </div>
 
             {/* 发光中心图标 */}
             <div className="relative mb-6">
-              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:scale-105 group-hover:border-emerald-500/40 group-hover:shadow-aurora transition-all duration-300">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:scale-105 group-hover:border-emerald-500/40 group-hover:shadow-xs transition-all duration-300">
                 <Upload className="w-9 h-9 stroke-[1.8]" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full btn-aurora text-black flex items-center justify-center text-sm font-black shadow-md">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 flex items-center justify-center text-sm font-bold shadow-xs">
                 +
               </div>
             </div>
@@ -686,7 +686,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                   }
                   fileInputRef.current?.click();
                 }}
-                className="px-5 py-2.5 rounded-xl btn-aurora text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-aurora transition-all active:scale-95"
+                className="px-5 py-2.5 rounded-xl btn-aurora text-xs sm:text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs transition-all active:scale-95"
               >
                 <Upload className="w-4 h-4" />
                 <span>本地上传照片</span>
@@ -943,7 +943,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleDownload(latestResult, activeStyle?.name)}
-                  className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-aurora"
+                  className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>高清下载成片</span>
@@ -1083,15 +1083,15 @@ export const AiStylizeStudioStage: React.FC = () => {
                       <p className="text-xs font-bold text-studio-text truncate">
                         {item.styleName || "AI 修图"}
                       </p>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">
+                      <span className="text-[10px] font-mono text-studio-muted font-bold shrink-0">
                         ⚡ 1分
                       </span>
                     </div>
                     <p className="text-[10px] text-studio-dim font-mono">
                       {formatTime(item.createdAt)}
                     </p>
-                    {/* 即梦/可灵风格：轻量悬浮胶囊动作 */}
-                    <div className="pt-1 flex items-center gap-1.5">
+                    {/* 操作动作按钮组 */}
+                    <div className="pt-1 flex items-center gap-1.5 flex-wrap">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1103,7 +1103,7 @@ export const AiStylizeStudioStage: React.FC = () => {
                             aspectRatio: item.aspectRatio,
                           });
                         }}
-                        className="px-2 py-0.5 rounded-md bg-studio-panel hover:bg-studio-hover text-emerald-600 dark:text-emerald-300 text-[10px] font-bold transition-all cursor-pointer border border-studio-border"
+                        className="px-2.5 py-1 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 text-[11px] font-bold transition-all cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
                         title="调出此条历史生成结果到主画布"
                       >
                         载入成片
@@ -1114,10 +1114,10 @@ export const AiStylizeStudioStage: React.FC = () => {
                           e.stopPropagation();
                           handleReloadOriginalFromHistory(item);
                         }}
-                        className="px-2 py-0.5 rounded-md bg-studio-panel hover:bg-studio-hover text-cyan-600 dark:text-cyan-300 text-[10px] font-bold transition-all cursor-pointer border border-studio-border flex items-center gap-0.5"
+                        className="px-2.5 py-1 rounded-lg bg-studio-panel hover:bg-studio-hover text-studio-text text-[11px] font-bold transition-all cursor-pointer border border-studio-border flex items-center gap-1 whitespace-nowrap"
                         title="重新加载这张原图"
                       >
-                        <RotateCcw className="w-2.5 h-2.5" />
+                        <RotateCcw className="w-3 h-3 text-studio-dim" />
                         <span>原图</span>
                       </button>
                       <button
@@ -1126,10 +1126,10 @@ export const AiStylizeStudioStage: React.FC = () => {
                           e.stopPropagation();
                           handleDownload(resultImg, item.styleName);
                         }}
-                        className="p-1 rounded-md bg-studio-panel hover:bg-studio-hover text-studio-muted hover:text-studio-text transition-all cursor-pointer border border-studio-border ml-auto"
+                        className="p-1 rounded-lg bg-studio-panel hover:bg-studio-hover text-studio-muted hover:text-studio-text transition-all cursor-pointer border border-studio-border ml-auto"
                         title="下载图片"
                       >
-                        <Download className="w-3 h-3" />
+                        <Download className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
