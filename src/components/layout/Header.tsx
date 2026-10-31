@@ -257,17 +257,17 @@ import { stripEmoji } from "../../lib/utils";
                        setUserMenuOpen(false);
                        setAdminModalOpen(true, "users");
                      }}
-                     className="w-full px-2.5 py-2 rounded-xl text-left text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-600 border border-amber-500/40 flex items-center gap-2.5 transition-colors cursor-pointer group"
+                     className="w-full px-2.5 py-2 rounded-xl text-left text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-2.5 transition-colors cursor-pointer group"
                    >
-                     <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-600 border border-amber-500/30">
-                       <Crown className="w-3.5 h-3.5" />
+                     <div className="w-6 h-6 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-500 border border-emerald-500/25">
+                       <ShieldCheck className="w-3.5 h-3.5" />
                      </div>
                      <div className="flex-1">
                        <span className="font-semibold flex items-center gap-1.5">
                          系统管理与创作者管控
-                         <span className="text-[9px] font-mono px-1 rounded bg-amber-500/30 text-amber-800 dark:text-amber-600">ADMIN</span>
+                         <span className="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">ADMIN</span>
                        </span>
-                       <span className="text-[10px] text-amber-800/80 dark:text-amber-200/70 block">账号封禁、重设密码、AI 模型配置</span>
+                       <span className="text-[10px] text-studio-muted block">账号封禁、重设密码、AI 模型配置</span>
                      </div>
                    </button>
                    <div className="h-[1px] bg-studio-border my-1 mx-1" />
@@ -406,10 +406,10 @@ import { stripEmoji } from "../../lib/utils";
               <button
                 id="header-admin-quick-btn"
                 onClick={() => setAdminModalOpen(true, "users")}
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-600 font-medium transition-all cursor-pointer shrink-0 shadow-xs"
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs text-emerald-600 dark:text-emerald-400 font-medium transition-all cursor-pointer shrink-0 shadow-xs"
                 title="打开系统管理后台（创作者账号与全局 AI 大模型管控）"
               >
-                <Crown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                 <span>管理后台</span>
               </button>
             )}

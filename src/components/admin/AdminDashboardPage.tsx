@@ -33,7 +33,17 @@ import {
   EyeOff,
   ExternalLink,
   Sparkles,
+  Mail,
+  Globe,
+  Shield,
+  Send,
+  ListFilter,
+  Key,
+  Sliders,
 } from "lucide-react";
+import type { SiteFilingConfig, EmailConfig } from "../../lib/api";
+import type { AiConfig } from "../../types/ai";
+import { IMAGE_RATIOS } from "../../lib/ai-styles";
 import { AvatarView } from "../ui/AvatarView";
 import { WebsiteLogo } from "../ui/WebsiteLogo";
 import { stripEmoji } from "../../lib/utils";
@@ -54,15 +64,44 @@ import {
 import type { AdminOverview } from "../../lib/api";
 import type { UserAccount } from "../../types/document";
 
-type AdminSection = "dashboard" | "users" | "styles" | "models" | "settings";
+type AdminSection = "dashboard" | "users" | "styles" | "models" | "filing" | "email" | "settings";
 
 const SECTIONS: { id: AdminSection; label: string; icon: React.ElementType; desc: string }[] = [
   { id: "dashboard", label: "数据概览", icon: LayoutDashboard, desc: "平台核心指标" },
   { id: "users", label: "用户与资源", icon: Users, desc: "账号 · 积分 · 存储" },
   { id: "styles", label: "模板与风格", icon: Palette, desc: "风格库全生命周期" },
   { id: "models", label: "AI 模型网关", icon: Cpu, desc: "接口密钥与计费" },
-  { id: "settings", label: "全局规则设置", icon: Settings, desc: "积分 · 存储 · 站点" },
+  { id: "filing", label: "备案信息设置", icon: Globe, desc: "ICP · 公安部备案号" },
+  { id: "email", label: "发信与邮箱通道", icon: Mail, desc: "SMTP 服务 · 域名白名单" },
+  { id: "settings", label: "全局规则设置", icon: Settings, desc: "积分流水 · 默认配额" },
 ];
+
+/** 备案开关（自适应深浅主题） */
+const AdminToggleSwitch: React.FC<{
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+}> = ({ checked, onChange, label }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    title={checked ? "已开启" : "已关闭"}
+    onClick={() => onChange(!checked)}
+    className={`relative w-11 h-6 rounded-full border transition-colors cursor-pointer shrink-0 ${
+      checked
+        ? "bg-emerald-500 border-emerald-400"
+        : "bg-studio-panel border-studio-border"
+    }`}
+  >
+    <span
+      className={`absolute top-[2px] w-[18px] h-[18px] rounded-full shadow-xs transition-all ${
+        checked ? "left-[22px] bg-white" : "left-[2px] bg-studio-dim"
+      }`}
+    />
+  </button>
+);
 
 function formatGB(bytes: number): string {
   if (!bytes || bytes < 0) return "0";
@@ -99,10 +138,22 @@ export const AdminDashboardPage: React.FC = () => {
   const aiConfig = useEditorStore((s) => s.aiConfig);
   const fetchAiStyles = useEditorStore((s) => s.fetchAiStyles);
   const fetchAiConfig = useEditorStore((s) => s.fetchAiConfig);
+  const saveAiConfig = useEditorStore((s) => s.saveAiConfig);
+  const testAiConfig = useEditorStore((s) => s.testAiConfig);
+  const fetchAiModels = useEditorStore((s) => s.fetchAiModels);
   const adminToggleAiStyle = useEditorStore((s) => s.adminToggleAiStyle);
   const adminSaveAiStyle = useEditorStore((s) => s.adminSaveAiStyle);
   const adminDeleteAiStyle = useEditorStore((s) => s.adminDeleteAiStyle);
   const adminResetAiStyles = useEditorStore((s) => s.adminResetAiStyles);
+
+  // 备案与发信 Store 接口
+  const siteFilingConfig = useEditorStore((s) => s.siteFilingConfig);
+  const saveSiteFilingConfig = useEditorStore((s) => s.saveSiteFilingConfig);
+  const fetchSiteFilingConfig = useEditorStore((s) => s.fetchSiteFilingConfig);
+  const adminEmailConfig = useEditorStore((s) => s.adminEmailConfig);
+  const fetchAdminEmailConfig = useEditorStore((s) => s.fetchAdminEmailConfig);
+  const saveAdminEmailConfig = useEditorStore((s) => s.saveAdminEmailConfig);
+  const testAdminEmailConfig = useEditorStore((s) => s.testAdminEmailConfig);
 
   // 支持 /admin?tab=users / ai_config / styles / filing / email 直接落到对应页
   const initialSection = (() => {
@@ -112,8 +163,9 @@ export const AdminDashboardPage: React.FC = () => {
         users: "users",
         ai_config: "models",
         styles: "styles",
-        filing: "settings",
-        email: "settings",
+        filing: "filing",
+        email: "email",
+        settings: "settings",
       };
       return map[t] || "dashboard";
     } catch (e) {
@@ -140,6 +192,57 @@ export const AdminDashboardPage: React.FC = () => {
   const [pwdTarget, setPwdTarget] = useState<UserAccount | null>(null);
   const [pwdValue, setPwdValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UserAccount | null>(null);
+
+  // ── AI 模型网关表单状态 ──
+  const [gatewayBaseUrl, setGatewayBaseUrl] = useState("https://api.openai.com/v1");
+  const [gatewayApiKey, setGatewayApiKey] = useState("");
+  const [gatewayModel, setGatewayModel] = useState("image2");
+  const [gatewaySize, setGatewaySize] = useState("auto");
+  const [isTestingAi, setIsTestingAi] = useState(false);
+  const [isSavingAi, setIsSavingAi] = useState(false);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [fetchedModels, setFetchedModels] = useState<string[]>([
+    "image2",
+    "dall-e-3",
+    "dall-e-2",
+    "flux-pro",
+    "flux-dev",
+    "flux-schnell",
+    "grok-imagine",
+    "midjourney-v6",
+    "stable-diffusion-3-medium",
+    "sdxl-turbo",
+    "gpt-4o-image",
+  ]);
+  const [modelSearchFilter, setModelSearchFilter] = useState("");
+
+  // ── 备案信息设置状态 ──
+  const [icpEnabled, setIcpEnabled] = useState(false);
+  const [icpNumber, setIcpNumber] = useState("");
+  const [icpLink, setIcpLink] = useState("https://beian.miit.gov.cn/");
+  const [policeEnabled, setPoliceEnabled] = useState(false);
+  const [policeNumber, setPoliceNumber] = useState("");
+  const [policeCode, setPoliceCode] = useState("");
+  const [policeLink, setPoliceLink] = useState("https://beian.mps.gov.cn/#/query/webSearch");
+  const [filingSaving, setFilingSaving] = useState<null | "icp" | "police">(null);
+
+  // ── 发信邮箱与域名白名单状态 ──
+  const [emailChannelName, setEmailChannelName] = useState("企业发信通道 (mexai.cc)");
+  const [emailHost, setEmailHost] = useState("");
+  const [emailPort, setEmailPort] = useState(465);
+  const [emailEncryption, setEmailEncryption] = useState<"tls" | "starttls" | "none">("tls");
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailUser, setEmailUser] = useState("");
+  const [emailPass, setEmailPass] = useState("");
+  const [showEmailPass, setShowEmailPass] = useState(false);
+  const [emailFrom, setEmailFrom] = useState("");
+  const [emailFromName, setEmailFromName] = useState("留白集 MarginLab");
+  const [whitelistEnabled, setWhitelistEnabled] = useState(true);
+  const [whitelistText, setWhitelistText] = useState("");
+  const [testTargetEmail, setTestTargetEmail] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [savingEmail, setSavingEmail] = useState(false);
 
   // ── 风格模板管理状态 ──
   const [styleSearchQuery, setStyleSearchQuery] = useState("");
@@ -315,9 +418,159 @@ export const AdminDashboardPage: React.FC = () => {
     }
     reload();
     fetchAiStyles().catch(() => {});
-    fetchAiConfig().catch(() => {});
+    fetchAiConfig().then((cfg) => {
+      if (cfg) {
+        setGatewayBaseUrl(cfg.baseUrl || "https://api.openai.com/v1");
+        setGatewayModel(cfg.model || "image2");
+        setGatewaySize(cfg.size || "auto");
+        setGatewayApiKey(cfg.maskedKey || "");
+      }
+    }).catch(() => {});
+    fetchSiteFilingConfig().then((cfg) => {
+      if (cfg) {
+        setIcpEnabled(cfg.icpEnabled);
+        setIcpNumber(cfg.icpNumber || "");
+        setIcpLink(cfg.icpLink || "https://beian.miit.gov.cn/");
+        setPoliceEnabled(cfg.policeEnabled);
+        setPoliceNumber(cfg.policeNumber || "");
+        setPoliceCode(cfg.policeCode || "");
+        setPoliceLink(cfg.policeLink || "https://beian.mps.gov.cn/#/query/webSearch");
+      }
+    }).catch(() => {});
+    fetchAdminEmailConfig().then((cfg) => {
+      if (cfg) {
+        setEmailChannelName(cfg.channelName || "企业发信通道");
+        setEmailHost(cfg.host || "");
+        setEmailPort(cfg.port || 465);
+        setEmailEncryption(cfg.encryption || "tls");
+        setEmailEnabled(Boolean(cfg.enabled));
+        setEmailUser(cfg.user || "");
+        setEmailFrom(cfg.fromEmail || "");
+        setEmailFromName(cfg.fromName || "留白集 MarginLab");
+        setWhitelistEnabled(Boolean(cfg.whitelistEnabled));
+        if (Array.isArray(cfg.whitelistDomains)) {
+          setWhitelistText(cfg.whitelistDomains.join("\n"));
+        }
+      }
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, currentUser?.isAdmin]);
+
+  // AI 接口保存与测试
+  const handleSaveAiGateway = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingAi(true);
+    const res = await saveAiConfig({
+      baseUrl: gatewayBaseUrl.trim(),
+      apiKey: gatewayApiKey.trim(),
+      model: gatewayModel.trim(),
+      size: gatewaySize,
+    });
+    setIsSavingAi(false);
+    showToast(res.success ? "ok" : "err", res.message || (res.success ? "AI 模型网关配置已更新" : "保存失败"));
+  };
+
+  const handleTestAiGateway = async () => {
+    setIsTestingAi(true);
+    const res = await testAiConfig();
+    setIsTestingAi(false);
+    showToast(res.success ? "ok" : "err", res.message || (res.success ? "AI 接口连通性测试通过！" : "接口测试失败"));
+  };
+
+  const handleFetchAiModels = async () => {
+    setIsFetchingModels(true);
+    const res = await fetchAiModels({
+      baseUrl: gatewayBaseUrl.trim(),
+      apiKey: gatewayApiKey.trim(),
+    });
+    setIsFetchingModels(false);
+    if (res.success && res.models && res.models.length > 0) {
+      setFetchedModels(res.models);
+      showToast("ok", `成功拉取 ${res.models.length} 个可用模型`);
+    } else {
+      showToast("err", res.message || "拉取模型列表失败，请检查 Base URL 与 API Key");
+    }
+  };
+
+  // 备案保存
+  const persistFiling = async (
+    which: "icp" | "police",
+    patch: Partial<SiteFilingConfig>,
+    successText: string
+  ) => {
+    setFilingSaving(which);
+    const res = await saveSiteFilingConfig(patch);
+    setFilingSaving(null);
+    showToast(res.success ? "ok" : "err", res.success ? successText : res.message || "备案保存失败");
+  };
+
+  // 邮箱保存与测试
+  const handleSaveEmailConfig = async () => {
+    setSavingEmail(true);
+    const domains = whitelistText
+      .split("\n")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const res = await saveAdminEmailConfig({
+      channelName: emailChannelName.trim(),
+      host: emailHost.trim(),
+      port: Number(emailPort) || 465,
+      encryption: emailEncryption,
+      enabled: emailEnabled,
+      user: emailUser.trim(),
+      ...(emailPass.trim() ? { pass: emailPass.trim() } : {}),
+      fromEmail: emailFrom.trim(),
+      fromName: emailFromName.trim(),
+      whitelistEnabled,
+      whitelistDomains: domains,
+    });
+    setSavingEmail(false);
+    showToast(res.success ? "ok" : "err", res.success ? (res.message || "发信通道设置已保存！") : (res.message || "保存失败"));
+    if (res.success) setEmailPass("");
+  };
+
+  const handleTestEmail = async () => {
+    if (!testTargetEmail.trim()) {
+      setTestResult({ success: false, message: "请先输入接收测试邮件的目标邮箱地址" });
+      return;
+    }
+    setTestingEmail(true);
+    setTestResult(null);
+    const res = await testAdminEmailConfig({
+      targetEmail: testTargetEmail.trim(),
+      channelName: emailChannelName.trim(),
+      host: emailHost.trim(),
+      port: Number(emailPort) || 465,
+      encryption: emailEncryption,
+      user: emailUser.trim(),
+      pass: emailPass.trim(),
+      fromEmail: emailFrom.trim(),
+      fromName: emailFromName.trim(),
+    });
+    setTestingEmail(false);
+    setTestResult({
+      success: res.success,
+      message: res.message,
+    });
+  };
+
+  const handleFillCommonDomains = () => {
+    const defaults = [
+      "gmail.com",
+      "163.com",
+      "126.com",
+      "qq.com",
+      "outlook.com",
+      "hotmail.com",
+      "foxmail.com",
+      "sina.com",
+      "139.com",
+      "189.cn",
+      "aliyun.com",
+    ];
+    setWhitelistText(defaults.join("\n"));
+    showToast("ok", "已快捷填入主流邮箱白名单");
+  };
 
   useEffect(() => {
     if (section === "settings" && adminId) {
@@ -1098,113 +1351,640 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
           )}
 
-          {/* ── AI 模型网关 ── */}
+          {/* ── AI 模型网关（全功能部署表单） ── */}
           {section === "models" && (
-            <div className="space-y-3">
-              <div className="glass-panel rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Cpu className="w-4 h-4 text-violet-400" />
-                  <h2 className="text-xs font-bold text-studio-text">当前接入模型</h2>
+            <div className="space-y-4 max-w-4xl">
+              <div className="glass-panel rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-studio-text">AI 图像大模型网关部署</h2>
+                  <p className="text-[11px] text-studio-muted mt-0.5">
+                    全平台统一部署上游 OpenAI / image2 兼容协议接口，所有创作者共享算力，无需用户自备密钥
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-white/5 border border-studio-border">
-                    <p className="text-[10px] text-studio-dim mb-0.5">Base URL</p>
-                    <p className="font-mono text-studio-text truncate">{aiConfig?.baseUrl || "—"}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-studio-border">
-                    <p className="text-[10px] text-studio-dim mb-0.5">模型</p>
-                    <p className="font-mono text-studio-text truncate">{aiConfig?.model || "—"}</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-studio-border">
-                    <p className="text-[10px] text-studio-dim mb-0.5">API Key</p>
-                    <p className="font-mono text-studio-text truncate">
-                      {aiConfig?.apiKey ? `${aiConfig.apiKey.slice(0, 8)}••••` : "未配置"}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-studio-border">
-                    <p className="text-[10px] text-studio-dim mb-0.5">状态</p>
-                    <p
-                      className={`font-bold ${
-                        aiConfig?.apiKey ? "text-emerald-300" : "text-amber-300"
-                      }`}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${
+                      aiConfig?.isConfigured
+                        ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                        : "bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                    }`}
+                  >
+                    {aiConfig?.isConfigured ? "✓ 网关已就绪" : "待配置密钥"}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveAiGateway} className="glass-panel rounded-2xl p-5 space-y-4">
+                {/* 1. Base URL */}
+                <div>
+                  <label className="text-xs font-bold text-studio-text block mb-1">
+                    API 接口地址 (Base URL) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={gatewayBaseUrl}
+                    onChange={(e) => setGatewayBaseUrl(e.target.value)}
+                    placeholder="https://api.openai.com/v1 或中转接口代理"
+                    className="w-full input-dark px-3.5 py-2.5 text-xs font-mono"
+                  />
+                  <p className="text-[11px] text-studio-muted mt-1">
+                    支持 OpenAI 官方或任何标准兼容网关（如 image2 / one-api / new-api 等）
+                  </p>
+                </div>
+
+                {/* 2. API Key */}
+                <div>
+                  <label className="text-xs font-bold text-studio-text block mb-1">
+                    API 密钥 (API Key) *
+                  </label>
+                  <input
+                    type="password"
+                    value={gatewayApiKey}
+                    onChange={(e) => setGatewayApiKey(e.target.value)}
+                    placeholder={aiConfig?.apiKey ? "••••••••••••••••  (已保存，留空保留原密钥)" : "sk-..."}
+                    className="w-full input-dark px-3.5 py-2.5 text-xs font-mono"
+                  />
+                  <p className="text-[11px] text-studio-muted mt-1">
+                    密钥仅保存在服务端加密沙盒内，前端脱敏返回，保障资金与接口安全
+                  </p>
+                </div>
+
+                {/* 3. 模型名称 & 实时拉取 */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-studio-text">
+                      图像模型名称 (Model) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleFetchAiModels}
+                      disabled={isFetchingModels}
+                      className="px-2.5 py-1 rounded-lg btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 text-emerald-500 dark:text-emerald-400"
                     >
-                      {aiConfig?.apiKey ? "已连通配置" : "待配置"}
-                    </p>
+                      <RefreshCw className={`w-3.5 h-3.5 ${isFetchingModels ? "animate-spin" : ""}`} />
+                      <span>{isFetchingModels ? "正在拉取网关模型..." : "实时拉取网关模型列表"}</span>
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    required
+                    value={gatewayModel}
+                    onChange={(e) => setGatewayModel(e.target.value)}
+                    placeholder="例如: image2 / dall-e-3 / flux-pro"
+                    className="w-full input-dark px-3.5 py-2.5 text-xs font-mono"
+                  />
+
+                  {/* 快捷点选网格 */}
+                  <div className="pt-1 space-y-1">
+                    <span className="text-[11px] text-studio-muted block">点击快速选用推荐与已拉取模型：</span>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-studio-panel rounded-xl border border-studio-border">
+                      {fetchedModels.map((m) => {
+                        const isSelected = gatewayModel.toLowerCase() === m.toLowerCase();
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setGatewayModel(m)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer border ${
+                              isSelected
+                                ? "bg-emerald-500 text-black border-emerald-400 font-bold shadow-xs"
+                                : "bg-studio-card border-studio-border text-studio-muted hover:text-studio-text"
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => useEditorStore.getState().setAdminModalOpen(true, "ai_config")}
-                  className="mt-3 px-3 py-1.5 rounded-xl btn-aurora text-xs font-bold cursor-pointer"
-                >
-                  打开完整模型配置
-                </button>
+
+                {/* 4. 默认生成画幅比例 */}
+                <div>
+                  <label className="text-xs font-bold text-studio-text block mb-1.5">
+                    默认推荐画幅比例 (Size / Aspect Ratio)
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-9 gap-1.5 p-2 bg-studio-panel rounded-xl border border-studio-border">
+                    {IMAGE_RATIOS.map((r) => {
+                      const isSelected = gatewaySize === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setGatewaySize(r.id)}
+                          className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-bold"
+                              : "bg-studio-card border-studio-border text-studio-muted hover:text-studio-text"
+                          }`}
+                        >
+                          <div className="text-[11px] font-mono">{r.label}</div>
+                          <div className="text-[9px] text-studio-dim truncate">{r.desc}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 5. 测试与保存按钮 */}
+                <div className="pt-3 border-t border-studio-border flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    disabled={isTestingAi}
+                    onClick={handleTestAiGateway}
+                    className="px-4 py-2 rounded-xl btn-glass text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isTestingAi ? "animate-spin" : ""}`} />
+                    <span>{isTestingAi ? "测试中…" : "测试 API 连通性"}</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingAi}
+                    className="px-5 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs"
+                  >
+                    {isSavingAi ? "保存中…" : "保存全平台模型配置"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── 备案信息设置（独立全功能页签） ── */}
+          {section === "filing" && (
+            <div className="space-y-4 max-w-4xl">
+              <div className="glass-panel rounded-2xl p-4">
+                <h2 className="text-sm font-bold text-studio-text">网站备案信息设置</h2>
+                <p className="text-[11px] text-studio-muted mt-0.5 leading-relaxed">
+                  ICP 备案与公安部备案号各带一个<strong>独立开关</strong>。开关打开且填写真实号码后，才会显示在落地页页脚；关闭后即刻从前台隐藏。两项互不影响，可只开其中一项。
+                </p>
+              </div>
+
+              {/* 1) ICP 备案设置 */}
+              <div className="glass-panel rounded-2xl p-5 space-y-3.5">
+                <div className="flex items-center justify-between pb-3 border-b border-studio-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-500 flex items-center justify-center font-bold">
+                      <Globe className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-studio-text">ICP 网站备案设置 (工信部)</h3>
+                      <p className="text-[10px] text-studio-dim font-mono">MIIT · 工业和信息化部政务服务平台</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-studio-text">
+                      {icpEnabled ? "已开启展示" : "已关闭隐藏"}
+                    </span>
+                    <AdminToggleSwitch
+                      checked={icpEnabled}
+                      onChange={(next) => {
+                        setIcpEnabled(next);
+                        persistFiling("icp", { icpEnabled: next, icpNumber, icpLink }, next ? "ICP 备案展示已开启" : "ICP 备案展示已关闭");
+                      }}
+                      label="ICP 备案展示开关"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      ICP 备案号
+                    </label>
+                    <input
+                      type="text"
+                      value={icpNumber}
+                      onChange={(e) => setIcpNumber(e.target.value)}
+                      placeholder="例如: 皖ICP备19011861号-4"
+                      className="w-full input-dark px-3 py-2 text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      工信部查询跳转链接
+                    </label>
+                    <input
+                      type="text"
+                      value={icpLink}
+                      onChange={(e) => setIcpLink(e.target.value)}
+                      placeholder="https://beian.miit.gov.cn/"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-studio-dim">页脚点击备案号将新窗口跳转到工信部核验</span>
+                    <button
+                      type="button"
+                      disabled={filingSaving === "icp"}
+                      onClick={() => persistFiling("icp", { icpEnabled, icpNumber, icpLink }, "ICP 备案配置已成功保存！")}
+                      className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      {filingSaving === "icp" ? "保存中…" : "保存 ICP 备案设置"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2) 公安部备案号设置 */}
+              <div className="glass-panel rounded-2xl p-5 space-y-3.5">
+                <div className="flex items-center justify-between pb-3 border-b border-studio-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 flex items-center justify-center font-bold">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-studio-text">全国公安机关互联网站安全管理服务平台备案</h3>
+                      <p className="text-[10px] text-studio-dim font-mono">MPS · 全国公安机关互联网站安全管理</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-studio-text">
+                      {policeEnabled ? "已开启展示" : "已关闭隐藏"}
+                    </span>
+                    <AdminToggleSwitch
+                      checked={policeEnabled}
+                      onChange={(next) => {
+                        setPoliceEnabled(next);
+                        persistFiling("police", { policeEnabled: next, policeNumber, policeCode, policeLink }, next ? "公安备案展示已开启" : "公安备案展示已关闭");
+                      }}
+                      label="公安部备案展示开关"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                        公安备案号
+                      </label>
+                      <input
+                        type="text"
+                        value={policeNumber}
+                        onChange={(e) => setPoliceNumber(e.target.value)}
+                        placeholder="例如: 京公网安备 11010502000000号"
+                        className="w-full input-dark px-3 py-2 text-xs font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                        备案编号代码（选填，用于跳转定位）
+                      </label>
+                      <input
+                        type="text"
+                        value={policeCode}
+                        onChange={(e) => setPoliceCode(e.target.value)}
+                        placeholder="11010502000000"
+                        className="w-full input-dark px-3 py-2 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      公安备案查询链接
+                    </label>
+                    <input
+                      type="text"
+                      value={policeLink}
+                      onChange={(e) => setPoliceLink(e.target.value)}
+                      placeholder="https://beian.mps.gov.cn/#/query/webSearch"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-studio-dim">与 ICP 备案独立管控，保存后即刻生效</span>
+                    <button
+                      type="button"
+                      disabled={filingSaving === "police"}
+                      onClick={() => persistFiling("police", { policeEnabled, policeNumber, policeCode, policeLink }, "公安部备案配置已成功保存！")}
+                      className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      {filingSaving === "police" ? "保存中…" : "保存公安备案设置"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* ── 全局规则设置 ── */}
-          {section === "settings" && (
-            <div className="space-y-3 max-w-3xl">
+          {/* ── 发信与邮箱通道设置（独立全功能页签） ── */}
+          {section === "email" && (
+            <div className="space-y-4 max-w-4xl">
               <div className="glass-panel rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Settings className="w-4 h-4 text-emerald-400" />
-                  <h2 className="text-xs font-bold text-studio-text">积分与存储全局默认值</h2>
+                <h2 className="text-sm font-bold text-studio-text">发信与邮箱通道设置</h2>
+                <p className="text-[11px] text-studio-muted mt-0.5 leading-relaxed">
+                  配置系统标准 SMTP 发信通道，用于用户自主注册发送 6 位验证码，以及密码找回安全验证
+                </p>
+              </div>
+
+              {/* CARD 1: SMTP 服务通道配置 */}
+              <div className="glass-panel rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-studio-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-500/30 text-violet-400 flex items-center justify-center font-bold">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-studio-text">SMTP 发信服务设置</h3>
+                      <p className="text-[10px] text-studio-dim font-mono">标准发信客户端配置</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-studio-text">
+                      {emailEnabled ? "发信已启用" : "已停用"}
+                    </span>
+                    <AdminToggleSwitch
+                      checked={emailEnabled}
+                      onChange={(next) => setEmailEnabled(next)}
+                      label="发信服务全局开关"
+                    />
+                  </div>
                 </div>
-                {sysCfg ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-1">
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      通道识别名称
+                    </label>
+                    <input
+                      type="text"
+                      value={emailChannelName}
+                      onChange={(e) => setEmailChannelName(e.target.value)}
+                      placeholder="例: 飞书企业邮 / 腾讯企业邮"
+                      className="w-full input-dark px-3 py-2 text-xs"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      SMTP 服务器地址 *
+                    </label>
+                    <input
+                      type="text"
+                      value={emailHost}
+                      onChange={(e) => setEmailHost(e.target.value)}
+                      placeholder="smtp.larksuite.com 或 smtp.qq.com"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      端口 (Port) *
+                    </label>
+                    <input
+                      type="number"
+                      value={emailPort}
+                      onChange={(e) => setEmailPort(Number(e.target.value))}
+                      placeholder="465"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      加密方式
+                    </label>
+                    <select
+                      value={emailEncryption}
+                      onChange={(e) => setEmailEncryption(e.target.value as any)}
+                      className="w-full input-dark px-3 py-2 text-xs cursor-pointer font-medium"
+                    >
+                      <option value="tls">直接 TLS (默认 465)</option>
+                      <option value="starttls">STARTTLS (通常 587)</option>
+                      <option value="none">无加密 (不安全)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      SMTP 认证账号
+                    </label>
+                    <input
+                      type="text"
+                      value={emailUser}
+                      onChange={(e) => setEmailUser(e.target.value)}
+                      placeholder="通常是完整登录邮箱"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      SMTP 授权密码 (留空保留已配置)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showEmailPass ? "text" : "password"}
+                        value={emailPass}
+                        onChange={(e) => setEmailPass(e.target.value)}
+                        placeholder={adminEmailConfig?.hasPass ? "•••••••••••• (已保存)" : "输入应用专属授权码"}
+                        className="w-full input-dark px-3 pr-8 py-2 text-xs font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPass(!showEmailPass)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-studio-dim hover:text-studio-text cursor-pointer"
+                      >
+                        {showEmailPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      发件人邮箱 (From) *
+                    </label>
+                    <input
+                      type="text"
+                      value={emailFrom}
+                      onChange={(e) => setEmailFrom(e.target.value)}
+                      placeholder="mexai@mexai.cc"
+                      className="w-full input-dark px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-studio-muted block mb-1">
+                      发件人显示名称
+                    </label>
+                    <input
+                      type="text"
+                      value={emailFromName}
+                      onChange={(e) => setEmailFromName(e.target.value)}
+                      placeholder="留白集 MarginLab"
+                      className="w-full input-dark px-3 py-2 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* 即时发送连通性测试卡片 */}
+                <div className="p-3.5 rounded-xl bg-studio-panel border border-studio-border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-studio-text flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>即时发信连通性测试</span>
+                    </span>
+                    <span className="text-[10px] text-studio-dim font-mono">发送真实 6 位验证码以验证 SMTP 通道</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={testTargetEmail}
+                      onChange={(e) => setTestTargetEmail(e.target.value)}
+                      placeholder="输入接收测试邮件的目标邮箱 (如 duck@ugreen.tv)"
+                      className="flex-1 input-dark px-3 py-2 text-xs font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={testingEmail}
+                      onClick={handleTestEmail}
+                      className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      <Send className={`w-3.5 h-3.5 ${testingEmail ? "animate-spin" : ""}`} />
+                      <span>{testingEmail ? "发送中…" : "发送测试邮件"}</span>
+                    </button>
+                  </div>
+                  {testResult && (
+                    <div
+                      className={`p-2.5 rounded-lg border text-xs font-medium ${
+                        testResult.success
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                          : "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                      }`}
+                    >
+                      {testResult.success ? "✓ 连通性测试通过！邮件已成功投递。" : `✗ 连通性测试失败：${testResult.message}`}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    disabled={savingEmail}
+                    onClick={handleSaveEmailConfig}
+                    className="px-5 py-2.5 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs"
+                  >
+                    {savingEmail ? "保存中…" : "保存发信邮箱配置"}
+                  </button>
+                </div>
+              </div>
+
+              {/* CARD 2: 电子邮件域名白名单 */}
+              <div className="glass-panel rounded-2xl p-5 space-y-3.5">
+                <div className="flex items-center justify-between pb-3 border-b border-studio-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center font-bold">
+                      <ListFilter className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-studio-text">允许注册邮箱域名白名单</h3>
+                      <p className="text-[10px] text-studio-dim">不在白名单内的邮箱后缀将被拦截，保障平台安全</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-studio-text">
+                      {whitelistEnabled ? "白名单限制已开启" : "白名单已关闭（允许任意邮箱）"}
+                    </span>
+                    <AdminToggleSwitch
+                      checked={whitelistEnabled}
+                      onChange={(next) => setWhitelistEnabled(next)}
+                      label="域名白名单开关"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-studio-muted">
+                      每行填写一个合法域名（如 163.com、qq.com、gmail.com 等）
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleFillCommonDomains}
+                      className="text-xs font-bold text-emerald-500 hover:underline cursor-pointer"
+                    >
+                      + 快捷填入常用主流邮箱 (163/QQ/Gmail等)
+                    </button>
+                  </div>
+
+                  <textarea
+                    rows={6}
+                    value={whitelistText}
+                    onChange={(e) => setWhitelistText(e.target.value)}
+                    placeholder="163.com\nqq.com\ngmail.com\noutlook.com"
+                    className="w-full input-dark p-3 text-xs font-mono leading-relaxed"
+                  />
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      disabled={savingEmail}
+                      onClick={handleSaveEmailConfig}
+                      className="px-4 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50"
+                    >
+                      {savingEmail ? "保存中…" : "保存域名白名单"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── 全局规则设置（积分与存储配额） ── */}
+          {section === "settings" && (
+            <div className="space-y-4 max-w-3xl">
+              <div className="glass-panel rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Settings className="w-4 h-4 text-emerald-500" />
+                  <h2 className="text-sm font-bold text-studio-text">积分与云存储全局默认规则</h2>
+                </div>
+                <p className="text-[11px] text-studio-muted">
+                  控制新用户注册初始算力与默认云盘空间，所有后续生成的扣减规则均由此控制
+                </p>
+              </div>
+
+              {sysCfg ? (
+                <div className="glass-panel rounded-2xl p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {[
-                      { key: "registerPoints", label: "新用户注册赠送积分", unit: "分" },
-                      { key: "checkInPoints", label: "每日签到赠送积分", unit: "分" },
-                      { key: "costPerImage", label: "单张图片生成消耗", unit: "分" },
-                      { key: "defaultStorageGB", label: "新用户默认存储空间", unit: "GB" },
+                      { key: "registerPoints", label: "新用户注册赠送积分", unit: "分", desc: "首次注册立即到账" },
+                      { key: "checkInPoints", label: "每日签到奖励积分", unit: "分", desc: "每日自然日首登领取" },
+                      { key: "costPerImage", label: "单张图片生成消耗", unit: "分/张", desc: "AI生图扣减单价" },
+                      { key: "defaultStorageGB", label: "新用户默认存储配额", unit: "GB", desc: "初始云盘可用空间" },
                     ].map((f) => (
-                      <div key={f.key}>
-                        <label className="text-[11px] font-semibold text-studio-muted block mb-1 whitespace-nowrap">
+                      <div key={f.key} className="p-3 rounded-xl bg-studio-panel border border-studio-border">
+                        <label className="text-xs font-bold text-studio-text block mb-0.5">
                           {f.label}（{f.unit}）
                         </label>
+                        <p className="text-[10px] text-studio-dim mb-2">{f.desc}</p>
                         <input
                           type="number"
                           value={sysCfg[f.key] ?? ""}
                           onChange={(e) =>
                             setSysCfg({ ...sysCfg, [f.key]: e.target.value === "" ? "" : Number(e.target.value) })
                           }
-                          className="w-full input-dark px-3 py-2 text-xs font-mono"
+                          className="w-full input-dark px-3 py-2 text-xs font-mono font-bold"
                         />
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-xs text-studio-muted">加载中…</p>
-                )}
-                <button
-                  onClick={saveSysConfig}
-                  disabled={cfgSaving || !sysCfg}
-                  className="mt-3 px-4 py-2 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50"
-                >
-                  {cfgSaving ? "保存中…" : "保存全局规则"}
-                </button>
-              </div>
 
-              <div className="glass-panel rounded-2xl p-4">
-                <h2 className="text-xs font-bold text-studio-text mb-2">站点与备案</h2>
-                <p className="text-[11px] text-studio-muted mb-3">
-                  ICP 备案号、公安备案号、发信邮箱等配置，请前往「完整控制台」对应页签设置。
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => useEditorStore.getState().setAdminModalOpen(true, "filing")}
-                    className="px-3 py-1.5 rounded-xl btn-glass text-xs font-semibold cursor-pointer"
-                  >
-                    备案设置
-                  </button>
-                  <button
-                    onClick={() => useEditorStore.getState().setAdminModalOpen(true, "email")}
-                    className="px-3 py-1.5 rounded-xl btn-glass text-xs font-semibold cursor-pointer"
-                  >
-                    发信与邮箱
-                  </button>
+                  <div className="pt-2 border-t border-studio-border flex justify-end">
+                    <button
+                      onClick={saveSysConfig}
+                      disabled={cfgSaving || !sysCfg}
+                      className="px-5 py-2.5 rounded-xl btn-aurora text-xs font-bold cursor-pointer disabled:opacity-50 shadow-xs"
+                    >
+                      {cfgSaving ? "保存中…" : "保存全局规则配置"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="glass-panel rounded-2xl p-8 text-center text-xs text-studio-muted">
+                  正在读取系统全局配置…
+                </div>
+              )}
             </div>
           )}
         </div>
